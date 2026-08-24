@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from ml.engine.baseline import predict_baseline
 from ml.spec_constants import (
@@ -181,3 +182,10 @@ def test_baseline_changes_with_sleep_hours() -> None:
     rested = predict_baseline({"sleep_hours": 9.0})
     sleep_deprived = predict_baseline({"sleep_hours": 4.0})
     assert sleep_deprived > rested
+
+
+def test_daily_log_rejects_fields_not_allowed_for_source() -> None:
+    record = json.loads((FIXTURES / "calm_child.json").read_text(encoding="utf-8"))[0]
+    record["source"] = "school"
+    with pytest.raises(ValidationError, match="cannot report fields"):
+        DailyLog.model_validate(record)

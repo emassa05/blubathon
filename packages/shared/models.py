@@ -30,6 +30,7 @@ from ml.spec_constants import (
     RISK_MIN,
     SLEEP_HOURS_MAX,
     SLEEP_HOURS_MIN,
+    SOURCE_ALLOWED_FIELDS,
     TEXT_MAX_LENGTH,
 )
 
@@ -160,6 +161,15 @@ class DailyLog(FaroModel):
                 )
             if has_value and provenance_value is None:
                 provenance[field_name] = FieldProvenance.OBSERVED.value
+        disallowed_values = {
+            field_name
+            for field_name in PROVENANCE_FIELDS
+            if field_name not in SOURCE_ALLOWED_FIELDS[self.source]
+            and getattr(self, field_name) not in (None, [])
+        }
+        if disallowed_values:
+            names = ", ".join(sorted(disallowed_values))
+            raise ValueError(f"source {self.source} cannot report fields: {names}")
         self.field_provenance = provenance
         return self
 
