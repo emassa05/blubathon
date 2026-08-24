@@ -1,0 +1,25 @@
+[
+  {
+    "log_id": "30000000-0000-4000-8000-000000000001",
+    "child_id": "30000000-0000-4000-8000-000000000000",
+    "date": "2026-08-22",
+    "source": "home",
+    "sleep_hours": 8.0,
+    "observed_behavior_tags": [],
+    "crisis_occurred": false,
+    "capture_method": "form",
+    "field_provenance": {},
+    "created_at": "2026-08-22T22:00:00Z"
+  },
+  {
+    "log_id": "30000000-0000-4000-8000-000000000002",
+    "child_id": "30000000-0000-4000-8000-000000000000",
+    "date": "2026-08-23",
+    "source": "home",
+    "observed_behavior_tags": [],
+    "crisis_occurred": false,
+    "capture_method": "form",
+    "field_provenance": {},
+    "created_at": "2026-08-23T22:00:00Z"
+  }
+]
