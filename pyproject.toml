@@ -9,7 +9,7 @@ description = "Deterministic next-day dysregulation risk engine"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "fastapi>=0.116,<1",
-    "lightgbm>=4.6,<5",
+    "lightgbm>=4.7,<5",
     "mapie>=1.0,<2",
     "numpy>=2.1,<3",
     "pandas>=2.2,<3",
