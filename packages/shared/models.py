@@ -2,23 +2,36 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+import re
+from datetime import date, datetime, timedelta
 from enum import StrEnum
 from typing import Annotated, Literal, Self
-from uuid import UUID
 
 from pydantic import (
     UUID4,
     AwareDatetime,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
     field_validator,
     model_validator,
 )
+from pydantic_core import PydanticCustomError
 
 from ml.spec_constants import (
+    ABSTAIN_ICD,
+    ABSTAIN_WIDTH,
+    BAND_AMBER,
+    BAND_RED,
     BEHAVIOR_TAGS,
+    CONFIDENCE_HIGH_ICD,
+    CONFIDENCE_HIGH_WIDTH,
+    CONFIDENCE_MEDIUM_ICD,
+    CONFIDENCE_MEDIUM_WIDTH,
     DYSREGULATION_EVENTS_MAX,
     DYSREGULATION_EVENTS_MIN,
     NIGHT_AWAKENINGS_MAX,
@@ -32,11 +45,33 @@ from ml.spec_constants import (
     SLEEP_HOURS_MIN,
     SOURCE_ALLOWED_FIELDS,
     TEXT_MAX_LENGTH,
+    VOI_MAX_REQUESTED_VARIABLES,
 )
+from packages.shared.texts import FILTER_QUESTION_ES
 
-Probability = Annotated[float, Field(ge=RISK_MIN, le=RISK_MAX)]
-Ordinal = Annotated[int, Field(ge=ORDINAL_MIN, le=ORDINAL_MAX)]
+Probability = Annotated[StrictFloat, Field(ge=RISK_MIN, le=RISK_MAX)]
+Ordinal = Annotated[StrictInt, Field(ge=ORDINAL_MIN, le=ORDINAL_MAX)]
 ShortText = Annotated[str, Field(max_length=TEXT_MAX_LENGTH)]
+
+
+def _parse_canonical_date(value: object) -> date:
+    if isinstance(value, datetime):
+        raise ValueError("date must not contain a time")
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str) or re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) is None:
+        raise ValueError("date must use YYYY-MM-DD")
+    return date.fromisoformat(value)
+
+
+def _parse_utc_timestamp(value: object) -> object:
+    if isinstance(value, str) and ("T" not in value or not value.endswith("Z")):
+        raise ValueError("timestamp must use ISO-8601 UTC with a Z suffix")
+    return value
+
+
+CanonicalDate = Annotated[date, BeforeValidator(_parse_canonical_date)]
+UtcTimestamp = Annotated[AwareDatetime, BeforeValidator(_parse_utc_timestamp)]
 
 
 class FaroModel(BaseModel):
@@ -83,34 +118,34 @@ def _validate_utc(value: AwareDatetime) -> AwareDatetime:
 class DailyLog(FaroModel):
     log_id: UUID4
     child_id: UUID4
-    date: date
+    date: CanonicalDate
     source: Source
-    sleep_hours: Annotated[float, Field(ge=SLEEP_HOURS_MIN, le=SLEEP_HOURS_MAX)] | None = None
+    sleep_hours: Annotated[StrictFloat, Field(ge=SLEEP_HOURS_MIN, le=SLEEP_HOURS_MAX)] | None = None
     sleep_quality: Ordinal | None = None
     night_awakenings: (
-        Annotated[int, Field(ge=NIGHT_AWAKENINGS_MIN, le=NIGHT_AWAKENINGS_MAX)] | None
+        Annotated[StrictInt, Field(ge=NIGHT_AWAKENINGS_MIN, le=NIGHT_AWAKENINGS_MAX)] | None
     ) = None
     wake_state: Ordinal | None = None
     morning_support_need: Ordinal | None = None
     gi_status: Ordinal | None = None
-    food_changes: bool | None = None
-    routine_changes: bool | None = None
+    food_changes: StrictBool | None = None
+    routine_changes: StrictBool | None = None
     observed_behavior_tags: list[BehaviorTag] = Field(default_factory=list)
     observed_behavior_note: ShortText | None = None
     alertness: Ordinal | None = None
     dysregulation_events: (
-        Annotated[int, Field(ge=DYSREGULATION_EVENTS_MIN, le=DYSREGULATION_EVENTS_MAX)] | None
+        Annotated[StrictInt, Field(ge=DYSREGULATION_EVENTS_MIN, le=DYSREGULATION_EVENTS_MAX)] | None
     ) = None
     activity_participation: Ordinal | None = None
     social_interactions: Ordinal | None = None
     eating_status: Ordinal | None = None
-    relevant_event_flag: bool | None = None
+    relevant_event_flag: StrictBool | None = None
     relevant_events_note: ShortText | None = None
-    crisis_occurred: bool
+    crisis_occurred: StrictBool
     other_notes: ShortText | None = None
     capture_method: CaptureMethod
     field_provenance: dict[str, FieldProvenance] = Field(default_factory=dict)
-    created_at: AwareDatetime
+    created_at: UtcTimestamp
 
     @field_validator("created_at")
     @classmethod
@@ -134,7 +169,17 @@ class DailyLog(FaroModel):
         for field_name in PROVENANCE_FIELDS:
             value = getattr(self, field_name)
             provenance_value = provenance.get(field_name)
-            has_value = value is not None and value != []
+            has_value = value is not None and (
+                value != []
+                or (
+                    field_name in self.model_fields_set
+                    and provenance_value
+                    not in {
+                        FieldProvenance.ASSUMED_STABLE.value,
+                        FieldProvenance.UNKNOWN.value,
+                    }
+                )
+            )
             if (
                 provenance_value
                 in {
@@ -143,9 +188,10 @@ class DailyLog(FaroModel):
                 }
                 and has_value
             ):
-                raise ValueError(
-                    f"provenance_conflict: {field_name} cannot have a value with "
-                    f"{provenance_value} provenance"
+                raise PydanticCustomError(
+                    "provenance_conflict",
+                    "{field_name} cannot have a value with {provenance_value} provenance",
+                    {"field_name": field_name, "provenance_value": provenance_value},
                 )
             if (
                 provenance_value
@@ -155,9 +201,10 @@ class DailyLog(FaroModel):
                 }
                 and not has_value
             ):
-                raise ValueError(
-                    f"provenance_conflict: {field_name} requires a value with "
-                    f"{provenance_value} provenance"
+                raise PydanticCustomError(
+                    "provenance_conflict",
+                    "{field_name} requires a value with {provenance_value} provenance",
+                    {"field_name": field_name, "provenance_value": provenance_value},
                 )
             if has_value and provenance_value is None:
                 provenance[field_name] = FieldProvenance.OBSERVED.value
@@ -177,21 +224,21 @@ class DailyLog(FaroModel):
 class RequestedVariable(FaroModel):
     variable: str
     prompt_es: str
-    voi: float = Field(ge=RISK_MIN)
+    voi: StrictFloat = Field(ge=RISK_MIN)
 
 
 class RiskResponse(FaroModel):
     child_id: UUID4
-    date: date
+    date: CanonicalDate
     status: Literal["ok", "insufficient_data"]
     risk: Probability | None
     risk_band: Literal["verde", "ambar", "rojo"] | None
     interval: tuple[Probability, Probability] | None
     confidence: Literal["alta", "media", "baja"] | None
     icd: Probability
-    requested_variables: list[RequestedVariable]
+    requested_variables: list[RequestedVariable] = Field(max_length=VOI_MAX_REQUESTED_VARIABLES)
     model_version: str
-    generated_at: AwareDatetime
+    generated_at: UtcTimestamp
 
     @field_validator("generated_at")
     @classmethod
@@ -207,22 +254,51 @@ class RiskResponse(FaroModel):
             raise ValueError("ok responses require risk, band, interval, and confidence")
         if self.interval is not None and self.interval[0] > self.interval[1]:
             raise ValueError("interval lower bound cannot exceed upper bound")
+        if self.status == "insufficient_data" and not self.requested_variables:
+            raise ValueError("insufficient_data responses require requested_variables")
+        if self.status == "ok":
+            if self.icd < ABSTAIN_ICD:
+                raise ValueError("ok responses cannot be below the ICD abstention floor")
+            width = self.interval[1] - self.interval[0]
+            if width > ABSTAIN_WIDTH:
+                raise ValueError("ok responses cannot exceed the interval abstention width")
+            expected_band = (
+                "verde" if self.risk < BAND_AMBER else "ambar" if self.risk < BAND_RED else "rojo"
+            )
+            if self.risk_band != expected_band:
+                raise ValueError("risk_band does not match risk")
+            expected_confidence = (
+                "alta"
+                if self.icd >= CONFIDENCE_HIGH_ICD and width <= CONFIDENCE_HIGH_WIDTH
+                else "media"
+                if self.icd >= CONFIDENCE_MEDIUM_ICD and width <= CONFIDENCE_MEDIUM_WIDTH
+                else "baja"
+            )
+            if self.confidence != expected_confidence:
+                raise ValueError("confidence does not match ICD and interval width")
         return self
 
 
 class VoIItem(RequestedVariable):
     reason: Literal["voi", "staleness", "exploration"]
-    suggestion: int | float | bool | None = None
+    suggestion: StrictInt | StrictFloat | StrictBool | None = None
     suggestion_label_es: str | None = None
     days_since_observed: int | None = Field(default=None, ge=0)
 
 
 class VoIResponse(FaroModel):
     child_id: UUID4
-    date: date
-    highlighted: list[VoIItem]
+    date: CanonicalDate
+    highlighted: list[VoIItem] = Field(min_length=2, max_length=3)
     filter_question_es: str
     tail: list[VoIItem]
+
+    @field_validator("filter_question_es")
+    @classmethod
+    def filter_question_is_frozen(cls, value: str) -> str:
+        if value != FILTER_QUESTION_ES:
+            raise ValueError("filter_question_es does not match the frozen text")
+        return value
 
 
 class Driver(FaroModel):
@@ -252,8 +328,8 @@ class ExplainResponse(FaroModel):
 
 class CounterfactualRequest(FaroModel):
     child_id: UUID4
-    date: date
-    overrides: dict[str, bool | int | float]
+    date: CanonicalDate
+    overrides: dict[str, StrictBool | StrictInt | StrictFloat]
 
 
 class CounterfactualResponse(FaroModel):
@@ -261,6 +337,23 @@ class CounterfactualResponse(FaroModel):
     risk_after: Probability
     band_before: Literal["verde", "ambar", "rojo"]
     band_after: Literal["verde", "ambar", "rojo"]
+
+    @model_validator(mode="after")
+    def bands_match_probabilities(self) -> Self:
+        for probability, band in (
+            (self.risk_before, self.band_before),
+            (self.risk_after, self.band_after),
+        ):
+            expected = (
+                "verde"
+                if probability < BAND_AMBER
+                else "ambar"
+                if probability < BAND_RED
+                else "rojo"
+            )
+            if band != expected:
+                raise ValueError("counterfactual band does not match risk")
+        return self
 
 
 class QualityResponse(FaroModel):
@@ -272,10 +365,10 @@ class QualityResponse(FaroModel):
 
 class FeedbackRequest(FaroModel):
     child_id: UUID4
-    date: date
-    dysregulation_occurred: bool
+    date: CanonicalDate
+    dysregulation_occurred: StrictBool
     strategy_used: str | None = None
-    helped: bool | None = None
+    helped: StrictBool | None = None
 
 
 class OkResponse(FaroModel):
@@ -283,8 +376,8 @@ class OkResponse(FaroModel):
 
 
 class IngestResponse(OkResponse):
-    child_id: UUID
-    date: date
+    child_id: UUID4
+    date: CanonicalDate
 
 
 class ErrorDetail(FaroModel):

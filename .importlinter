@@ -1,0 +1,13 @@
+[importlinter]
+root_packages =
+    apps
+    ml
+    packages
+
+[importlinter:contract:ml-does-not-import-apps]
+name = Pure ML domain does not import application code
+type = forbidden
+source_modules =
+    ml
+forbidden_modules =
+    apps

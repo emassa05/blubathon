@@ -6,6 +6,19 @@ INSUFFICIENT_DATA_TEMPLATE_ES = (
     "Me ayudaría saber: {variables}."
 )
 
+ERROR_MESSAGES_ES = {
+    "faro_error": "No fue posible completar la solicitud.",
+    "insufficient_data": "No hay información suficiente para completar este cálculo.",
+    "contract_violation": "Los datos no cumplen el contrato esperado.",
+    "model_not_ready": "El modelo todavía no está disponible.",
+    "provenance_conflict": "La procedencia indicada no puede asignar un valor al campo.",
+    "validation_error": "La solicitud contiene datos inválidos.",
+    "not_found": "No se encontró el recurso solicitado.",
+    "method_not_allowed": "El método solicitado no está disponible para esta ruta.",
+    "http_error": "No fue posible procesar la solicitud HTTP.",
+    "internal_error": "Ocurrió un error interno al procesar la solicitud.",
+}
+
 VARIABLE_LABELS_ES = {
     "sleep_hours": "horas de sueño",
     "sleep_quality": "calidad del sueño",

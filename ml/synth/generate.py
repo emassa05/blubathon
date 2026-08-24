@@ -371,6 +371,8 @@ def _make_log(
         "field_provenance": provenance,
         "created_at": created_at.isoformat().replace("+00:00", "Z"),
     }
+    if provenance["observed_behavior_tags"] == "unknown":
+        record.pop("observed_behavior_tags")
     return DailyLog.model_validate(record).model_dump(mode="json")
 
 
