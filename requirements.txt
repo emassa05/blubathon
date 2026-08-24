@@ -1,0 +1,8 @@
+# apps/api + ml/ (Python 3.12 recomendado por SPEC §15; probado también en 3.14)
+fastapi
+pydantic>=2
+uvicorn
+numpy
+pytest
+ruff
+httpx2   # requerido por fastapi.testclient.TestClient en esta versión de fastapi

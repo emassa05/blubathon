@@ -1,0 +1,13 @@
+# CONVENTIONS §9 — data/ no se versiona, salvo manifest.json
+data/*
+!data/manifest.json
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+node_modules/
+.env
+*.db

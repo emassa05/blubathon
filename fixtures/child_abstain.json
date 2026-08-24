@@ -1,0 +1,25 @@
+[
+  {
+    "log_id": "d2426c6b-2987-49f1-aba5-c8144595e09c",
+    "child_id": "00000000-0000-0000-0000-000000000003",
+    "date": "2026-08-01",
+    "source": "home",
+    "capture_method": "synthetic",
+    "created_at": "2026-08-01T08:00:00Z",
+    "field_provenance": {
+      "sleep_hours": "observed"
+    },
+    "sleep_hours": 7.0,
+    "crisis_occurred": false
+  },
+  {
+    "log_id": "8689709e-fea8-47bd-9478-0bc54d174185",
+    "child_id": "00000000-0000-0000-0000-000000000003",
+    "date": "2026-08-02",
+    "source": "home",
+    "capture_method": "synthetic",
+    "created_at": "2026-08-02T08:00:00Z",
+    "field_provenance": {},
+    "crisis_occurred": false
+  }
+]
