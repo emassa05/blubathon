@@ -14,6 +14,7 @@ from packages.shared.models import (
     FeedbackRequest,
     FieldProvenance,
     IngestResponse,
+    MedicationAdherence,
     Narrative,
     OkResponse,
     QualityResponse,
@@ -25,18 +26,24 @@ from packages.shared.models import (
     VoIResponse,
 )
 from packages.shared.texts import (
+    BAND_LABELS_ES,
+    CLOSING_QUESTION_TEMPLATE_ES,
     ERROR_MESSAGES_ES,
     FILTER_QUESTION_ES,
     INSUFFICIENT_DATA_TEMPLATE_ES,
+    MEDICATION_ADHERENCE_ANCHORS_ES,
     ORDINAL_ANCHORS_ES,
     VARIABLE_LABELS_ES,
     VARIABLE_PROMPTS_ES,
 )
 
 __all__ = [
+    "BAND_LABELS_ES",
+    "CLOSING_QUESTION_TEMPLATE_ES",
     "ERROR_MESSAGES_ES",
     "FILTER_QUESTION_ES",
     "INSUFFICIENT_DATA_TEMPLATE_ES",
+    "MEDICATION_ADHERENCE_ANCHORS_ES",
     "ORDINAL_ANCHORS_ES",
     "VARIABLE_LABELS_ES",
     "VARIABLE_PROMPTS_ES",
@@ -53,6 +60,7 @@ __all__ = [
     "FeedbackRequest",
     "FieldProvenance",
     "IngestResponse",
+    "MedicationAdherence",
     "Narrative",
     "OkResponse",
     "QualityResponse",

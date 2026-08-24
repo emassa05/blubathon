@@ -9,8 +9,10 @@ import pandas as pd
 import pytest
 
 from ml.spec_constants import (
+    CATEGORICAL_FIELDS,
     FIELD_RANGES,
     HIGH_WEIGHT_FIELDS,
+    MEDICATION_ADHERENCE_VALUES,
     PROVENANCE_FIELDS,
     RANDOM_SEED,
     SYNTH_BASE_RATE_MAX,
@@ -96,6 +98,7 @@ def test_latent_load_reconstructs_from_fixed_equation(dataset: SyntheticDataset)
         + coefficient["sensory"] * truth["sensory_load"]
         + coefficient["sleep_routine"] * truth["sleep_debt"] * truth["routine_load"]
         + coefficient["gi_sensory"] * truth["gi_burden"] * truth["sensory_load"]
+        + coefficient["medication"] * truth["medication_missed"].astype(float)
         + coefficient["carryover"] * truth["previous_load"]
         + truth["susceptibility"]
         + truth["innovation"]
@@ -103,9 +106,16 @@ def test_latent_load_reconstructs_from_fixed_equation(dataset: SyntheticDataset)
     assert np.allclose(truth["latent_load"], reconstructed)
 
 
+def test_categorical_fields_only_hold_declared_values(dataset: SyntheticDataset) -> None:
+    """A nominal field has a vocabulary, not a range (SPEC 2.1 field 16)."""
+    values = set(dataset.logs["medication_adherence"].dropna().unique())
+    assert values
+    assert values <= set(MEDICATION_ADHERENCE_VALUES)
+
+
 def test_high_weight_variables_stay_in_legal_ranges(dataset: SyntheticDataset) -> None:
     logs = dataset.logs
-    for variable in HIGH_WEIGHT_FIELDS:
+    for variable in HIGH_WEIGHT_FIELDS - set(CATEGORICAL_FIELDS):
         values = logs[variable].dropna().astype(float)
         lower, upper = FIELD_RANGES[variable]
         assert not values.empty

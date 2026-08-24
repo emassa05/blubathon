@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,6 +12,9 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from apps.api.routes import router
+from apps.api.services import configure_services
+from apps.api.services_impl import FaroServices
+from apps.api.settings import DB_PATH, MODEL_PATH
 from ml.errors import (
     ContractViolationError,
     FaroError,
@@ -20,7 +25,22 @@ from ml.spec_constants import SPEC_VERSION
 from packages.shared import ERROR_MESSAGES_ES
 
 logger = logging.getLogger(__name__)
-app = FastAPI(title="Faro API", version=SPEC_VERSION)
+services = FaroServices(MODEL_PATH, DB_PATH)
+configure_services(services)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Load the artifact up front. Without one every scoring route answers 503."""
+    if not services.warm_up():
+        logger.warning(
+            "No trained model at %s. Run python -m ml.synth.generate and python -m ml.train.",
+            MODEL_PATH,
+        )
+    yield
+
+
+app = FastAPI(title="Faro API", version=SPEC_VERSION, lifespan=lifespan)
 app.include_router(router)
 
 

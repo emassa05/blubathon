@@ -48,6 +48,8 @@ def test_fixed_constants_match_spec() -> None:
         "sleep_routine": 0.50,
         "gi_sensory": 0.35,
         "carryover": 0.30,
+        # SPEC 14.1: a missed dose is a driver the platform actually records.
+        "medication": 0.45,
     }
 
 
@@ -102,7 +104,7 @@ def test_risk_response_validates_literal_spec_example() -> None:
         "requested_variables": [
             {"variable": "gi_status", "prompt_es": "¿Tuvo molestias digestivas hoy?", "voi": 0.12}
         ],
-        "model_version": "faro-0.2.0",
+        "model_version": "faro-0.2.1",
         "generated_at": "2026-08-25T07:00:00Z",
     }
     assert RiskResponse.model_validate(example).risk == example["risk"]

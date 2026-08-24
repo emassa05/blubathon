@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from ml.spec_constants import (
+    CATEGORICAL_FIELDS,
     FIELD_RANGES,
     ICD_CONSISTENCY_FLOOR,
     ICD_RECENCY_LAMBDA,
@@ -104,13 +105,17 @@ def _compute_recency(records: list[dict[str, Any]], target_date: date) -> float:
 def _normalized_disagreements(day_records: list[dict[str, Any]]) -> list[float]:
     disagreements: list[float] = []
     for variable in ICD_WEIGHTS:
+        present = [record[variable] for record in day_records if _has_value(record.get(variable))]
+        if len(present) < 2:
+            continue
+        if variable in CATEGORICAL_FIELDS:
+            # A nominal answer has no distance: two sources either agree or they
+            # do not, and a normalized gap would be meaningless.
+            disagreements.extend(float(left != right) for left, right in combinations(present, 2))
+            continue
         lower, upper = FIELD_RANGES[variable]
         legal_range = upper - lower
-        values = [
-            float(record[variable]) for record in day_records if _has_value(record.get(variable))
-        ]
-        if len(values) < 2:
-            continue
+        values = [float(value) for value in present]
         disagreements.extend(
             abs(left - right) / legal_range for left, right in combinations(values, 2)
         )

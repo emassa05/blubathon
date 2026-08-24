@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 
-SPEC_VERSION = "0.2.0"
-MODEL_VERSION = "faro-0.2.0"
+SPEC_VERSION = "0.2.1"
+MODEL_VERSION = "faro-0.2.1"
 API_PREFIX = "/api/v1"
 REFERENCE_TIMEZONE = "America/Santiago"
 RANDOM_SEED = 42
@@ -26,6 +26,16 @@ NIGHT_AWAKENINGS_MAX = 15
 DYSREGULATION_EVENTS_MIN = 0
 DYSREGULATION_EVENTS_MAX = 20
 TEXT_MAX_LENGTH = 500
+
+# SPEC 2.1 field 16 (added in 0.2.1, see SPEC 14.1). Bluba records medication
+# adherence as a three-state answer: taken, missed, or no medication prescribed.
+# "not_applicable" is a real answer and must not collapse into the null that
+# means nobody replied, so the model receives a nominal code plus its
+# *_missing flag rather than an ordinal.
+MEDICATION_ADHERENCE_VALUES = ("taken", "missed", "not_applicable")
+MEDICATION_ADHERENCE_CODES = {"missed": 0, "taken": 1, "not_applicable": 2}
+MEDICATION_CODE_MIN = 0
+MEDICATION_CODE_MAX = 2
 
 BEHAVIOR_TAGS = (
     "calm",
@@ -68,12 +78,15 @@ BOOLEAN_FIELDS = (
     "relevant_event_flag",
     "crisis_occurred",
 )
+CATEGORICAL_FIELDS = ("medication_adherence",)
 TEXT_FIELDS = (
     "observed_behavior_note",
     "relevant_events_note",
     "other_notes",
 )
-PROVENANCE_FIELDS = NUMERIC_FIELDS + BOOLEAN_FIELDS + TEXT_FIELDS + ("observed_behavior_tags",)
+PROVENANCE_FIELDS = (
+    NUMERIC_FIELDS + BOOLEAN_FIELDS + CATEGORICAL_FIELDS + TEXT_FIELDS + ("observed_behavior_tags",)
+)
 MODEL_INPUT_FIELDS = (
     "sleep_hours",
     "sleep_quality",
@@ -89,6 +102,7 @@ MODEL_INPUT_FIELDS = (
     "social_interactions",
     "eating_status",
     "relevant_event_flag",
+    "medication_adherence",
 )
 ORDINAL_FIELDS = (
     "sleep_quality",
@@ -115,6 +129,7 @@ FIELD_RANGES = {
     "food_changes": (RISK_MIN, RISK_MAX),
     "routine_changes": (RISK_MIN, RISK_MAX),
     "relevant_event_flag": (RISK_MIN, RISK_MAX),
+    "medication_adherence": (MEDICATION_CODE_MIN, MEDICATION_CODE_MAX),
 }
 
 SOURCE_ALLOWED_FIELDS = {
@@ -128,6 +143,7 @@ SOURCE_ALLOWED_FIELDS = {
             "observed_behavior_tags",
             "observed_behavior_note",
             "alertness",
+            "medication_adherence",
             "crisis_occurred",
         }
     ),
@@ -163,6 +179,7 @@ ICD_WEIGHTS = {
     "eating_status": 0.3,
     "food_changes": 0.3,
     "relevant_event_flag": 0.3,
+    "medication_adherence": 0.6,
 }
 HIGH_WEIGHT_MIN = 0.5
 HIGH_WEIGHT_FIELDS = frozenset(
@@ -207,6 +224,7 @@ SYNTH_COEFFICIENTS = {
     "sleep_routine": 0.50,
     "gi_sensory": 0.35,
     "carryover": 0.30,
+    "medication": 0.45,
 }
 SYNTH_NOISE_STD = 0.70
 SYNTH_SUSCEPTIBILITY_STD = 0.60
@@ -325,3 +343,48 @@ MISSPECIFICATION_BETA_MAX = 1.3
 MISSPECIFICATION_CARRYOVERS = (0.15, 0.45)
 MISSPECIFICATION_BASE_RATES = (0.06, 0.16)
 MISSPECIFICATION_SEEDS = (142, 143, 144)
+
+# SPEC 12.1 — closed strategy catalogue. The LLM may only pick from this list.
+STRATEGIES = {
+    "visual_support": "Apoyos visuales / agenda anticipada",
+    "reduce_stimuli": "Reducir estímulos sensoriales",
+    "advance_sleep": "Proteger / adelantar la rutina de sueño",
+    "anticipate_transition": "Anticipar verbalmente las transiciones",
+    "regulation_space": "Ofrecer un espacio de regulación",
+    "sensory_tools": "Herramientas sensoriales (audífonos, presión)",
+    "routine_predictability": "Reforzar la predictibilidad de la rutina",
+    "gi_comfort": "Atender molestias físicas / GI",
+    "proactive_breaks": "Pausas proactivas estructuradas",
+    "co_regulation": "Co-regulación y presencia calmada",
+}
+
+# SPEC 12.2 — driver to candidate strategies.
+DRIVER_STRATEGY_MAP = {
+    "sueño": ("advance_sleep", "co_regulation"),
+    "rutina": ("visual_support", "anticipate_transition", "routine_predictability"),
+    "GI": ("gi_comfort", "reduce_stimuli"),
+    "sensorial/alerta": ("reduce_stimuli", "sensory_tools"),
+    "desregulación": ("regulation_space", "co_regulation"),
+    "colegio": ("anticipate_transition", "proactive_breaks"),
+    # Added with medication_adherence (SPEC 14.1): a missed dose is a physical
+    # driver, so it routes to the same comfort and co-regulation supports.
+    "medicación": ("gi_comfort", "co_regulation"),
+}
+
+# SPEC 3 — a major dysregulation event is what crisis_occurred records.
+MAJOR_CRISIS_TAGS = ("meltdown", "aggression", "self_injury", "elopement")
+
+# SPEC 13 — one alert per child per week is the budget the recall curve reports.
+EVALUATION_ALERT_BUDGET_PER_CHILD = 1
+
+# SPEC 13.1 — questions each elicitation policy shows per day.
+ELICITATION_POLICY_QUESTIONS = {"A": 15, "B": 3, "C": 5, "D": 2}
+# SPEC 13.1 — a HIGH_WEIGHT variable that moved this much without being asked.
+STALE_CHANGE_THRESHOLD_POINTS = 2.0
+
+# SPEC 8.4 extension (0.2.1): Bluba records medication adherence, so the
+# generator must produce it or the model has nothing to learn from. Roughly one
+# child in three has a prescription, and a missed dose raises the day's load
+# about as much as a change of routine.
+SYNTH_MEDICATED_PROBABILITY = 0.35
+SYNTH_MEDICATION_MISS_PROBABILITY = 0.12

@@ -15,7 +15,9 @@ from ml.errors import (
     InsufficientDataError,
     ModelNotReadyError,
 )
+from ml.spec_constants import MODEL_VERSION
 from packages.shared import (
+    FILTER_QUESTION_ES,
     CounterfactualRequest,
     CounterfactualResponse,
     DailyLog,
@@ -67,7 +69,7 @@ class FakeServices:
                         "voi": 0.12,
                     }
                 ],
-                "model_version": "faro-0.2.0",
+                "model_version": MODEL_VERSION,
                 "generated_at": "2026-08-24T22:00:00Z",
             }
         )
@@ -353,7 +355,7 @@ def test_response_models_reject_inconsistent_success_states() -> None:
                 "confidence": "alta",
                 "icd": 0.80,
                 "requested_variables": [],
-                "model_version": "faro-0.2.0",
+                "model_version": MODEL_VERSION,
                 "generated_at": "2026-08-24T22:00:00Z",
             }
         )
@@ -364,13 +366,21 @@ def test_response_models_reject_inconsistent_success_states() -> None:
             band_before="verde",
             band_after="ambar",
         )
-    with pytest.raises(ValidationError, match="at least 2"):
+    highlighted_item = {
+        "variable": "sleep_hours",
+        "prompt_es": "¿Cuántas horas durmió anoche?",
+        "voi": 0.12,
+        "reason": "voi",
+    }
+    # SPEC 7.5a: the block never grows past three, even when more variables
+    # reach the staleness ceiling on the same day.
+    with pytest.raises(ValidationError, match="at most 3"):
         VoIResponse.model_validate(
             {
                 "child_id": CHILD_ID,
                 "date": str(TARGET_DATE),
-                "highlighted": [],
-                "filter_question_es": "¿Hoy pasó algo distinto o fuera de lo común?",
+                "highlighted": [highlighted_item] * 4,
+                "filter_question_es": FILTER_QUESTION_ES,
                 "tail": [],
             }
         )

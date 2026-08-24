@@ -34,6 +34,7 @@ VARIABLE_LABELS_ES = {
     "social_interactions": "interacciones sociales",
     "eating_status": "alimentación",
     "relevant_event_flag": "evento relevante",
+    "medication_adherence": "adherencia a medicación",
 }
 
 VARIABLE_PROMPTS_ES = {
@@ -51,22 +52,23 @@ VARIABLE_PROMPTS_ES = {
     "food_changes": "¿Hubo cambios en lo que comió?",
     "dysregulation_events": "¿Tuvo episodios de desregulación hoy? ¿Cuántos?",
     "relevant_event_flag": FILTER_QUESTION_ES,
+    "medication_adherence": "¿Tomó su medicación hoy?",
 }
 
 ORDINAL_ANCHORS_ES = {
     "sleep_quality": {
-        1: "Pésima — casi no durmió, muchos despertares",
-        2: "Mala — durmió poco o muy inquieto",
-        3: "Regular — durmió, pero con interrupciones",
+        1: "Pésima — casi no durmió",
+        2: "Dificultad de conciliación — le costó quedarse dormido",
+        3: "Interrumpido — durmió, pero con despertares",
         4: "Buena — durmió bien, alguna interrupción menor",
-        5: "Excelente — durmió de corrido y despertó descansado",
+        5: "Reparador — durmió de corrido y despertó descansado",
     },
     "wake_state": {
-        1: "Muy desregulado — despertó llorando o muy alterado",
-        2: "Desregulado — despertó irritable o muy sensible",
-        3: "Neutro — ni bien ni mal",
+        1: "Irritable / llorando — despertó alterado",
+        2: "Molesto — despertó sensible o a la defensiva",
+        3: "Cansado / con sueño — despertó sin energía",
         4: "Tranquilo — despertó bien, con buena disposición",
-        5: "Muy tranquilo — despertó descansado y regulado",
+        5: "Tranquilo / alegre — despertó descansado y regulado",
     },
     "morning_support_need": {
         1: "Autónomo — hizo su rutina solo",
@@ -76,18 +78,18 @@ ORDINAL_ANCHORS_ES = {
         5: "Apoyo total — no logró iniciar el día sin ayuda constante",
     },
     "gi_status": {
-        1: "Muy mal — dolor evidente, vómitos o diarrea",
-        2: "Mal — molestias claras (dolor, estitiquez, náuseas)",
-        3: "Regular — algo de molestia, poco clara",
+        1: "Muy mal — dolor evidente o vómitos",
+        2: "Diarrea — deposiciones sueltas o dolor abdominal",
+        3: "Estreñimiento — cuesta o lleva días sin ir",
         4: "Bien — sin molestias notorias",
-        5: "Muy bien — digestión normal, sin señales",
+        5: "Normal — digestión normal, sin señales",
     },
     "alertness": {
-        1: "Muy apagado — somnoliento, sin energía",
-        2: "Bajo — más lento o desconectado de lo habitual",
-        3: "Adecuado — alerta y disponible",
-        4: "Acelerado — más inquieto o activado de lo habitual",
-        5: "Muy acelerado — muy activado, difícil de calmar",
+        1: "Bajo (letárgico) — somnoliento, sin energía",
+        2: "Calmado — más lento o replegado de lo habitual",
+        3: "Óptimo (regulado) — alerta y disponible",
+        4: "Activado — más inquieto de lo habitual",
+        5: "Alto (sobreexcitado) — muy activado, difícil de calmar",
     },
     "activity_participation": {
         1: "No participó",
@@ -111,3 +113,19 @@ ORDINAL_ANCHORS_ES = {
         5: "Comió muy bien, sin dificultad",
     },
 }
+
+MEDICATION_ADHERENCE_ANCHORS_ES = {
+    "taken": "Sí — la tomó como corresponde",
+    "missed": "No — hoy no la tomó",
+    "not_applicable": "No aplica — no tiene medicación indicada",
+}
+
+BAND_LABELS_ES = {
+    "verde": "riesgo bajo",
+    "ambar": "riesgo medio",
+    "rojo": "riesgo alto",
+}
+
+CLOSING_QUESTION_TEMPLATE_ES = (
+    "¿El {target_date} hubo una crisis o episodio de desregulación mayor?"
+)

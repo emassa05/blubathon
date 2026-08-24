@@ -13,6 +13,7 @@ import pandas as pd
 from sklearn.covariance import MinCovDet
 
 from ml.spec_constants import (
+    CATEGORICAL_FIELDS,
     FEATURE_LAG_FIELDS,
     FEATURE_LAGS,
     FEATURE_MAD_SCALE,
@@ -24,6 +25,7 @@ from ml.spec_constants import (
     FEATURE_TREND_WINDOW_DAYS,
     FEATURE_WEEKDAY_MIN_OBSERVATIONS,
     FEATURE_ZERO_MAD_SCALE,
+    MEDICATION_ADHERENCE_CODES,
     MODEL_INPUT_FIELDS,
     NUMERIC_FIELDS,
     RANDOM_SEED,
@@ -51,14 +53,32 @@ def _records(history: Iterable[DailyLog | Mapping[str, Any]] | pd.DataFrame) -> 
     if frame.empty:
         return frame
     frame["date"] = pd.to_datetime(frame["date"]).dt.normalize()
+    for variable in CATEGORICAL_FIELDS:
+        if variable in frame:
+            # A nominal answer reaches the model as a code plus its missing
+            # flag; it is never ordered, so nothing downstream may average it.
+            frame[variable] = frame[variable].map(
+                lambda value: (
+                    MEDICATION_ADHERENCE_CODES.get(value) if isinstance(value, str) else value
+                )
+            )
     return frame
+
+
+def _first_observed(values: pd.Series) -> float:
+    """Aggregate a nominal field: the first source that answered wins."""
+    observed = values.dropna()
+    return float(observed.iloc[0]) if len(observed) else np.nan
 
 
 def _aggregate_daily(frame: pd.DataFrame) -> pd.DataFrame:
     if frame.empty:
         return frame
     available_values = [variable for variable in MODEL_INPUT_FIELDS if variable in frame]
-    aggregation: dict[str, str] = {variable: "median" for variable in available_values}
+    aggregation: dict[str, Any] = {
+        variable: (_first_observed if variable in CATEGORICAL_FIELDS else "median")
+        for variable in available_values
+    }
     if "crisis_occurred" in frame:
         aggregation["crisis_occurred"] = "max"
     daily = frame.groupby(["child_id", "date"], as_index=False, sort=True).agg(aggregation)
@@ -332,3 +352,113 @@ def build_feature_matrix(
     return pd.concat(matrices, ignore_index=True).sort_values(
         ["child_id", "date"], ignore_index=True
     )
+
+
+def _empty_daily_row(child_id: str, target: pd.Timestamp) -> pd.DataFrame:
+    row = {"child_id": child_id, "date": target, "crisis_occurred": np.nan}
+    row.update(dict.fromkeys(MODEL_INPUT_FIELDS, np.nan))
+    return pd.DataFrame([row])
+
+
+class PointInTimeFeatures:
+    """One child's feature row for one day, cheap to re-evaluate under overrides.
+
+    The Value-of-Information loop (SPEC 7.1) re-scores the same day roughly
+    three hundred times per request. Rebuilding the whole matrix each time costs
+    ~100 ms, so this keeps the finished row and recomputes only the columns that
+    a hypothetical answer can move: the raw value, its missing flag, its personal
+    z-score, its rolling means and its trend. Lags and the personal base rate
+    read strictly earlier days, so an answer about today cannot change them.
+    """
+
+    # Every window this class recomputes looks at most 30 days back, so a tail
+    # of 31 days reproduces the full-history result exactly.
+    _TAIL_DAYS = FEATURE_ROBUST_WINDOW_MAX_DAYS + 1
+
+    def __init__(
+        self,
+        history: Iterable[DailyLog | Mapping[str, Any]] | pd.DataFrame,
+        child_id: str,
+        target_date: date | datetime | str,
+    ) -> None:
+        self.child_id = str(child_id)
+        self.target = pd.Timestamp(_as_date(target_date))
+        daily = _aggregate_daily(_records(history))
+        if not daily.empty:
+            daily = daily[daily["child_id"].astype(str) == self.child_id]
+        if daily.empty or (daily["date"] == self.target).sum() == 0:
+            daily = pd.concat(
+                [daily, _empty_daily_row(self.child_id, self.target)], ignore_index=True
+            )
+        daily = daily.sort_values("date", ignore_index=True)
+        matrix = _child_features(daily)
+        self.feature_names = [
+            column for column in matrix.columns if column not in {"child_id", "date"}
+        ]
+        self._base = matrix[matrix["date"] == self.target].iloc[-1]
+
+        indexed = daily.set_index("date")
+        tail_index = pd.date_range(
+            self.target - pd.Timedelta(days=self._TAIL_DAYS - 1), self.target
+        )
+        self._tails = {
+            variable: indexed[variable].reindex(tail_index).astype(float)
+            for variable in MODEL_INPUT_FIELDS
+        }
+        self._zscore_terms = {
+            variable: self._solve_zscore_terms(series)
+            for variable, series in self._tails.items()
+            if variable in NUMERIC_FIELDS
+        }
+
+    @staticmethod
+    def _solve_zscore_terms(series: pd.Series) -> tuple[float, float]:
+        """Recover today's z-score numerator offset and scale from two probes.
+
+        The z-score is affine in today's value, and both its expected value and
+        its scale are computed from strictly earlier days. Evaluating the exact
+        function at two points therefore pins it down, so each later sample is
+        one subtraction instead of four sliding-window passes.
+        """
+        probe = series.copy()
+        probe.iloc[-1] = 0.0
+        at_zero = _point_in_time_zscores(probe).iloc[-1]
+        probe.iloc[-1] = 1.0
+        at_one = _point_in_time_zscores(probe).iloc[-1]
+        return float(at_zero), float(at_one - at_zero)
+
+    def base_row(self) -> pd.DataFrame:
+        """Return the unmodified feature row as a single-row frame."""
+        return self._base[self.feature_names].to_frame().T.astype(float)
+
+    def _recompute(self, variable: str, value: float | None) -> dict[str, float]:
+        series = self._tails[variable].copy()
+        series.iloc[-1] = np.nan if value is None else float(value)
+        current = series.iloc[-1]
+        updated = {
+            variable: current,
+            f"{variable}_missing": float(pd.isna(current)),
+        }
+        if variable in NUMERIC_FIELDS:
+            offset, slope = self._zscore_terms[variable]
+            updated[f"{variable}_z"] = (
+                np.nan if pd.isna(current) else offset + slope * float(current)
+            )
+            for window_days in FEATURE_ROLLING_WINDOWS:
+                updated[f"{variable}_mean_{window_days}d"] = (
+                    series.rolling(window_days, min_periods=1).mean().iloc[-1]
+                )
+            updated[f"{variable}_trend_{FEATURE_TREND_WINDOW_DAYS}d"] = _rolling_slopes(
+                series, FEATURE_TREND_WINDOW_DAYS
+            ).iloc[-1]
+        return updated
+
+    def row_with(self, overrides: Mapping[str, float | bool | None]) -> pd.DataFrame:
+        """Return the feature row as if today's answers included ``overrides``."""
+        row = self._base.copy()
+        for variable, value in overrides.items():
+            if variable not in self._tails:
+                continue
+            numeric = None if value is None else float(value)
+            row.update(pd.Series(self._recompute(variable, numeric)))
+        return row[self.feature_names].to_frame().T.astype(float)

@@ -1,0 +1,95 @@
+{
+  "causal_model": {
+    "causal_iterations": 12,
+    "coefficients": {
+      "awakenings": 0.5,
+      "carryover": 0.3,
+      "gi": 0.6,
+      "gi_sensory": 0.35,
+      "intercept": -2.2,
+      "medication": 0.45,
+      "routine": 0.6,
+      "sensory": 0.4,
+      "sleep": 0.9,
+      "sleep_routine": 0.5
+    },
+    "gi_burden_weights": [
+      0.6,
+      0.4
+    ],
+    "noise_std": 0.7,
+    "routine_load_weights": [
+      1.0,
+      0.5,
+      0.25
+    ],
+    "sleep_debt_weights": [
+      0.5,
+      0.3,
+      0.2
+    ],
+    "susceptibility_std": 0.6
+  },
+  "generator_version": "faro-synth-0.2.0",
+  "missingness": {
+    "base": 0.25,
+    "forgetful_multiplier": 1.4,
+    "load_factor": 0.4,
+    "load_offset": 0.5,
+    "maximum": 0.85,
+    "sleep_multiplier": 0.6
+  },
+  "observation_model": {
+    "alertness_noise_std": 0.8,
+    "awakenings_base": 0.5,
+    "awakenings_load_factor": 1.5,
+    "dysregulation_load_factor": 2.0,
+    "dysregulation_noise_mean": 0.5,
+    "dysregulation_noise_std": 1.0,
+    "event_probability_max": 0.15,
+    "event_probability_min": 0.1,
+    "gi_chronic_penalty": 1.0,
+    "gi_noise_std": 0.6,
+    "participation_noise_std": 0.8,
+    "sleep_load_divisor": 3.0,
+    "sleep_load_factor": 2.0,
+    "sleep_max": 12.0,
+    "sleep_min": 3.0,
+    "sleep_noise_std": 0.8,
+    "state_noise_std": 0.7
+  },
+  "population": {
+    "days": 180,
+    "n_children": 200,
+    "start_date": "2026-01-01"
+  },
+  "profiles": {
+    "chronic_gi_probability": 0.3,
+    "female_probability": 0.5,
+    "female_signal_factor": 0.7,
+    "high_support_noise_multiplier": 1.2,
+    "nonverbal_gi_multiplier": 1.3,
+    "personal_base_rate": {
+      "max": 0.2,
+      "min": 0.05
+    },
+    "sleep_need": {
+      "max": 11.0,
+      "mean": 9.0,
+      "min": 7.0,
+      "std": 1.0
+    },
+    "support_low_probability": 0.6,
+    "verbal_probability": 0.7
+  },
+  "seed": 42,
+  "sources": {
+    "days_per_week": 7,
+    "school_weekend_start": 5,
+    "therapy_weekdays": [
+      1,
+      4
+    ]
+  },
+  "spec_version": "0.2.0"
+}

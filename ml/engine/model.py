@@ -16,12 +16,14 @@ from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_s
 from ml.errors import ContractViolationError, ModelNotReadyError
 from ml.features import build_feature_matrix
 from ml.spec_constants import (
+    FEATURE_MAD_SCALE,
     MODEL_CALIBRATION_FRACTION,
     MODEL_CLASS_WEIGHT,
     MODEL_COLSAMPLE_BYTREE,
     MODEL_CONFORMAL_CONFIDENCE,
     MODEL_EARLY_STOPPING_ROUNDS,
     MODEL_ENSEMBLE_SEEDS,
+    MODEL_INPUT_FIELDS,
     MODEL_INTERVAL_Z,
     MODEL_LEARNING_RATE,
     MODEL_MAX_DEPTH,
@@ -125,6 +127,29 @@ def build_supervised_dataset(logs: pd.DataFrame) -> SupervisedDataset:
     )
 
 
+def _population_prior(train_features: pd.DataFrame) -> dict[str, dict[str, float]]:
+    """SPEC 8.4: the cold-start prior, measured on the train split only.
+
+    Value-of-Information sampling (SPEC 7.2) falls back to this when a child has
+    too little history of their own. Computing it from train rows keeps test
+    information out of the elicitation policy.
+    """
+    prior: dict[str, dict[str, float]] = {}
+    for variable in MODEL_INPUT_FIELDS:
+        if variable not in train_features:
+            continue
+        column = train_features[variable].dropna().astype(float)
+        if column.empty:
+            continue
+        median = float(column.median())
+        prior[variable] = {
+            "median": median,
+            "mad": float((column - median).abs().median()) * FEATURE_MAD_SCALE,
+            "mean": float(column.mean()),
+        }
+    return prior
+
+
 def _classifier(seed: int) -> lgb.LGBMClassifier:
     return lgb.LGBMClassifier(
         objective=MODEL_OBJECTIVE,
@@ -175,6 +200,7 @@ class RiskEnsemble:
         self.split_: ChildSplit | None = None
         self.conformal_: SplitConformalClassifier | None = None
         self.training_base_rate_: float | None = None
+        self.population_prior_: dict[str, dict[str, float]] = {}
         self.calibration_children_: frozenset[str] = frozenset()
         self.conformal_children_: frozenset[str] = frozenset()
 
@@ -207,6 +233,7 @@ class RiskEnsemble:
         self.split_ = split_by_child(child_array)
         train_mask = np.isin(child_array, list(self.split_.train))
         self.training_base_rate_ = float(target_array[train_mask].mean())
+        self.population_prior_ = _population_prior(features.loc[train_mask])
 
         validation_children = np.random.default_rng(RANDOM_SEED).permutation(
             sorted(self.split_.validation)

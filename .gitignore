@@ -15,6 +15,11 @@ node_modules/
 
 data/*
 !data/manifest.json
+
+# Bluba's anonymised client export. Kept out of git on purpose: the repository
+# is meant to be public, and that is a decision for the team and for Bluba, not
+# a default. ml/adapters/bluba.py documents the mapping without the data.
+Datos base/
 *.joblib
 *.pkl
 *.txt

@@ -34,6 +34,7 @@ from ml.spec_constants import (
     CONFIDENCE_MEDIUM_WIDTH,
     DYSREGULATION_EVENTS_MAX,
     DYSREGULATION_EVENTS_MIN,
+    MEDICATION_ADHERENCE_VALUES,
     NIGHT_AWAKENINGS_MAX,
     NIGHT_AWAKENINGS_MIN,
     ORDINAL_MAX,
@@ -89,6 +90,12 @@ class CaptureMethod(StrEnum):
     SYNTHETIC = "synthetic"
 
 
+class MedicationAdherence(StrEnum):
+    TAKEN = MEDICATION_ADHERENCE_VALUES[0]
+    MISSED = MEDICATION_ADHERENCE_VALUES[1]
+    NOT_APPLICABLE = MEDICATION_ADHERENCE_VALUES[2]
+
+
 class FieldProvenance(StrEnum):
     OBSERVED = "observed"
     CONFIRMED = "confirmed"
@@ -128,6 +135,7 @@ class DailyLog(FaroModel):
     wake_state: Ordinal | None = None
     morning_support_need: Ordinal | None = None
     gi_status: Ordinal | None = None
+    medication_adherence: MedicationAdherence | None = None
     food_changes: StrictBool | None = None
     routine_changes: StrictBool | None = None
     observed_behavior_tags: list[BehaviorTag] = Field(default_factory=list)
@@ -141,7 +149,7 @@ class DailyLog(FaroModel):
     eating_status: Ordinal | None = None
     relevant_event_flag: StrictBool | None = None
     relevant_events_note: ShortText | None = None
-    crisis_occurred: StrictBool
+    crisis_occurred: StrictBool | None = None
     other_notes: ShortText | None = None
     capture_method: CaptureMethod
     field_provenance: dict[str, FieldProvenance] = Field(default_factory=dict)
@@ -289,9 +297,14 @@ class VoIItem(RequestedVariable):
 class VoIResponse(FaroModel):
     child_id: UUID4
     date: CanonicalDate
-    highlighted: list[VoIItem] = Field(min_length=2, max_length=3)
+    # SPEC 7.4 asks for two, or three when ICD is low. A day with fewer
+    # unanswered variables than that simply has less to highlight; the block
+    # never grows past three (SPEC 7.5a).
+    highlighted: list[VoIItem] = Field(max_length=3)
     filter_question_es: str
     tail: list[VoIItem]
+    closing_question_es: str | None = None
+    closing_target_date: CanonicalDate | None = None
 
     @field_validator("filter_question_es")
     @classmethod

@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
@@ -23,6 +24,7 @@ from ml.spec_constants import (
     BOOLEAN_FIELDS,
     DYSREGULATION_EVENTS_MAX,
     DYSREGULATION_EVENTS_MIN,
+    MEDICATION_ADHERENCE_VALUES,
     NIGHT_AWAKENINGS_MAX,
     NIGHT_AWAKENINGS_MIN,
     ORDINAL_FIELDS,
@@ -52,6 +54,8 @@ from ml.spec_constants import (
     SYNTH_GI_CHRONIC_PENALTY,
     SYNTH_GI_NOISE_STD,
     SYNTH_HIGH_SUPPORT_NOISE_MULTIPLIER,
+    SYNTH_MEDICATED_PROBABILITY,
+    SYNTH_MEDICATION_MISS_PROBABILITY,
     SYNTH_MISSING_BASE,
     SYNTH_MISSING_FORGETFUL_MULTIPLIER,
     SYNTH_MISSING_LOAD_FACTOR,
@@ -141,10 +145,15 @@ def apply_camouflage(signal: float, sex: str) -> float:
     return signal
 
 
-def _profile_table(rng: np.random.Generator, n_children: int, seed: int) -> pd.DataFrame:
+def _profile_table(
+    rng: np.random.Generator,
+    n_children: int,
+    seed: int,
+    coefficients: Mapping[str, float] = SYNTH_COEFFICIENTS,
+) -> pd.DataFrame:
     susceptibility = rng.normal(0.0, SYNTH_SUSCEPTIBILITY_STD, n_children)
-    susceptibility_min = _logit(SYNTH_PERSONAL_BASE_RATE_MIN) - SYNTH_COEFFICIENTS["intercept"]
-    susceptibility_max = _logit(SYNTH_PERSONAL_BASE_RATE_MAX) - SYNTH_COEFFICIENTS["intercept"]
+    susceptibility_min = _logit(SYNTH_PERSONAL_BASE_RATE_MIN) - coefficients["intercept"]
+    susceptibility_max = _logit(SYNTH_PERSONAL_BASE_RATE_MAX) - coefficients["intercept"]
     susceptibility = np.clip(susceptibility, susceptibility_min, susceptibility_max)
 
     low_support_count = round(n_children * SYNTH_SUPPORT_LOW_PROBABILITY)
@@ -175,6 +184,7 @@ def _profile_table(rng: np.random.Generator, n_children: int, seed: int) -> pd.D
         "no",
     )
     sex = _exact_binary_profile(rng, n_children, SYNTH_FEMALE_PROBABILITY, "F", "M")
+    medicated = _exact_binary_profile(rng, n_children, SYNTH_MEDICATED_PROBABILITY, "yes", "no")
     sleep_need = np.clip(
         rng.normal(SYNTH_SLEEP_NEED_MEAN, SYNTH_SLEEP_NEED_STD, n_children),
         SYNTH_SLEEP_NEED_MIN,
@@ -187,12 +197,13 @@ def _profile_table(rng: np.random.Generator, n_children: int, seed: int) -> pd.D
             "support_level": support_level,
             "verbal": verbal,
             "chronic_gi": chronic_gi == "yes",
+            "medicated": medicated == "yes",
             "sex": sex,
             "sleep_need": sleep_need,
             "susceptibility": susceptibility,
             "noise_std": noise_std,
             "base_rate_i": [
-                _sigmoid(SYNTH_COEFFICIENTS["intercept"] + value) for value in susceptibility
+                _sigmoid(coefficients["intercept"] + value) for value in susceptibility
             ],
         }
     )
@@ -246,6 +257,7 @@ def _causal_components(
     gi_noise: float,
     alertness_noise: float,
     awakening_quantile: float,
+    medication_missed: bool = False,
 ) -> dict[str, float | int]:
     sleep_hours = float(
         np.clip(
@@ -282,6 +294,7 @@ def _causal_components(
         + float(relevant_event_flag),
     )
     return {
+        "medication_missed": float(medication_missed),
         "sleep_hours": sleep_hours,
         "sleep_deficit": sleep_deficit,
         "sleep_debt": sleep_debt,
@@ -302,8 +315,9 @@ def _latent_load(
     profile: pd.Series,
     previous_load: float,
     innovation: float,
+    coefficients: Mapping[str, float] = SYNTH_COEFFICIENTS,
 ) -> float:
-    coefficient = SYNTH_COEFFICIENTS
+    coefficient = coefficients
     gi_coefficient = coefficient["gi"] * (
         SYNTH_NONVERBAL_GI_MULTIPLIER if profile.verbal == "nonverbal" else 1.0
     )
@@ -316,6 +330,7 @@ def _latent_load(
         + coefficient["sensory"] * components["sensory_load"]
         + coefficient["sleep_routine"] * components["sleep_debt"] * components["routine_load"]
         + coefficient["gi_sensory"] * components["gi_burden"] * components["sensory_load"]
+        + coefficient["medication"] * float(components.get("medication_missed", 0.0))
         + coefficient["carryover"] * previous_load
         + profile.susceptibility
         + innovation
@@ -406,6 +421,7 @@ def _generate_child(
     profile: pd.Series,
     start_date: date,
     days: int,
+    coefficients: Mapping[str, float] = SYNTH_COEFFICIENTS,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     previous_load = 0.0
     current_crisis = bool(rng.random() < profile.base_rate_i)
@@ -421,6 +437,18 @@ def _generate_child(
         routine_changes = bool(rng.random() < event_probability)
         food_changes = bool(rng.random() < event_probability)
         relevant_event_flag = bool(rng.random() < event_probability)
+        medication_missed = bool(
+            profile.medicated and rng.random() < SYNTH_MEDICATION_MISS_PROBABILITY
+        )
+        medication_adherence = (
+            None
+            if not profile.medicated
+            else MEDICATION_ADHERENCE_VALUES[1]
+            if medication_missed
+            else MEDICATION_ADHERENCE_VALUES[0]
+        )
+        if not profile.medicated:
+            medication_adherence = MEDICATION_ADHERENCE_VALUES[2]
         sleep_noise = rng.normal(0.0, SYNTH_SLEEP_NOISE_STD)
         gi_noise = rng.normal(0.0, SYNTH_GI_NOISE_STD)
         alertness_noise = rng.normal(0.0, SYNTH_ALERTNESS_NOISE_STD)
@@ -441,12 +469,14 @@ def _generate_child(
                 gi_noise=gi_noise,
                 alertness_noise=alertness_noise,
                 awakening_quantile=awakening_quantile,
+                medication_missed=medication_missed,
             )
             candidate_load = _latent_load(
                 components=components,
                 profile=profile,
                 previous_load=previous_load,
                 innovation=innovation,
+                coefficients=coefficients,
             )
         components = _causal_components(
             candidate_load=candidate_load,
@@ -460,12 +490,14 @@ def _generate_child(
             gi_noise=gi_noise,
             alertness_noise=alertness_noise,
             awakening_quantile=awakening_quantile,
+            medication_missed=medication_missed,
         )
         latent_load = _latent_load(
             components=components,
             profile=profile,
             previous_load=previous_load,
             innovation=innovation,
+            coefficients=coefficients,
         )
         load_signal = max(0.0, latent_load)
         sleep_quality = _sleep_quality(
@@ -517,6 +549,7 @@ def _generate_child(
             "wake_state": wake_state,
             "morning_support_need": morning_support_need,
             "gi_status": components["gi_status"],
+            "medication_adherence": medication_adherence,
             "food_changes": food_changes,
             "routine_changes": routine_changes,
             "observed_behavior_tags": observed_tags,
@@ -573,7 +606,7 @@ def _generate_child(
 
         next_probability = _sigmoid(latent_load)
         next_crisis = bool(rng.random() < next_probability)
-        gi_coefficient = SYNTH_COEFFICIENTS["gi"] * (
+        gi_coefficient = coefficients["gi"] * (
             SYNTH_NONVERBAL_GI_MULTIPLIER if profile.verbal == "nonverbal" else 1.0
         )
         ground_truth.append(
@@ -587,6 +620,8 @@ def _generate_child(
                 "awakenings_z": components["awakenings_z"],
                 "gi_burden": components["gi_burden"],
                 "gi_coefficient": gi_coefficient,
+                "medication_missed": bool(medication_missed),
+                "medicated": bool(profile.medicated),
                 "routine_load": components["routine_load"],
                 "sensory_load": components["sensory_load"],
                 "p_crisis_next_day": next_probability,
@@ -625,7 +660,14 @@ def _set_log_dtypes(logs: pd.DataFrame) -> pd.DataFrame:
     return logs
 
 
-def _manifest(*, n_children: int, days: int, seed: int, start_date: date) -> dict[str, Any]:
+def _manifest(
+    *,
+    n_children: int,
+    days: int,
+    seed: int,
+    start_date: date,
+    coefficients: Mapping[str, float] = SYNTH_COEFFICIENTS,
+) -> dict[str, Any]:
     return {
         "generator_version": SYNTH_GENERATOR_VERSION,
         "spec_version": SPEC_VERSION,
@@ -636,7 +678,7 @@ def _manifest(*, n_children: int, days: int, seed: int, start_date: date) -> dic
             "start_date": start_date.isoformat(),
         },
         "causal_model": {
-            "coefficients": dict(SYNTH_COEFFICIENTS),
+            "coefficients": dict(coefficients),
             "noise_std": SYNTH_NOISE_STD,
             "susceptibility_std": SYNTH_SUSCEPTIBILITY_STD,
             "sleep_debt_weights": list(SYNTH_SLEEP_DEBT_WEIGHTS),
@@ -704,11 +746,18 @@ def generate_synthetic_data(
     days: int = SYNTH_DAYS,
     seed: int = RANDOM_SEED,
     start_date: date | None = None,
+    coefficients: Mapping[str, float] | None = None,
 ) -> SyntheticDataset:
-    """Generate deterministic logs and unobserved causal ground truth in memory."""
+    """Generate deterministic logs and unobserved causal ground truth in memory.
+
+    ``coefficients`` overrides the fixed causal weights of SPEC 8.2. It exists
+    for the misspecification test of SPEC 13.2, which must evaluate a model
+    trained on these parameters against data generated with different ones.
+    """
+    effective_coefficients = {**SYNTH_COEFFICIENTS, **(coefficients or {})}
     effective_start_date = start_date or date.fromisoformat(SYNTH_START_DATE)
     profile_rng = np.random.default_rng(np.random.SeedSequence([seed, 0]))
-    profiles = _profile_table(profile_rng, n_children, seed)
+    profiles = _profile_table(profile_rng, n_children, seed, effective_coefficients)
     logs: list[dict[str, Any]] = []
     ground_truth: list[dict[str, Any]] = []
     for _, profile in profiles.iterrows():
@@ -721,6 +770,7 @@ def generate_synthetic_data(
             profile=profile,
             start_date=effective_start_date,
             days=days,
+            coefficients=effective_coefficients,
         )
         logs.extend(child_logs)
         ground_truth.extend(child_truth)
@@ -737,6 +787,7 @@ def generate_synthetic_data(
             days=days,
             seed=seed,
             start_date=effective_start_date,
+            coefficients=effective_coefficients,
         ),
     )
 
