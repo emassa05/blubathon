@@ -111,7 +111,9 @@ FIELD_RANGES = {
     "activity_participation": (ORDINAL_MIN, ORDINAL_MAX),
     "social_interactions": (ORDINAL_MIN, ORDINAL_MAX),
     "eating_status": (ORDINAL_MIN, ORDINAL_MAX),
+    "food_changes": (RISK_MIN, RISK_MAX),
     "routine_changes": (RISK_MIN, RISK_MAX),
+    "relevant_event_flag": (RISK_MIN, RISK_MAX),
 }
 
 SOURCE_ALLOWED_FIELDS = {
