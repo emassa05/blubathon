@@ -12,6 +12,11 @@ from tools.train.consent import (
     suspend_dependent_models,
     suspend_dependent_reports,
 )
+from tools.train.evaluate import (
+    EvaluationOutcome,
+    evaluate_run,
+    evaluation_report_payload,
+)
 from tools.train.run import (
     CODE_VERSION,
     TrainingOutcome,
@@ -31,6 +36,7 @@ __all__ = [
     "CODE_VERSION",
     "DATASET_ARTIFACT",
     "ConsentAuthorization",
+    "EvaluationOutcome",
     "SnapshotBuild",
     "SnapshotInputs",
     "TrainingOutcome",
@@ -38,6 +44,8 @@ __all__ = [
     "build_dataset_snapshot",
     "challenger_protocol",
     "dependency_versions",
+    "evaluate_run",
+    "evaluation_report_payload",
     "revocation_impact",
     "run_challenger_training",
     "run_report",

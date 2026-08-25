@@ -23,6 +23,7 @@ from packages.shared.domain.observation import FieldObservation
 from packages.shared.domain.outcome import OutcomeResolution
 from packages.shared.domain.prediction import PredictionEpisode
 from packages.shared.enums import DataOrigin
+from tools.train.evaluate import evaluate_run, evaluation_report_payload
 from tools.train.run import run_challenger_training, run_report
 from tools.train.snapshot import SnapshotInputs
 
@@ -57,7 +58,14 @@ def load_inputs(payload: dict[str, Any]) -> SnapshotInputs:
     )
 
 
-def run(export_path: Path, out_dir: Path, *, label: str, now: datetime | None = None) -> int:
+def run(
+    export_path: Path,
+    out_dir: Path,
+    *,
+    label: str,
+    now: datetime | None = None,
+    with_intervals: bool = True,
+) -> int:
     payload = json.loads(export_path.read_text(encoding="utf-8"))
     inputs = load_inputs(payload)
     started_at = now or datetime.now(UTC)
@@ -70,9 +78,22 @@ def run(export_path: Path, out_dir: Path, *, label: str, now: datetime | None = 
     )
     report = run_report(outcome)
 
+    # The run says whether a model could be fitted; the evaluation says what it
+    # does out of fold. They are separate artifacts and separate manifests.
+    evaluation = evaluate_run(
+        outcome,
+        evaluation_report_id=_identifier(f"evaluation:{label}"),
+        created_at=started_at,
+        with_intervals=with_intervals,
+    )
+
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{label}.run.manifest.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (out_dir / f"{label}.evaluation.manifest.json").write_text(
+        json.dumps(evaluation_report_payload(evaluation), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
     print(json.dumps(report, indent=2, sort_keys=True))
     # A run that honestly reports `not_trainable` succeeded at its job.
@@ -84,8 +105,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--export", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--label", default="challenger")
+    parser.add_argument(
+        "--no-intervals",
+        action="store_true",
+        help="skip the 2000-replicate subject bootstrap; metrics are reported without intervals",
+    )
     args = parser.parse_args(argv)
-    return run(args.export, args.out, label=args.label)
+    return run(args.export, args.out, label=args.label, with_intervals=not args.no_intervals)
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
