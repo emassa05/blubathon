@@ -1,0 +1,15 @@
+{
+  "journey": "professional_review_demo",
+  "note_es": "Catálogo fixture activado por revisores ficticios. No afirma un catálogo clínicamente activo.",
+  "steps": [
+    {"step": 1, "action": "caregiver_submits", "expect": "recommendation_instance persistida"},
+    {"step": 2, "action": "caregiver_reads_recommendations", "expect": "awaiting_professional_review"},
+    {"step": 3, "action": "professional_opens_inbox", "expect": "instancia pendiente con escenario"},
+    {"step": 4, "action": "professional_approves_one", "expect": "review approved"},
+    {"step": 5, "action": "professional_substitutes_other", "expect": "human_plan sin citas"},
+    {"step": 6, "action": "caregiver_sees_only_favourable", "expect": "strategy + human_plan"},
+    {"step": 7, "action": "caregiver_records_execution", "expect": "execution applied"},
+    {"step": 8, "action": "caregiver_reports_outcome", "expect": "reporte separado de la review"},
+    {"step": 9, "action": "verify_separate_rows", "expect": "review, execution y outcome distintos"}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "journey": "caregiver_daily_demo",
+  "note_es": "Datos completamente ficticios. Ningún valor procede de un export real.",
+  "steps": [
+    {"step": 1, "action": "seed_demo_target", "expect": "target demo_fixture activo"},
+    {"step": 2, "action": "open_form_session", "expect": "audit_mode fijado y persistido"},
+    {"step": 3, "action": "reload_form_session", "expect": "audit_mode estable"},
+    {"step": 4, "action": "leave_suggestion_untouched", "expect": "cero observaciones"},
+    {"step": 5, "action": "answer_another_field", "expect": "una sola observación"},
+    {"step": 6, "action": "submit", "expect": "episode_created"},
+    {"step": 7, "action": "read_episode", "expect": "baseline abstenido y score de simulación"},
+    {"step": 8, "action": "report_unknown", "expect": "resolution pending"},
+    {"step": 9, "action": "report_conclusive", "expect": "resolution yes"},
+    {"step": 10, "action": "repeat_post", "expect": "mismo recurso"},
+    {"step": 11, "action": "other_subject_without_grant", "expect": "403 auditado"},
+    {"step": 12, "action": "submit_without_target", "expect": "sin episodio ni request"}
+  ],
+  "answers": [
+    {"field_code": "sleep_quality", "interaction": "manual", "value": "interrupted"}
+  ]
+}

@@ -1,27 +1,12 @@
-"""SQLite persistence for daily logs and feedback (SPEC 1, 2.5)."""
+"""Persistencia de Faro. Todo el SQL del proyecto vive aquí (CONVENTIONS 13).
 
-from apps.api.store.db import DEFAULT_DB_PATH, get_connection, init_db
-from apps.api.store.repository import (
-    get_history,
-    insert_feedback,
-    insert_log,
-    insert_logs,
-    latest_date,
-    list_child_ids,
-)
+Los módulos exponen comandos y consultas concretos, no un repositorio genérico
+sobre cada tabla (CONVENTIONS 20).
+"""
 
-# seed is intentionally not re-exported: importing it here makes
-# `python -m apps.api.store.seed` warn, because runpy would find the module
-# already in sys.modules. Import it directly where it is needed.
+from __future__ import annotations
 
-__all__ = [
-    "DEFAULT_DB_PATH",
-    "get_connection",
-    "get_history",
-    "init_db",
-    "insert_feedback",
-    "insert_log",
-    "insert_logs",
-    "latest_date",
-    "list_child_ids",
-]
+from apps.api.store.db import Database, connect
+from apps.api.store.projection import Projection, project_as_of
+
+__all__ = ["Database", "Projection", "connect", "project_as_of"]

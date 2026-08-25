@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+/* CONVENTIONS 14: sin animaciones automáticas intensas y con respeto por
+   `prefers-reduced-motion`. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-ink antialiased;
+  }
+
+  /* Foco visible siempre: la navegación por teclado es obligatoria. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
+  }
+}
+
+@layer components {
+  .faro-card {
+    @apply rounded-lg border border-line bg-surface p-4 shadow-sm;
+  }
+
+  /* Área táctil mínima de 44 px (CONVENTIONS 14). */
+  .faro-button {
+    @apply inline-flex min-h-touch min-w-touch items-center justify-center gap-2
+      rounded-md border border-line bg-surface px-4 py-2 text-base font-medium
+      text-ink transition-colors hover:bg-canvas disabled:cursor-not-allowed
+      disabled:opacity-60;
+  }
+
+  .faro-button-primary {
+    @apply faro-button border-accent bg-accent text-white hover:bg-[#17496b];
+  }
+
+  .faro-input {
+    @apply min-h-touch w-full rounded-md border border-line bg-surface px-3 py-2
+      text-base text-ink;
+  }
+
+  .faro-label {
+    @apply block text-sm font-semibold text-ink;
+  }
+
+  .faro-hint {
+    @apply text-sm text-muted;
+  }
+}
