@@ -233,6 +233,7 @@ class PredictionAbstentionReason(StrEnum):
     UNSUPPORTED_MAPPING = "unsupported_mapping"
     CALIBRATION_FAILURE = "calibration_failure"
     COHORT_NOT_ELIGIBLE = "cohort_not_eligible"
+    MODEL_ARTIFACT_UNAVAILABLE = "model_artifact_unavailable"
 
 
 class RecommendationAbstentionReason(StrEnum):

@@ -4002,7 +4002,8 @@
         "feature_conflict",
         "unsupported_mapping",
         "calibration_failure",
-        "cohort_not_eligible"
+        "cohort_not_eligible",
+        "model_artifact_unavailable"
       ],
       "title": "PredictionAbstentionReason",
       "type": "string"

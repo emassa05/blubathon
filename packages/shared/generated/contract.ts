@@ -1109,7 +1109,7 @@ export interface PosteriorDefault {
 /**
  * Closed catalogue of why a track produced no visible estimate.
  */
-export type PredictionAbstentionReason = "collecting_data" | "insufficient_verified_outcomes" | "unresolved_conflict" | "care_mode_history_unavailable" | "target_definition_unavailable" | "target_definition_ambiguous" | "model_state_not_shadow" | "predictor_missing" | "personal_predictor_history_insufficient" | "feature_conflict" | "unsupported_mapping" | "calibration_failure" | "cohort_not_eligible";
+export type PredictionAbstentionReason = "collecting_data" | "insufficient_verified_outcomes" | "unresolved_conflict" | "care_mode_history_unavailable" | "target_definition_unavailable" | "target_definition_ambiguous" | "model_state_not_shadow" | "predictor_missing" | "personal_predictor_history_insufficient" | "feature_conflict" | "unsupported_mapping" | "calibration_failure" | "cohort_not_eligible" | "model_artifact_unavailable";
 export const PredictionAbstentionReasonValues = {
   COLLECTING_DATA: "collecting_data",
   INSUFFICIENT_VERIFIED_OUTCOMES: "insufficient_verified_outcomes",
@@ -1124,6 +1124,7 @@ export const PredictionAbstentionReasonValues = {
   UNSUPPORTED_MAPPING: "unsupported_mapping",
   CALIBRATION_FAILURE: "calibration_failure",
   COHORT_NOT_ELIGIBLE: "cohort_not_eligible",
+  MODEL_ARTIFACT_UNAVAILABLE: "model_artifact_unavailable",
 } as const;
 
 /**

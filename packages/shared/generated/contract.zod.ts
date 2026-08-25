@@ -274,7 +274,7 @@ export const PosteriorDefaultSchema = z.object({
   "estimator_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
 }).strict();
 
-export const PredictionAbstentionReasonSchema = z.enum(["collecting_data", "insufficient_verified_outcomes", "unresolved_conflict", "care_mode_history_unavailable", "target_definition_unavailable", "target_definition_ambiguous", "model_state_not_shadow", "predictor_missing", "personal_predictor_history_insufficient", "feature_conflict", "unsupported_mapping", "calibration_failure", "cohort_not_eligible"]);
+export const PredictionAbstentionReasonSchema = z.enum(["collecting_data", "insufficient_verified_outcomes", "unresolved_conflict", "care_mode_history_unavailable", "target_definition_unavailable", "target_definition_ambiguous", "model_state_not_shadow", "predictor_missing", "personal_predictor_history_insufficient", "feature_conflict", "unsupported_mapping", "calibration_failure", "cohort_not_eligible", "model_artifact_unavailable"]);
 
 export const PredictionEpisodeStatusSchema = z.enum(["pending", "completed", "failed"]);
 
