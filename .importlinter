@@ -43,6 +43,7 @@ source_modules =
 # not a calculation. The list grows with `ml/defaults`, `ml/form` and
 # `ml/prediction` in M2.
 forbidden_modules =
+    ml.defaults
     ml.engine
     ml.eval
     ml.features

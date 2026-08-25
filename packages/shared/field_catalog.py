@@ -355,6 +355,26 @@ def validate_field_value(code: FieldCode, value: object) -> FieldValue:
     return value
 
 
+def closed_support(code: FieldCode) -> tuple[FieldValue, ...] | None:
+    """The finite set of values a posterior may be computed over.
+
+    `None` for continuous, count, text and tag fields: they have no closed
+    support, which is exactly why they get no default and no categorical VoI
+    (SPEC 6.5, 7.2).
+    """
+
+    spec = FIELD_CATALOG[code]
+    if spec.kind is FieldKind.BOOLEAN:
+        return (False, True)
+    if spec.kind is FieldKind.NOMINAL:
+        return spec.allowed_values()
+    if spec.kind is FieldKind.ORDINAL:
+        minimum = int(spec.minimum) if spec.minimum is not None else ORDINAL_MINIMUM
+        maximum = int(spec.maximum) if spec.maximum is not None else ORDINAL_MAXIMUM
+        return tuple(range(minimum, maximum + 1))
+    return None
+
+
 def field_spec(code: FieldCode) -> FieldSpec:
     return FIELD_CATALOG[code]
 
