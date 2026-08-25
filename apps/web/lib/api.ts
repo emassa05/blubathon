@@ -13,8 +13,8 @@ import type {
   EvaluationReportView,
   FormSessionView,
   OutcomeReportResponse,
-  OutcomeRequestListView,
-  OutcomeValue,
+  OutcomeRequestListResponse,
+  OutcomeReportValue,
   PredictionEpisodeView,
   RecommendationInboxView,
   RecommendationsView,
@@ -148,12 +148,12 @@ export const api = {
     request<PredictionEpisodeView>(`/prediction-episodes/${episodeId}`, { token, signal }),
 
   outcomeRequests: (token: string, signal?: AbortSignal) =>
-    request<OutcomeRequestListView>("/outcome-requests", { token, signal }),
+    request<OutcomeRequestListResponse>("/outcome-requests", { token, signal }),
 
   reportOutcome: (
     token: string,
     episodeId: string,
-    input: { value: OutcomeValue; occurredAt?: string },
+    input: { value: OutcomeReportValue; occurredAt?: string },
   ) =>
     request<OutcomeReportResponse>(`/prediction-episodes/${episodeId}/outcome-reports`, {
       token,

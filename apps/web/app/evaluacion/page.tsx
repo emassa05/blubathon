@@ -71,7 +71,7 @@ export default function EvaluationPage() {
 
       {report !== null ? (
         <article className="space-y-3">
-          {report.simulation_only ? (
+          {report.intended_use === "simulation_only" || report.data_origin === "synthetic" ? (
             <p className="faro-card border-caution/40 text-sm font-semibold text-caution">
               <span aria-hidden="true">◈ </span>
               simulation_only: estas métricas no demuestran rendimiento clínico.
@@ -110,21 +110,23 @@ export default function EvaluationPage() {
               </tr>
             </thead>
             <tbody>
-              {report.metrics.map((metric) => (
+              {(report.metrics ?? []).map((metric) => (
                 <tr key={metric.name} className="border-t border-line">
                   <th scope="row" className="py-1 text-left font-normal text-ink">
                     {metric.name}
                   </th>
                   <td className="py-1 text-ink">
-                    {metric.estimability === "estimable" ? "estimable" : "no estimable"}
+                    {metric.status === "estimated" ? "estimada" : "no estimable"}
                   </td>
                   <td className="py-1 tabular-nums text-ink">
-                    {metric.value === null ? (metric.reason ?? "—") : metric.value.toFixed(3)}
+                    {(metric.value ?? null) === null
+                      ? (metric.not_estimable_reason ?? "—")
+                      : metric.value!.toFixed(3)}
                   </td>
                   <td className="py-1 tabular-nums text-ink">
-                    {metric.interval === null
+                    {(metric.interval ?? null) === null
                       ? "—"
-                      : `${metric.interval[0].toFixed(3)} – ${metric.interval[1].toFixed(3)}`}
+                      : `${metric.interval!.lower.toFixed(3)} – ${metric.interval!.upper.toFixed(3)}`}
                   </td>
                 </tr>
               ))}
@@ -134,10 +136,12 @@ export default function EvaluationPage() {
           <section className="faro-card">
             <h2 className="text-sm font-semibold text-ink">Abstención por razón</h2>
             <dl className="mt-2 grid grid-cols-2 gap-1 text-sm">
-              {Object.entries(report.abstention_by_reason).map(([reason, share]) => (
-                <div key={reason} className="contents">
-                  <dt className="text-muted">{reason}</dt>
-                  <dd className="tabular-nums text-ink">{(share * 100).toFixed(0)}%</dd>
+              {(report.abstentions ?? []).map((item) => (
+                <div key={item.reason} className="contents">
+                  <dt className="text-muted">{item.reason}</dt>
+                  <dd className="tabular-nums text-ink">
+                    {(item.rate * 100).toFixed(0)}% ({item.count})
+                  </dd>
                 </div>
               ))}
             </dl>

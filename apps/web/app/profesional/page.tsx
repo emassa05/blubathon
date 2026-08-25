@@ -17,8 +17,10 @@ import { useCallback, useEffect, useState } from "react";
 import { RecommendationList } from "@/components/RecommendationList";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { ApiError, api } from "@/lib/api";
+import { isHumanPlan, reviewStatusOf } from "@/lib/contracts";
 import type {
   RecommendationInstanceSummary,
+  RecommendationItemView,
   RecommendationsView,
   ReviewDecision,
 } from "@/lib/contracts";
@@ -108,10 +110,7 @@ export default function ProfessionalPage() {
     }
   }
 
-  async function recordExecution(item: {
-    strategy_version_id: string | null;
-    human_plan_version_id: string | null;
-  }) {
+  async function recordExecution(item: RecommendationItemView) {
     if (token === null || selected === null || detail === null) return;
     setBusy(true);
     setError(null);
@@ -122,12 +121,9 @@ export default function ProfessionalPage() {
         {
           status: "applied",
           appliedAt: new Date().toISOString(),
-          ...(item.strategy_version_id !== null
-            ? { strategyVersionId: item.strategy_version_id }
-            : {}),
-          ...(item.human_plan_version_id !== null
+          ...(isHumanPlan(item)
             ? { humanPlanVersionId: item.human_plan_version_id }
-            : {}),
+            : { strategyVersionId: item.strategy_version_id }),
         },
         detail.revision,
       );
@@ -191,19 +187,19 @@ export default function ProfessionalPage() {
             <EmptyState label="El escenario mínimo no está disponible para esta instancia." />
           ) : (
             <dl className="grid grid-cols-2 gap-1 text-sm">
-              {Object.entries(selected.scenario.field_values).map(([code, value]) => (
+              {Object.entries(selected.scenario.field_values ?? {}).map(([code, value]) => (
                 <div key={code} className="contents">
                   <dt className="text-muted">{fieldLabel(code)}</dt>
                   <dd className="text-ink">{optionLabel(code, value)}</dd>
                 </div>
               ))}
               <dt className="text-muted">Contexto</dt>
-              <dd className="text-ink">{selected.scenario.context_tags.join(", ") || "—"}</dd>
+              <dd className="text-ink">{(selected.scenario.context_tags ?? []).join(", ") || "—"}</dd>
               <dt className="text-muted">Perfil</dt>
-              <dd className="text-ink">{selected.scenario.profile_tags.join(", ") || "—"}</dd>
+              <dd className="text-ink">{(selected.scenario.profile_tags ?? []).join(", ") || "—"}</dd>
               <dt className="text-muted">Contraindicaciones</dt>
               <dd className="text-ink">
-                {selected.scenario.contraindication_tags.join(", ") || "ninguna registrada"}
+                {(selected.scenario.contraindication_tags ?? []).join(", ") || "ninguna registrada"}
               </dd>
             </dl>
           )}
@@ -222,7 +218,7 @@ export default function ProfessionalPage() {
           <RecommendationList view={detail}>
             {(item) => (
               <div className="space-y-2 border-t border-line pt-2">
-                {item.item_type === "strategy" && item.strategy_version_id !== null ? (
+                {!isHumanPlan(item) ? (
                   <>
                     <div className="flex flex-wrap gap-2">
                       {DECISIONS.map((decision) => (
@@ -263,8 +259,8 @@ export default function ProfessionalPage() {
                   </>
                 ) : null}
 
-                {item.review_status === "approved" ||
-                item.review_status === "human_plan_substituted" ? (
+                {reviewStatusOf(item) === "approved" ||
+                reviewStatusOf(item) === "human_plan_substituted" ? (
                   <button
                     type="button"
                     className="faro-button-primary"
@@ -291,8 +287,8 @@ export default function ProfessionalPage() {
               <dd>{detail.catalog_version ?? "—"}</dd>
               <dt>Corpus</dt>
               <dd>{detail.corpus_version ?? "—"}</dd>
-              <dt>Disponibilidad</dt>
-              <dd>{detail.availability_reason}</dd>
+              <dt>Razones</dt>
+              <dd>{(detail.reasons ?? []).join(", ") || "—"}</dd>
               <dt>Revisión</dt>
               <dd className="break-all">{detail.revision}</dd>
             </dl>

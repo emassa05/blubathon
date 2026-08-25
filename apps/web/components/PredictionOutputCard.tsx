@@ -23,7 +23,7 @@ export function PredictionOutputCard({ output }: { output: PredictionOutputView 
     return (
       <section aria-label={label} data-track={output.track_id} className="space-y-2">
         <h3 className="text-sm font-semibold text-ink">{label}</h3>
-        <AbstainedState reasons={output.abstention_reasons} />
+        <AbstainedState reasons={output.abstention_reasons ?? []} />
         <p className="faro-hint">Versión del modelo: {output.model_version}</p>
       </section>
     );
@@ -46,13 +46,16 @@ export function PredictionOutputCard({ output }: { output: PredictionOutputView 
       ) : (
         <>
           <p className="text-2xl font-semibold tabular-nums text-ink">
-            {output.probability === null ? "—" : `${(output.probability * 100).toFixed(0)}%`}
+            {(output.probability ?? null) === null
+              ? "—"
+              : `${(output.probability! * 100).toFixed(0)}%`}
           </p>
           {output.interval ? (
             <p className="faro-hint">
-              Intervalo {output.interval_method ?? ""}: {(output.interval[0] * 100).toFixed(0)}%
+              Intervalo {output.interval_method ?? ""}:{" "}
+              {(output.interval.lower * 100).toFixed(0)}%
               {" – "}
-              {(output.interval[1] * 100).toFixed(0)}%
+              {(output.interval.upper * 100).toFixed(0)}%
             </p>
           ) : null}
         </>

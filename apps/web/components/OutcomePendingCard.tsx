@@ -10,7 +10,7 @@
 import { useState } from "react";
 
 import { ConflictedState, ExpiredState } from "@/components/States";
-import type { OutcomeValue } from "@/lib/contracts";
+import type { OutcomeReportValue } from "@/lib/contracts";
 import { formatMoment } from "@/lib/format";
 import { OUTCOME_REQUEST_STATUS_ES, RESOLUTION_STATUS_ES, TEXTS } from "@/lib/texts";
 
@@ -19,23 +19,23 @@ export interface OutcomePendingCardProps {
   anchorsEs: readonly string[];
   targetEndAt: string;
   captureDeadlineAt: string;
-  status: string;
+  state: string;
   resolutionStatus?: string;
   disabled?: boolean;
-  onReport: (value: OutcomeValue, occurredAt?: string) => void;
+  onReport: (value: OutcomeReportValue, occurredAt?: string) => void;
 }
 
 export function OutcomePendingCard(props: OutcomePendingCardProps) {
   const [occurredAt, setOccurredAt] = useState<string>("");
 
-  if (props.status === "conflicted") {
+  if (props.state === "conflicted") {
     return <ConflictedState />;
   }
 
   return (
     <section
       aria-labelledby="outcome-pending-title"
-      data-state={props.status}
+      data-state={props.state}
       className="faro-card space-y-3"
     >
       <div>
@@ -43,7 +43,7 @@ export function OutcomePendingCard(props: OutcomePendingCardProps) {
           {TEXTS.pendingOutcomeTitle}
         </h2>
         <p className="faro-hint">
-          {OUTCOME_REQUEST_STATUS_ES[props.status] ?? props.status}
+          {OUTCOME_REQUEST_STATUS_ES[props.state] ?? props.state}
           {props.resolutionStatus
             ? ` · ${RESOLUTION_STATUS_ES[props.resolutionStatus] ?? props.resolutionStatus}`
             : ""}
@@ -61,7 +61,7 @@ export function OutcomePendingCard(props: OutcomePendingCardProps) {
         {formatMoment(props.captureDeadlineAt)}.
       </p>
 
-      {props.status === "missing" ? <ExpiredState /> : null}
+      {props.state === "missing" ? <ExpiredState /> : null}
 
       <div className="space-y-2">
         <label className="faro-label" htmlFor="occurred-at">

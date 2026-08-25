@@ -20,7 +20,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { ApiError, api } from "@/lib/api";
 import type {
   FormSessionView,
-  OutcomeValue,
+  OutcomeReportValue,
   PredictionEpisodeView,
   RecommendationsView,
   SessionContextView,
@@ -106,7 +106,8 @@ export default function CaregiverPage() {
     try {
       const result = await api.submit(token, session.form_session_id);
       setSubmitted(result);
-      const episodeId = result.prediction_episode_id ?? result.linked_prediction_episode_id;
+      const episodeId =
+        result.prediction_episode_id ?? result.linked_prediction_episode_id ?? null;
       if (episodeId !== null) {
         setEpisode(await api.episode(token, episodeId));
         setRecommendations(await api.recommendations(token, episodeId));
@@ -118,7 +119,7 @@ export default function CaregiverPage() {
     }
   }
 
-  async function report(value: OutcomeValue, occurredAt?: string) {
+  async function report(value: OutcomeReportValue, occurredAt?: string) {
     if (token === null || session === null) return;
     const episodeId =
       session.outcome_pending?.prediction_episode_id ??
@@ -198,7 +199,7 @@ export default function CaregiverPage() {
               anchorsEs={session.outcome_pending.severity_anchors_es}
               targetEndAt={session.outcome_pending.target_end_at}
               captureDeadlineAt={session.outcome_pending.capture_deadline_at}
-              status={session.outcome_pending.status}
+              state={session.outcome_pending.state}
               disabled={busy}
               onReport={(value, occurredAt) => void report(value, occurredAt)}
             />
@@ -208,10 +209,10 @@ export default function CaregiverPage() {
             <h2 id="highlighted-title" className="text-base font-semibold text-ink">
               {TEXTS.highlightedTitle}
             </h2>
-            {session.highlighted.length === 0 ? (
+            {(session.highlighted ?? []).length === 0 ? (
               <EmptyState label="Nada destacado por ahora." />
             ) : (
-              session.highlighted.map((question) => (
+              (session.highlighted ?? []).map((question) => (
                 <FieldControl
                   key={question.field_code}
                   question={question}
@@ -225,10 +226,10 @@ export default function CaregiverPage() {
 
           <details className="faro-card">
             <summary className="cursor-pointer text-base font-semibold text-ink">
-              {TEXTS.queueTitle} ({session.tail.length})
+              {TEXTS.queueTitle} ({(session.tail ?? []).length})
             </summary>
             <div className="mt-3 space-y-3">
-              {session.tail.map((question) => (
+              {(session.tail ?? []).map((question) => (
                 <FieldControl
                   key={question.field_code}
                   question={question}
@@ -263,7 +264,7 @@ export default function CaregiverPage() {
                 Se guardó tu registro, sin crear un objetivo
               </p>
               <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-ink">
-                {submitted.reasons.map((reason) => (
+                {(submitted.reasons ?? []).map((reason) => (
                   <li key={reason}>{abstentionReason(reason)}</li>
                 ))}
               </ul>
@@ -275,7 +276,7 @@ export default function CaregiverPage() {
                 : "Se abrió una ventana de 24 horas para registrar el resultado."}
             </p>
           )}
-          <EmergencyNotice body={submitted.emergency_notice_es} />
+          <EmergencyNotice />
         </section>
       ) : null}
 
@@ -284,7 +285,7 @@ export default function CaregiverPage() {
           <h2 id="episode-title" className="text-base font-semibold text-ink">
             Estimaciones de este registro
           </h2>
-          {episode.outputs.map((output) => (
+          {(episode.outputs ?? []).map((output) => (
             <PredictionOutputCard key={output.track_id} output={output} />
           ))}
         </section>
@@ -296,7 +297,7 @@ export default function CaregiverPage() {
             Apoyos revisados
           </h2>
           <RecommendationList view={recommendations} />
-          <EmergencyNotice body={recommendations.emergency_notice_es} />
+          <EmergencyNotice />
         </section>
       ) : null}
     </div>

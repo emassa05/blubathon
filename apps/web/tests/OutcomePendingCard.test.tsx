@@ -13,7 +13,7 @@ const base = {
   anchorsEs: ["No ocurrió: día habitual.", "Ocurrió: requirió apoyo sostenido."],
   targetEndAt: "2026-08-26T12:00:00.000Z",
   captureDeadlineAt: "2026-08-27T12:00:00.000Z",
-  status: "open",
+  state: "open",
 };
 
 describe("OutcomePendingCard", () => {
@@ -38,7 +38,7 @@ describe("OutcomePendingCard", () => {
   });
 
   it("un estado de conflicto reemplaza el formulario", () => {
-    render(<OutcomePendingCard {...base} status="conflicted" onReport={vi.fn()} />);
+    render(<OutcomePendingCard {...base} state="conflicted" onReport={vi.fn()} />);
     expect(screen.getByText(/Reportes incompatibles/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "No sé" })).toBeNull();
   });

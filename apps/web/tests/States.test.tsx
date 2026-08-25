@@ -5,6 +5,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { FARO_TEXTS_ES } from "@faro/contract";
+
 import { EmergencyNotice } from "@/components/EmergencyNotice";
 import {
   AbstainedState,
@@ -23,7 +25,7 @@ describe("estados obligatorios", () => {
 
   it("empty se distingue de un error", () => {
     render(<EmptyState />);
-    expect(screen.getByText(/No hay nada que mostrar/)).toBeInTheDocument();
+    expect(screen.getByText(FARO_TEXTS_ES.emptyEs)).toBeInTheDocument();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -39,7 +41,7 @@ describe("estados obligatorios", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByText(/Faro se abstiene/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Aún no hay suficientes resultados verificados/),
+      screen.getByText(FARO_TEXTS_ES.predictionAbstentionEs.insufficient_verified_outcomes),
     ).toBeInTheDocument();
   });
 
@@ -63,6 +65,9 @@ describe("límite de emergencia", () => {
     render(<EmergencyNotice />);
     const note = screen.getByRole("note");
     expect(note).toHaveTextContent("Faro no monitorea emergencias");
-    expect(note).toHaveTextContent(/no esperes una alerta/i);
+    // La copia es la publicada por el contrato: dice que Faro no vigila
+    // emergencias ni envía alertas, y que el protocolo local va primero.
+    expect(note).toHaveTextContent(FARO_TEXTS_ES.emergencyLimitEs);
+    expect(note).toHaveTextContent(/alertas/i);
   });
 });

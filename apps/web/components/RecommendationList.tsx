@@ -6,14 +6,16 @@
  */
 
 import { AbstainedState } from "@/components/States";
+import { isHumanPlan, reviewStatusOf } from "@/lib/contracts";
 import type { RecommendationItemView, RecommendationsView } from "@/lib/contracts";
 import { REVIEW_STATUS_ES, TEXTS } from "@/lib/texts";
 
 function Citations({ item }: { item: RecommendationItemView }) {
-  if (item.citations.length === 0) {
+  const citations = item.citations ?? [];
+  if (citations.length === 0) {
     return (
       <p className="faro-hint">
-        {item.item_type === "human_plan"
+        {isHumanPlan(item)
           ? "Un plan propio del equipo no hereda citas del catálogo."
           : "Sin citas registradas."}
       </p>
@@ -22,10 +24,10 @@ function Citations({ item }: { item: RecommendationItemView }) {
   return (
     <details className="mt-2">
       <summary className="cursor-pointer text-sm font-semibold text-accent">
-        {TEXTS.citationsTitle} ({item.citations.length})
+        {TEXTS.citationsTitle} ({citations.length})
       </summary>
       <ul className="mt-2 space-y-2">
-        {item.citations.map((citation) => (
+        {citations.map((citation) => (
           <li key={citation.citation_id} className="rounded border border-line p-2 text-sm">
             <p className="italic text-ink">“{citation.quoted_text}”</p>
             <p className="faro-hint mt-1">{citation.locator}</p>
@@ -52,7 +54,7 @@ export function RecommendationList({
   children?: (item: RecommendationItemView) => React.ReactNode;
 }) {
   if (view.status === "abstained") {
-    return <AbstainedState reasons={view.reasons} />;
+    return <AbstainedState reasons={view.reasons ?? []} />;
   }
   if (view.status === "awaiting_professional_review") {
     return (
@@ -70,17 +72,17 @@ export function RecommendationList({
     <ul className="space-y-3">
       {view.items.map((item) => (
         <li
-          key={item.strategy_version_id ?? item.human_plan_version_id ?? item.action_text_es}
+          key={isHumanPlan(item) ? item.human_plan_version_id : item.strategy_version_id}
           className="faro-card space-y-2"
           data-item-type={item.item_type}
-          data-review-status={item.review_status}
+          data-review-status={reviewStatusOf(item)}
         >
           <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
             <span>
-              {item.item_type === "human_plan" ? "Plan del equipo" : "Estrategia del catálogo"}
+              {isHumanPlan(item) ? "Plan del equipo" : "Estrategia del catálogo"}
             </span>
             <span>·</span>
-            <span>{REVIEW_STATUS_ES[item.review_status] ?? item.review_status}</span>
+            <span>{REVIEW_STATUS_ES[reviewStatusOf(item)] ?? reviewStatusOf(item)}</span>
             {item.non_actionable ? (
               <span className="text-alert">
                 <span aria-hidden="true">⊘ </span>no accionable

@@ -6,6 +6,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { FARO_TEXTS_ES } from "@faro/contract";
+
 import { FieldControl } from "@/components/FieldControl";
 import { question, suggestedQuestion } from "./fixtures";
 
@@ -18,7 +20,7 @@ describe("FieldControl", () => {
     // La sugerencia aparece como ayuda con estilo propio, no como valor elegido.
     expect(screen.getByText(/Sugerencia: No/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Si no la tocas, no se guarda nada/),
+      screen.getByText(FARO_TEXTS_ES.defaultSuggestionHintEs),
     ).toBeInTheDocument();
     expect(onAnswer).not.toHaveBeenCalled();
   });
@@ -33,6 +35,8 @@ describe("FieldControl", () => {
     expect(onAnswer).toHaveBeenCalledWith({
       fieldCode: "food_changes",
       interaction: "accept_default",
+      // `AnswerSubmission` de P1 exige declarar el valor aceptado.
+      value: false,
       defaultPresentationId: "00000000-0000-4000-8000-000000000701",
     });
   });
@@ -68,13 +72,17 @@ describe("FieldControl", () => {
         onAnswer={vi.fn()}
       />,
     );
-    expect(screen.getByText("Parcial")).toBeInTheDocument();
-    expect(screen.getByText("Todo")).toBeInTheDocument();
+    expect(
+      screen.getByText(FARO_TEXTS_ES.ordinalAnchorsEs.activity_participation[2]!),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(FARO_TEXTS_ES.ordinalAnchorsEs.activity_participation[4]!),
+    ).toBeInTheDocument();
   });
 
   it("muestra las categorías del catálogo cerrado, sin inventar opciones", () => {
     render(<FieldControl question={question()} answered={false} onAnswer={vi.fn()} />);
-    for (const label of ["Reparador", "Interrumpido", "Costó quedarse dormido/a", "Otro"]) {
+    for (const label of Object.values(FARO_TEXTS_ES.sleepQualityLabelsEs)) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
   });

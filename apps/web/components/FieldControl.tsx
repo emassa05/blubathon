@@ -15,8 +15,15 @@
 
 import { useId, useState } from "react";
 
-import { FIELD_SPECS, type AnswerInteraction, type PlannedQuestion } from "@/lib/contracts";
+import { allowedValues, fieldSpec, type AnswerInteraction, type FormQuestion } from "@/lib/contracts";
 import { ORDINAL_ANCHORS_ES, TEXTS, fieldLabel, optionLabel } from "@/lib/texts";
+
+/** La escala de un ordinal sale de su propia entrada del catálogo publicado. */
+function scaleOf(minimum: number | undefined, maximum: number | undefined): number[] {
+  const low = minimum ?? 1;
+  const high = maximum ?? low;
+  return Array.from({ length: high - low + 1 }, (_unused, index) => low + index);
+}
 import { formatValue } from "@/lib/format";
 
 export interface AnswerPayload {
@@ -27,14 +34,14 @@ export interface AnswerPayload {
 }
 
 interface Props {
-  question: PlannedQuestion;
+  question: FormQuestion;
   answered: boolean;
   disabled?: boolean;
   onAnswer: (payload: AnswerPayload) => void;
 }
 
 export function FieldControl({ question, answered, disabled = false, onAnswer }: Props) {
-  const spec = FIELD_SPECS[question.field_code];
+  const spec = fieldSpec(question.field_code);
   const [draft, setDraft] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const controlId = useId();
@@ -58,8 +65,8 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
   }
 
   const controls = (() => {
-    switch (spec.fieldType) {
-      case "bool":
+    switch (spec.kind) {
+      case "boolean":
         return (
           <div className="flex flex-wrap gap-2">
             {[true, false].map((value) => (
@@ -75,10 +82,10 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
             ))}
           </div>
         );
-      case "enum":
+      case "nominal":
         return (
           <div className="flex flex-wrap gap-2">
-            {(spec.values ?? []).map((value) => (
+            {(allowedValues(spec) ?? []).map((value: string) => (
               <button
                 key={value}
                 type="button"
@@ -95,7 +102,7 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
         const anchors = ORDINAL_ANCHORS_ES[question.field_code] ?? [];
         return (
           <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5].map((value) => (
+            {scaleOf(spec.minimum, spec.maximum).map((value) => (
               <button
                 key={value}
                 type="button"
@@ -110,11 +117,17 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
           </div>
         );
       }
-      case "enum_set":
+      case "tag_set": {
+        const catalogue = allowedValues(spec);
+        if (catalogue === undefined) {
+          // SPEC 5.2 y 19: el catálogo versionado de `behavior_tags` todavía no
+          // está publicado. La interfaz no inventa vocabulario clínico.
+          return <p className="faro-hint">{TEXTS.tagCatalogueUnpublished}</p>;
+        }
         return (
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
-              {(spec.values ?? []).map((value) => {
+              {catalogue.map((value: string) => {
                 const checked = tags.includes(value);
                 return (
                   <label
@@ -150,6 +163,7 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
             </button>
           </div>
         );
+      }
       case "text":
         return (
           <div className="space-y-2">
@@ -157,7 +171,7 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
               id={controlId}
               className="faro-input"
               rows={3}
-              maxLength={spec.max ?? 500}
+              maxLength={spec.maxLength}
               value={draft}
               disabled={disabled}
               aria-describedby={helpId}
@@ -181,9 +195,9 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
               className="faro-input max-w-[10rem]"
               type="number"
               inputMode="decimal"
-              min={spec.min}
-              max={spec.max}
-              step={spec.fieldType === "float" ? 0.5 : 1}
+              min={spec.minimum}
+              max={spec.maximum}
+              step={spec.kind === "continuous" ? 0.5 : 1}
               value={draft}
               disabled={disabled}
               aria-describedby={helpId}
@@ -195,7 +209,7 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
               disabled={disabled || draft === ""}
               onClick={() =>
                 submitManual(
-                  spec.fieldType === "float" ? Number(draft) : Number.parseInt(draft, 10),
+                  spec.kind === "continuous" ? Number(draft) : Number.parseInt(draft, 10),
                 )
               }
             >
@@ -241,6 +255,9 @@ export function FieldControl({ question, answered, disabled = false, onAnswer }:
               onAnswer({
                 fieldCode: question.field_code,
                 interaction: "accept_default",
+                // `AnswerSubmission` exige declarar el valor aceptado; el
+                // servidor lo compara con el presentado antes de guardarlo.
+                value: suggestion.value,
                 defaultPresentationId: suggestion.presentation_id,
               })
             }

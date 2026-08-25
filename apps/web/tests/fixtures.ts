@@ -6,12 +6,12 @@
 
 import type {
   FormSessionView,
-  PlannedQuestion,
+  FormQuestion,
   PredictionOutputView,
   RecommendationsView,
 } from "@/lib/contracts";
 
-export function question(overrides: Partial<PlannedQuestion> = {}): PlannedQuestion {
+export function question(overrides: Partial<FormQuestion> = {}): FormQuestion {
   return {
     field_code: "sleep_quality",
     reason: "staleness",
@@ -21,7 +21,7 @@ export function question(overrides: Partial<PlannedQuestion> = {}): PlannedQuest
   };
 }
 
-export function suggestedQuestion(): PlannedQuestion {
+export function suggestedQuestion(): FormQuestion {
   return question({
     field_code: "food_changes",
     reason: "canonical_order",
@@ -54,7 +54,6 @@ export function formSession(overrides: Partial<FormSessionView> = {}): FormSessi
     highlighted: [question(), suggestedQuestion()],
     tail: [question({ field_code: "gi_status", reason: "tail" })],
     answered_field_codes: [],
-    emergency_notice_es: "Faro no monitorea emergencias.",
     ...overrides,
   };
 }
@@ -72,8 +71,6 @@ export function abstainedBaseline(): PredictionOutputView {
     abstention_reasons: ["insufficient_verified_outcomes"],
     model_version: "personal-baseline-mock-0.3.0",
     input_data_origin: "synthetic",
-    decision_policy_version: null,
-    risk_band: null,
   };
 }
 
@@ -82,7 +79,7 @@ export function simulationScore(): PredictionOutputView {
     track_id: "synthetic_reference_v021",
     intended_use: "simulation_only",
     status: "ok",
-    estimate_kind: "simulation_designed_score",
+    estimate_kind: "simulation_score",
     probability: null,
     simulation_score: 0.42,
     interval: null,
@@ -90,8 +87,6 @@ export function simulationScore(): PredictionOutputView {
     abstention_reasons: [],
     model_version: "synthetic-reference-mock-0.2.1",
     input_data_origin: "synthetic",
-    decision_policy_version: null,
-    risk_band: null,
   };
 }
 
@@ -101,11 +96,9 @@ export function awaitingReview(): RecommendationsView {
     recommendation_instance_id: "00000000-0000-4000-8000-000000000901",
     catalog_version: "catalog-fixture-0.3.0",
     corpus_version: "corpus-fixture-0.3.0",
-    availability_reason: "ready",
     reasons: [],
     items: [],
     revision: "rev-1",
-    emergency_notice_es: "Faro no monitorea emergencias.",
   };
 }
 
@@ -115,7 +108,6 @@ export function abstainedRecommendations(): RecommendationsView {
     status: "abstained",
     catalog_version: null,
     corpus_version: null,
-    availability_reason: "clinical_review_unavailable",
     reasons: ["clinical_review_unavailable"],
   };
 }
@@ -129,7 +121,6 @@ export function matchedRecommendations(): RecommendationsView {
         item_type: "strategy",
         review_status: "approved",
         strategy_version_id: "00000000-0000-4000-8000-000000000601",
-        human_plan_version_id: null,
         action_text_es: "Revisen luz, ruido y temperatura del lugar donde duerme.",
         required_approver_role: "professional",
         allowed_executor_roles: ["caregiver"],
@@ -147,7 +138,6 @@ export function matchedRecommendations(): RecommendationsView {
       },
       {
         item_type: "human_plan",
-        review_status: "human_plan_substituted",
         strategy_version_id: null,
         human_plan_version_id: "00000000-0000-4000-8000-000000000603",
         action_text_es: "Acordamos un aviso verbal breve antes de cada cambio.",

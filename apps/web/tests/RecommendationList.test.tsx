@@ -5,6 +5,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { FARO_TEXTS_ES } from "@faro/contract";
+
 import { RecommendationList } from "@/components/RecommendationList";
 import {
   abstainedRecommendations,
@@ -21,10 +23,10 @@ describe("RecommendationList", () => {
 
   it("una abstención muestra su razón y ninguna estrategia", () => {
     render(<RecommendationList view={abstainedRecommendations()} />);
-    expect(screen.getByText(/Falta una revisión clínica autorizada/)).toBeInTheDocument();
+    expect(screen.getByText(FARO_TEXTS_ES.recommendationAbstentionEs.clinical_review_unavailable)).toBeInTheDocument();
     // La abstención lista razones, nunca estrategias.
     expect(screen.queryByRole("listitem")).toHaveTextContent(
-      "Falta una revisión clínica autorizada.",
+      FARO_TEXTS_ES.recommendationAbstentionEs.clinical_review_unavailable,
     );
     expect(screen.queryByText(/Revisen luz, ruido/)).toBeNull();
   });
@@ -50,7 +52,7 @@ describe("RecommendationList", () => {
     const view = matchedRecommendations();
     const suspended = {
       ...view,
-      items: view.items.map((item) => ({ ...item, non_actionable: "dependency_suspended" })),
+      items: view.items.map((item) => ({ ...item, non_actionable: "dependency_suspended" as const })),
     };
     render(<RecommendationList view={suspended} />);
     expect(screen.getAllByText(/no accionable/)).toHaveLength(2);
