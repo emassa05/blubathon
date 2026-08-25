@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from apps.api.settings import load_settings
@@ -29,7 +30,9 @@ def main(argv: list[str] | None = None) -> int:
 
     settings = load_settings()
     if args.db is not None:
-        settings = type(settings)(**{**settings.__dict__, "db_path": args.db})
+        # `Settings` es un dataclass con `slots=True`, así que no tiene `__dict__`.
+        # `replace` es la forma de derivar una copia con un campo cambiado.
+        settings = replace(settings, db_path=args.db)
     database = Database(settings)
     database.migrate()
     with database.write() as connection:
