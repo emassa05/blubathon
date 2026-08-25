@@ -50,6 +50,11 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["apps*", "ml*", "packages*", "rag*", "tools*"]
 
+# Prompts are versioned package data with declared input and output schemas
+# (CONVENTIONS 11.2); their bytes are hashed into every build manifest.
+[tool.setuptools.package-data]
+"rag.authoring.prompts" = ["*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers"
