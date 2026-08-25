@@ -1,0 +1,651 @@
+{
+  "disclosure_policy": {
+    "closed_category": "sorted distinct raw values",
+    "date": "month granularity and distinct-day counts",
+    "free_text": "counts and length statistics only",
+    "identifier": "counts and digest only",
+    "quasi_identifier": "counts and digest only",
+    "timestamp": "month granularity and distinct-day counts"
+  },
+  "export": {
+    "cohort_kind": "real_subject",
+    "data_origin": "real",
+    "intended_use": "operational_support",
+    "label": "bluba_client_export",
+    "local_path": "Datos base/",
+    "may_mix_with_synthetic": false,
+    "rights_basis": "undeclared",
+    "rights_note": "no licence, consent or institutional basis has been recorded for this export; until one is, it may not train, calibrate or evaluate a model, and it may never enter the RAG corpus (SPEC 13.1)",
+    "rights_status": "blocked",
+    "tracked_in_git": false
+  },
+  "files": [
+    {
+      "bytes": 459,
+      "columns": [
+        {
+          "count": 4,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "a32b1df1ff084180b67c08feb39194d113e2af47dc5d374efed3e5bcd527869e",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_caso",
+          "non_empty_count": 4
+        },
+        {
+          "count": 4,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "948dc80e70ae49133620ca37209291b01550283ebda23f4eda4b359bad45d31e",
+          "empty_count": 0,
+          "kind": "quasi_identifier",
+          "name": "rango_edad",
+          "non_empty_count": 4
+        },
+        {
+          "count": 4,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 1,
+          "distinct_value_digest_sha256": "e6c7358835d89a49d262f45e55a416edc6e8b049f9ae47460411824dd4fff5d6",
+          "empty_count": 0,
+          "kind": "quasi_identifier",
+          "name": "diagnostico_principal",
+          "non_empty_count": 4
+        },
+        {
+          "count": 4,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "762ec9761de5ad9eb7b9c918393acb259c7fbd9616565364bbe1eccfd731e8fa",
+          "empty_count": 0,
+          "kind": "quasi_identifier",
+          "name": "perfil_sensorial_predominante",
+          "non_empty_count": 4
+        }
+      ],
+      "content_sha256": "f2bfc92053754c5a704a9300656a1670b99b03960fcc206ab1d2460083a404bc",
+      "declared_columns": [
+        "id_caso",
+        "rango_edad",
+        "diagnostico_principal",
+        "perfil_sensorial_predominante"
+      ],
+      "delimiter": ";",
+      "encoding": "utf-8",
+      "entity": "subject",
+      "filename": "1_casos_anonimizados.csv",
+      "observed_columns": [
+        "id_caso",
+        "rango_edad",
+        "diagnostico_principal",
+        "perfil_sensorial_predominante"
+      ],
+      "row_count": 4,
+      "schema_matches_policy": true,
+      "status": "present"
+    },
+    {
+      "bytes": 1779,
+      "columns": [
+        {
+          "count": 10,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 10,
+          "distinct_value_digest_sha256": "29a95c984804dc61389f9309c965e5f0883ef0bf2dcc6ad76e3da385b6fef345",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_objetivo",
+          "non_empty_count": 10
+        },
+        {
+          "count": 10,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "24d84d78346d55338f55da5db5bb9b382173f267e08b947595f0feaa1c0ee590",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_caso",
+          "non_empty_count": 10
+        },
+        {
+          "count": 10,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "4f78f3ce02fa6ba6c563a11a7afc26ca466b7d064a0df21881174b01f7d911b1",
+          "distinct_values": [
+            "Fonoaudiólogo",
+            "Psicopedagogo",
+            "Terapeuta Ocupacional"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "profesion_responsable",
+          "non_empty_count": 10
+        },
+        {
+          "count": 10,
+          "distinct_non_empty_count": 10,
+          "distinct_value_digest_sha256": "b9fb5523b2b3fd362d4379f615cdee2dc377de26aa19316c28829b56726d1efb",
+          "distinct_values": [
+            "Actividades de la Vida Diaria (AVD)",
+            "Alimentación y Selectividad Sensorial",
+            "Atención Sustentada",
+            "Comunicación Aumentativa / Intención Comunicativa",
+            "Grafomotricidad",
+            "Integración Sensorial / Autorregulación",
+            "Pragmática y Modulación Vocal",
+            "Praxias Bucofonatorias y Articulación",
+            "Praxis y Coordinación Motora",
+            "Procesamiento Sensorial Táctil"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "area_intervencion",
+          "non_empty_count": 10
+        },
+        {
+          "character_length": {
+            "max": 99,
+            "min": 70
+          },
+          "count": 10,
+          "disclosure_note": "clinical free text is never published (SPEC 2.23)",
+          "distinct_non_empty_count": 10,
+          "distinct_value_digest_sha256": "e185fd6d848d76e108899e0c43631837a6df96779e431d5bdacc1cf44917ede8",
+          "empty_count": 0,
+          "kind": "free_text",
+          "name": "descripcion_objetivo",
+          "non_empty_count": 10
+        },
+        {
+          "count": 10,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "be6912f494665f7bd8ed32ac205b0a71ad7612bce8e5523bdcc4f0dda61d51e2",
+          "distinct_values": [
+            "En Mantención",
+            "En Progreso",
+            "Logrado"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "estado_objetivo",
+          "non_empty_count": 10
+        }
+      ],
+      "content_sha256": "fd3fae8675d21e0a8e52c7f5bb5e30d613aa52513ad33f9e68d2735b77239b9d",
+      "declared_columns": [
+        "id_objetivo",
+        "id_caso",
+        "profesion_responsable",
+        "area_intervencion",
+        "descripcion_objetivo",
+        "estado_objetivo"
+      ],
+      "delimiter": ";",
+      "encoding": "utf-8",
+      "entity": "care_goal",
+      "filename": "2_programas_y_objetivos.csv",
+      "observed_columns": [
+        "id_objetivo",
+        "id_caso",
+        "profesion_responsable",
+        "area_intervencion",
+        "descripcion_objetivo",
+        "estado_objetivo"
+      ],
+      "row_count": 10,
+      "schema_matches_policy": true,
+      "status": "present"
+    },
+    {
+      "bytes": 8638,
+      "columns": [
+        {
+          "count": 37,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 37,
+          "distinct_value_digest_sha256": "5146ff2ffb69a9bf9f6c3b6936495da868d66f76f0ed51ddd8adf710390fba1b",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_sesion",
+          "non_empty_count": 37
+        },
+        {
+          "count": 37,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "903b1eb49e1c88534060cf5d36d8f8ff9561fc358f4d182d8667fb1c3859e410",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_caso",
+          "non_empty_count": 37
+        },
+        {
+          "count": 37,
+          "distinct_day_count": 23,
+          "distinct_non_empty_count": 23,
+          "distinct_value_digest_sha256": "04a24e86685afaac5198fcf928eba891cb17e9fa1da628df8cc5919b8c615524",
+          "empty_count": 0,
+          "kind": "date",
+          "month_span": {
+            "distinct_months": 1,
+            "first": "2026-07",
+            "last": "2026-07"
+          },
+          "name": "fecha_sesion",
+          "non_empty_count": 37
+        },
+        {
+          "count": 37,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "214fbd7b908b71f02479d57796b3d6e087cc37e973803046719baf57067fc398",
+          "distinct_values": [
+            "Fonoaudiólogo",
+            "Psicopedagogo",
+            "Terapeuta Ocupacional"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "profesion",
+          "non_empty_count": 37
+        },
+        {
+          "count": 37,
+          "distinct_non_empty_count": 1,
+          "distinct_value_digest_sha256": "f7968d7ef821baf25e75361d4b9bb9e08e39be7ebfacb440eae5785458d59d33",
+          "distinct_values": [
+            "Presente"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "estado_asistencia",
+          "non_empty_count": 37
+        },
+        {
+          "count": 37,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "3af3865be5012a7028af877864498224d9e7cf60e33bd95d3676c2d92126063d",
+          "distinct_values": [
+            "Alto (Sobreexcitado)",
+            "Bajo (Letárgico)",
+            "Óptimo (Regulado)"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "nivel_alerta_inicial",
+          "non_empty_count": 37
+        },
+        {
+          "character_length": {
+            "max": 77,
+            "min": 57
+          },
+          "count": 37,
+          "disclosure_note": "clinical free text is never published (SPEC 2.23)",
+          "distinct_non_empty_count": 8,
+          "distinct_value_digest_sha256": "3a572aeb6836b767a2f2480ccd94e3611a3a6eb0659cfcf3d386925dd8ceadcb",
+          "empty_count": 0,
+          "kind": "free_text",
+          "name": "actividades_realizadas",
+          "non_empty_count": 37
+        },
+        {
+          "count": 37,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "8d442f32a5c622f853266db2389528062f0206fc3d30a1673ba062b2a6b4b695",
+          "distinct_values": [
+            "Alto (Sobreexcitado)",
+            "Calmado",
+            "Óptimo (Regulado)"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "nivel_alerta_final",
+          "non_empty_count": 37
+        },
+        {
+          "character_length": {
+            "max": 82,
+            "min": 51
+          },
+          "count": 37,
+          "disclosure_note": "clinical free text is never published (SPEC 2.23)",
+          "distinct_non_empty_count": 8,
+          "distinct_value_digest_sha256": "b504b3ac9d6deef06fa7b6f55d4a1422d91333d1eb3eec0ce20d23f08cab9c10",
+          "empty_count": 0,
+          "kind": "free_text",
+          "name": "observaciones_profesional",
+          "non_empty_count": 37
+        }
+      ],
+      "content_sha256": "972af63d64d01f7572b4ffede9b1e3b09a4258a40a5ff8f7215f83cf1ca85739",
+      "declared_columns": [
+        "id_sesion",
+        "id_caso",
+        "fecha_sesion",
+        "profesion",
+        "estado_asistencia",
+        "nivel_alerta_inicial",
+        "actividades_realizadas",
+        "nivel_alerta_final",
+        "observaciones_profesional"
+      ],
+      "delimiter": ";",
+      "encoding": "utf-8",
+      "entity": "professional_session",
+      "filename": "3_sesiones_profesionales.csv",
+      "observed_columns": [
+        "id_sesion",
+        "id_caso",
+        "fecha_sesion",
+        "profesion",
+        "estado_asistencia",
+        "nivel_alerta_inicial",
+        "actividades_realizadas",
+        "nivel_alerta_final",
+        "observaciones_profesional"
+      ],
+      "row_count": 37,
+      "schema_matches_policy": true,
+      "status": "present"
+    },
+    {
+      "bytes": 9766,
+      "columns": [
+        {
+          "count": 102,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 102,
+          "distinct_value_digest_sha256": "4278b978c063076524fa897448ca81ed05d9c3a54ee72b95afe8fc3f8d41ed0a",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_registro_diario",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "49a6bd4c6fe8075c4e2bf5f2cd8eb3a9089742c5c48e0aee4cd0dfcb5c45d84d",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_caso",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "distinct_day_count": 31,
+          "distinct_non_empty_count": 31,
+          "distinct_value_digest_sha256": "5ff541eeccfeeb5163ee0096bfd4283429e76e2d7c9544ea5bfcf4d125f0d968",
+          "empty_count": 0,
+          "kind": "date",
+          "month_span": {
+            "distinct_months": 1,
+            "first": "2026-07",
+            "last": "2026-07"
+          },
+          "name": "fecha",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "9e8513463a39121107d07f9800b0eba2ad00442176aa7654906a86ab9aa37c9a",
+          "distinct_values": [
+            "Dificultad de Conciliación",
+            "Interrumpido",
+            "Reparador"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "calidad_sueno",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "55da59b5ac27d122561d2aafaaaeae632895ca0b823c03140b55f3571e56decd",
+          "distinct_values": [
+            "Cansado/Con Sueño",
+            "Irritable/Llorando",
+            "Tranquilo/Alegre"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "modo_despertar",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "distinct_non_empty_count": 2,
+          "distinct_value_digest_sha256": "63444f827e84291d9d7ae741bf19dab0bfb76a8b1bbdd761e3ed4a0405cc86e3",
+          "distinct_values": [
+            "No Aplica",
+            "Sí"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "adherencia_medicacion",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "054476f938c98a953d96da0c049a2877285edffd89953ab2cec721755ea06e7d",
+          "distinct_values": [
+            "Diarrea",
+            "Estreñimiento",
+            "Normal"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "estado_gastrointestinal",
+          "non_empty_count": 102
+        },
+        {
+          "count": 102,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "9a4b11855e6d73f1f0f411206a72a7eb3ab3815ed7866b43e6be6dfc1e3ba05b",
+          "distinct_values": [
+            "Desregulación Frecuente",
+            "Estable con Apoyo",
+            "Excelente"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "nivel_regulacion_general_dia",
+          "non_empty_count": 102
+        }
+      ],
+      "content_sha256": "440a9ac4162c581f1c29fddc1039ecb678bcd18b8d93144d97613f8e81d546a8",
+      "declared_columns": [
+        "id_registro_diario",
+        "id_caso",
+        "fecha",
+        "calidad_sueno",
+        "modo_despertar",
+        "adherencia_medicacion",
+        "estado_gastrointestinal",
+        "nivel_regulacion_general_dia"
+      ],
+      "delimiter": ";",
+      "encoding": "utf-8",
+      "entity": "caregiver_daily_record",
+      "filename": "4_seguimiento_diario_tutor.csv",
+      "observed_columns": [
+        "id_registro_diario",
+        "id_caso",
+        "fecha",
+        "calidad_sueno",
+        "modo_despertar",
+        "adherencia_medicacion",
+        "estado_gastrointestinal",
+        "nivel_regulacion_general_dia"
+      ],
+      "row_count": 102,
+      "schema_matches_policy": true,
+      "status": "present"
+    },
+    {
+      "bytes": 1695,
+      "columns": [
+        {
+          "count": 7,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 7,
+          "distinct_value_digest_sha256": "af8da60bbd59d7d1e2117a158dc9124e978e57980d81348f18e8173fbcab7f2e",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_evento",
+          "non_empty_count": 7
+        },
+        {
+          "count": 7,
+          "disclosure_note": "values withheld: linkable in a four-subject cohort",
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "b67379a607a68d26ff2a0ea29ad0e63613d846665be71ea23776c1948874683e",
+          "empty_count": 0,
+          "kind": "identifier",
+          "name": "id_caso",
+          "non_empty_count": 7
+        },
+        {
+          "count": 7,
+          "distinct_day_count": 7,
+          "distinct_non_empty_count": 7,
+          "distinct_value_digest_sha256": "ba5bad04961d2c9cc9797dcf854d856815aab6ce2558284a1da97c0a2c7926e4",
+          "empty_count": 0,
+          "kind": "timestamp",
+          "month_span": {
+            "distinct_months": 1,
+            "first": "2026-07",
+            "last": "2026-07"
+          },
+          "name": "fecha_hora",
+          "non_empty_count": 7
+        },
+        {
+          "count": 7,
+          "distinct_non_empty_count": 4,
+          "distinct_value_digest_sha256": "1b420225bb69bed19c1e39c33933d973107ac2155474707df80b1eb1f440c931",
+          "distinct_values": [
+            "Alimentación",
+            "Desregulación Emocional",
+            "Sobrecarga Sensorial",
+            "Transición de Actividad"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "tipo_evento",
+          "non_empty_count": 7
+        },
+        {
+          "count": 7,
+          "distinct_non_empty_count": 3,
+          "distinct_value_digest_sha256": "1fb338f11e35e3e21f0432e6ce1174f443a0fa3397b916cf9c15c1e915ce66aa",
+          "distinct_values": [
+            "Leve (1-3)",
+            "Moderada (4-7)",
+            "Severa (8-10)"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "intensidad",
+          "non_empty_count": 7
+        },
+        {
+          "character_length": {
+            "max": 67,
+            "min": 43
+          },
+          "count": 7,
+          "disclosure_note": "clinical free text is never published (SPEC 2.23)",
+          "distinct_non_empty_count": 7,
+          "distinct_value_digest_sha256": "2a11e9f9410a53da295b4ea70f3f90f87ebe0a65b969bca918b6739900364c1f",
+          "empty_count": 0,
+          "kind": "free_text",
+          "name": "detonante_gatillante",
+          "non_empty_count": 7
+        },
+        {
+          "character_length": {
+            "max": 103,
+            "min": 53
+          },
+          "count": 7,
+          "disclosure_note": "clinical free text is never published (SPEC 2.23)",
+          "distinct_non_empty_count": 7,
+          "distinct_value_digest_sha256": "0843301bdcaa829916b43232c83520188658df284448f618f6239e5f31ebfb36",
+          "empty_count": 0,
+          "kind": "free_text",
+          "name": "estrategia_calma_aplicada",
+          "non_empty_count": 7
+        },
+        {
+          "count": 7,
+          "distinct_non_empty_count": 2,
+          "distinct_value_digest_sha256": "3be93cb692e45ad5d5f4743f9fced7a233f868c726b5c25827476905e43a6cbf",
+          "distinct_values": [
+            "Regulación Exitosa",
+            "Regulación Parcial"
+          ],
+          "empty_count": 0,
+          "kind": "closed_category",
+          "name": "resultado_estrategia",
+          "non_empty_count": 7
+        }
+      ],
+      "content_sha256": "4892876526eebda3b98a464d8f7672e56b3576c06f6926a9a79acaea24971e79",
+      "declared_columns": [
+        "id_evento",
+        "id_caso",
+        "fecha_hora",
+        "tipo_evento",
+        "intensidad",
+        "detonante_gatillante",
+        "estrategia_calma_aplicada",
+        "resultado_estrategia"
+      ],
+      "delimiter": ";",
+      "encoding": "utf-8",
+      "entity": "dysregulation_event",
+      "filename": "5_eventos_desregulacion_tutor.csv",
+      "observed_columns": [
+        "id_evento",
+        "id_caso",
+        "fecha_hora",
+        "tipo_evento",
+        "intensidad",
+        "detonante_gatillante",
+        "estrategia_calma_aplicada",
+        "resultado_estrategia"
+      ],
+      "row_count": 7,
+      "schema_matches_policy": true,
+      "status": "present"
+    }
+  ],
+  "generated_by": "tools.contracts.source_evidence",
+  "manifest_kind": "source_evidence",
+  "manifest_version": "1",
+  "readiness": {
+    "computed_from": "export row counts, not hardcoded state",
+    "explicit_severe_event_count": 2,
+    "real_dysregulation_event_count": 7,
+    "real_subject_count": 4,
+    "tracks": {
+      "rag_catalog": "not_ready",
+      "real_logit_challenger": "not_trainable_single_class",
+      "real_personal_baseline": "collecting_outcomes",
+      "synthetic_reference": "simulation_only"
+    },
+    "verified_negative_note": "the export records events, not a verified set of non-events; the absence of a report is never a negative outcome (SPEC 2.9)",
+    "verified_negative_outcome_count": 0
+  },
+  "spec_version": "0.3.0",
+  "totals": {
+    "files_declared": 5,
+    "files_present": 5,
+    "row_count": 160
+  }
+}

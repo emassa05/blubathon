@@ -1,0 +1,83 @@
+{
+  "manifest_kind": "corpus_candidates",
+  "manifest_version": "1",
+  "spec_version": "0.3.0",
+  "purpose": "TAREAS M0/P1.1 - inventory of candidate authoring sources with URL, version and rights, without asserting a licence the team has not verified.",
+  "publisher_allowlist_ref": "SPEC 9.2",
+  "declaration_rules": [
+    "A publisher on the SPEC 9.2 allowlist is not itself a usable document.",
+    "A document enters the corpus only with document_version, rights_basis, original_bytes_sha256 and extracted_text_sha256 (SPEC 9.2).",
+    "rights_basis is never inferred from a URL being publicly reachable.",
+    "No entry here is a citation; citations only exist against an indexed chunk."
+  ],
+  "publishers": [
+    {
+      "publisher": "MINSAL",
+      "full_name": "Ministerio de Salud de Chile",
+      "landing_url": "https://www.minsal.cl/",
+      "jurisdiction": "CL",
+      "language": "es",
+      "rights_basis": "undeclared",
+      "rights_status": "blocked",
+      "blocking_reason": "reuse terms for a specific guideline version have not been verified by the team"
+    },
+    {
+      "publisher": "MINEDUC",
+      "full_name": "Ministerio de Educacion de Chile",
+      "landing_url": "https://www.mineduc.cl/",
+      "jurisdiction": "CL",
+      "language": "es",
+      "rights_basis": "undeclared",
+      "rights_status": "blocked",
+      "blocking_reason": "reuse terms for a specific guideline version have not been verified by the team"
+    },
+    {
+      "publisher": "NICE",
+      "full_name": "National Institute for Health and Care Excellence",
+      "landing_url": "https://www.nice.org.uk/",
+      "jurisdiction": "GB",
+      "language": "en",
+      "rights_basis": "undeclared",
+      "rights_status": "blocked",
+      "blocking_reason": "NICE content is published under its own terms; the applicable terms for a specific guideline version have not been verified by the team"
+    },
+    {
+      "publisher": "PubMed Central",
+      "full_name": "PubMed Central (US National Library of Medicine)",
+      "landing_url": "https://www.ncbi.nlm.nih.gov/pmc/",
+      "jurisdiction": "US",
+      "language": "en",
+      "rights_basis": "undeclared",
+      "rights_status": "blocked",
+      "blocking_reason": "licence is per article; being in PMC does not imply redistribution or text-mining rights for a given article"
+    },
+    {
+      "publisher": "SciELO",
+      "full_name": "Scientific Electronic Library Online",
+      "landing_url": "https://scielo.org/",
+      "jurisdiction": "multi",
+      "language": "es",
+      "rights_basis": "undeclared",
+      "rights_status": "blocked",
+      "blocking_reason": "licence is per article and per collection; it has not been verified for a specific article version"
+    },
+    {
+      "publisher": "Cochrane",
+      "full_name": "Cochrane Library",
+      "landing_url": "https://www.cochranelibrary.com/",
+      "jurisdiction": "multi",
+      "language": "en",
+      "rights_basis": "undeclared",
+      "rights_status": "blocked",
+      "blocking_reason": "most reviews are subscription content; reuse terms have not been verified by the team"
+    }
+  ],
+  "documents": [],
+  "status": "blocked",
+  "status_reason": "zero documents have a verified rights_basis, so no corpus_version can be built and no StrategyVersion can reach active",
+  "consequences": [
+    "P1.6 authoring builds run only against fixtures until one document clears rights review.",
+    "rag/runtime abstains with corpus_not_ready (SPEC 9.6 precedence).",
+    "M4 and the SPEC 20 DoD stay blocked (TAREAS 5)."
+  ]
+}

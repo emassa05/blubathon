@@ -4,20 +4,32 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "faro"
-version = "0.2.0"
-description = "Deterministic next-day dysregulation risk engine"
+version = "0.3.0"
+description = "Adaptive daily record, abstaining estimates and offline-authored clinical strategies"
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "fastapi>=0.116,<1",
+    # Contract surface. `packages/shared` is the single source of truth and the
+    # only place these models are declared (CONVENTIONS 6).
+    "pydantic>=2.10,<3",
+    # RFC 8785 (JCS) canonical bytes for every hash in SPEC 5.9. Number
+    # serialisation is subtle enough that a validated implementation beats a
+    # hand-written one (CONVENTIONS 20).
+    "rfc8785>=0.1.4,<1",
+    # Statistics. Beta/Dirichlet quantiles and L-BFGS-B come from SciPy, never
+    # from a hand-rolled approximation (CONVENTIONS 9.2).
+    "numpy>=2.1,<3",
+    "scipy>=1.14,<2",
+    "scikit-learn>=1.6,<2",
+    # Dataset snapshots and the synthetic generator.
+    "pandas>=2.2,<3",
+    "pyarrow>=18,<24",
+    # `synthetic_reference_v021` keeps the v0.2 LightGBM artifact alive for
+    # simulation and regression only (SPEC 8.2).
     "joblib>=1.4,<2",
     "lightgbm>=4.7,<5",
     "mapie>=1.0,<2",
-    "numpy>=2.1,<3",
-    "pandas>=2.2,<3",
-    "pyarrow>=18,<24",
-    "pydantic>=2.10,<3",
-    "scikit-learn>=1.6,<2",
-    "scipy>=1.14,<2",
+    # Application surface owned by P2.
+    "fastapi>=0.116,<1",
     "uvicorn[standard]>=0.34,<1",
 ]
 
@@ -25,12 +37,15 @@ dependencies = [
 dev = [
     "httpx2>=2.12,<3",
     "import-linter>=2.3,<3",
+    # Validates `packages/shared/examples` against the generated JSON Schema, so
+    # a published example cannot drift from the published contract.
+    "jsonschema>=4.23,<5",
     "pytest>=8.3,<9",
     "ruff>=0.9,<1",
 ]
 
 [tool.setuptools.packages.find]
-include = ["apps*", "ml*", "packages*"]
+include = ["apps*", "ml*", "packages*", "rag*", "tools*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -45,7 +60,7 @@ target-version = "py312"
 line-length = 100
 # The planning documents are prose. Their Python snippets illustrate the SPEC
 # and are hand-aligned to be read, not to be formatted.
-extend-exclude = ["*.md"]
+extend-exclude = ["*.md", "packages/shared/generated"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
