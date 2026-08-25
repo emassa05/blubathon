@@ -44,7 +44,7 @@ def create_app(
     core = Services(
         settings=resolved,
         database=database,
-        ports=build_ports(secret=resolved.audit_secret),
+        ports=build_ports(secret=resolved.audit_secret, database=database),
         clock=clock,
     )
 

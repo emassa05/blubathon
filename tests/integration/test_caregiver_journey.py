@@ -29,10 +29,20 @@ def test_caregiver_journey_end_to_end(caregiver, other_tenant_caregiver, db, clo
     assert reloaded["audit_mode"] == session["audit_mode"]
 
     # 4-5. Se deja una sugerencia sin tocar y se responde otro campo.
+    #
+    # SPEC 6.2: solo una observación real informa una sugerencia. En la demo la
+    # cohorte es `demo_fixture` y sus filas son sintéticas, así que el estimador
+    # real no presenta ninguna y el conjunto mock sí, porque lee un fixture
+    # declarado. Cada camino afirma lo que garantiza; lo que no depende del
+    # camino -que una sugerencia sin tocar no crea observación- se comprueba
+    # igual más abajo.
     suggested = [
         item for item in session["highlighted"] + session["tail"] if item["default"] is not None
     ]
-    assert suggested
+    if session["plan_source"] == "mock":
+        assert suggested
+    else:
+        assert not suggested
     answer = {"answer": FIXTURE["answers"][0]}
     assert caregiver.post(f"/api/v1/form-sessions/{session_id}/answers", answer).status_code == 201
 
