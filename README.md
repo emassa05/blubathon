@@ -1,102 +1,227 @@
-# Faro - demo local v0.3.0
+# Faro - backend v0.3.0
 
 Faro organiza registros diarios, calcula estadísticas personales, presenta
 estimaciones experimentales y ofrece apoyos previamente curados para revisión
 profesional.
 
 Faro **no** diagnostica, **no** prescribe, **no** reemplaza el criterio
-profesional y **no** ejecuta intervenciones de forma autónoma. Tampoco monitorea
-emergencias: ante peligro inmediato hay que seguir los protocolos locales sin
-esperar una alerta de esta aplicación (`SPEC 2.27`).
+profesional y **no** ejecuta intervenciones de forma autónoma. Tampoco
+monitorea emergencias (`SPEC 2.27`).
 
 Los documentos normativos son `SPEC.md`, `CONVENTIONS.md`, `TAREAS.md` y
-`FUNDAMENTOS.md`. Ante contradicción manda `SPEC.md`.
+`FUNDAMENTOS.md`. Ante contradicción manda `SPEC.md`. Este README documenta
+solo el backend (`apps/api`, `ml`, `rag`, `packages/shared`, `tools`); el
+frontend (`apps/web`) tiene su propia documentación.
 
 ---
 
-## Qué contiene esta parte del repositorio
-
-Este README documenta la zona de P2: producto, persistencia y experiencia, ya
-integrada sobre el dominio de P1.
+## 1. Las piezas y quién manda sobre quién
 
 ```text
-apps/api/       FastAPI, servicios de aplicación, store y migraciones
-apps/web/       Next.js 15 con TypeScript strict
-tools/seed/     siembra de la demo con datos completamente ficticios
-tests/p2/       API, store, seguridad e invariantes de persistencia
-tests/integration/  journeys extremo a extremo, en los dos conjuntos de adaptadores
+packages/shared/   el contrato: modelos, enums, constantes, catálogo de
+                    campos, textos y bytes canónicos. No importa a nadie.
+ml/                 dominio puro: defaults, formulario, predicción, evaluación.
+                    Funciones sobre filas ya cargadas; no abre la base, no lee
+                    el reloj.
+rag/                autoría del corpus (offline) y runtime determinista de
+                    recomendación (online, sin LLM).
+apps/api/           FastAPI: rutas, servicios de aplicación, store (SQLite) y
+                    migraciones. Es quien carga filas y llama al dominio.
+tools/              contracts (genera el contrato), seed (datos ficticios),
+                    train (entrena y evalúa ml/prediction).
 ```
 
-Las zonas de P1 (`packages/shared`, `ml`, `rag`, `tools/contracts`,
-`tools/train`, `tools/rag_authoring`, `tests/p1`) siguen siendo suyas: desde aquí
-se consumen, no se editan. La única excepción es `packages/shared/package.json`,
-que declara el contrato generado como paquete del workspace de pnpm para que el
-frontend pueda importarlo.
+`lint-imports` hace cumplir la capa: `apps` puede depender de `ml` y `rag`,
+nadie depende de `apps`, y **el store no calcula** — cuando un servicio
+necesita un número se lo pide a un puerto, nunca lo deriva él mismo.
 
----
+`apps/api/ports/` declara cuatro protocolos (`defaults`, `form`, `prediction`,
+`rag`) que solo describen la forma del resultado. `FARO_P1_ADAPTERS` elige
+quién los implementa:
 
-## Estado del release
-
-El manifest de release distingue cuatro estados independientes:
-
-| Estado | Valor actual | Por qué |
+| Adaptador | Cuándo | Qué hace |
 |---|---|---|
-| `implementation_status` | `p2_integrated_against_p1` | API, store, seguridad y UI corren contra el dominio de P1; `mock` queda como camino seleccionable de test y demo |
-| `corpus_status` | `fixture_only` | No hay corpus legalmente utilizable; el fixture es de demostración |
-| `target_definition_status` | `demo_fixture_only` | Hay target `demo_fixture` activo; no hay target real aprobado |
-| `catalog_status` | `blocked_clinical_review` | No hay revisor clínico autorizado; ninguna estrategia llega a `active` |
-
-Con `catalog_status=blocked_clinical_review` el runtime responde
-`clinical_review_unavailable` y la demo muestra la abstención correctamente. No
-se afirma que exista un catálogo clínicamente activo.
-
-`implementation_status=p2_integrated_against_p1` dice que el producto corre
-sobre el dominio publicado, no que produzca estimaciones clínicas. Con la demo
-sembrada, el estimador real de defaults no sugiere nada (la cohorte es
-`demo_fixture` y sus filas son sintéticas, `SPEC 6.2`), el baseline personal se
-abstiene por `insufficient_verified_outcomes` y el track de simulación responde
-`unavailable` porque el binario v0.2 no está en Git. Eso es exactamente lo que
-el SPEC exige que se vea con estos datos.
+| `apps/api/adapters/p1` (`FARO_P1_ADAPTERS=real`) | dominio real | llama a `ml/**` y `rag/runtime` sobre filas de la base |
+| `apps/api/adapters/mock` (por defecto) | tests de P2 y demo | responde con fixtures fijas, sin fórmulas del SPEC |
 
 ---
 
-## Cómo correr la demo
+## 2. Cómo se resuelve cada caso
 
-Requisitos: Python 3.12+ con las dependencias del proyecto instaladas, Node 20+
-y pnpm 9.
+Once rutas de producto (`SPEC 11.1`). Esto es qué calcula cada una y con qué
+regla, no solo qué devuelve.
+
+### Abrir sesión — `POST /form-sessions`
+
+1. **`audit_mode`** se fija una sola vez, con
+   `HMAC_SHA256(secret, tenant_id | subject_id | local_date | policy_version) mod 1000 < 100`.
+   Es decir: ~10% de las sesiones no ve sugerencias, de forma estable e
+   impredecible desde el cliente. Nunca se recalcula (`INV-05`).
+2. **El plan** (`ml/form/plan.py::build_form_plan`) ordena los campos así:
+   outcome pendiente → vencidos por antigüedad (≥7 días sin preguntarse) →
+   cuota de exploración (día ISO elegido también por HMAC semanal) → mayor VoI
+   disponible → orden canónico para llenar cupos → el resto en cola. Todos los
+   campos quedan accesibles siempre; "destacado" es solo prioridad de
+   atención (`INV-10`).
+3. Si `audit_mode=false`, cada campo de la allowlist recibe una sugerencia de
+   default si `compute_default_decision` (`ml/defaults/estimator.py`) supera
+   el umbral — ver §3.
+
+### Responder — `POST /form-sessions/{id}/answers`
+
+El cliente manda una **interacción** (`manual | accept_default | edit_default
+| unknown`); el servidor deriva el **`entry_mode`** real, con esta
+precedencia fija (nunca por "lo que dijo el cliente"):
+
+1. Canal de importación con mapping aprobado → `imported_observed`.
+2. Sesión de observación profesional → `professional_observed`.
+3. Interacción `unknown` → `explicit_unknown`, **sin valor** (no es `0`, no es
+   `false`, no es vacío).
+4. Sesión auditada, respuesta manual → `audit_manual`.
+5. `accept_default` sobre una sugerencia vigente, con el valor aceptado
+   igual al presentado → `default_accepted`.
+6. Cualquier valor manual sobre un campo con sugerencia vigente, aunque el
+   cliente diga `manual` → `default_edited`. No se puede pisar una sugerencia
+   sin que quede registrado.
+7. Si el campo nunca tuvo sugerencia → `manual_no_default`.
+
+Una sugerencia que nadie toca no crea observación (`INV-01`).
+
+### Cerrar — `POST /form-sessions/{id}/submit`
+
+Serializado por `(tenant_id, subject_id)` (evita dos episodios a la vez sobre
+el mismo sujeto). La regla es fail-closed:
+
+```text
+si no hay TargetDefinitionVersion activa y única para el instante:
+    cerrar con target_definition_unavailable (o _ambiguous si hay > 1)
+    no se crea episodio ni outcome request
+si hay definición y no hay episodio primario abierto:
+    crear PredictionEpisode + OutcomeRequest inmutable
+    snapshot = IDs de observaciones proyectadas al cutoff (no una copia de
+    valores: una corrección después no cambia lo que el episodio vio)
+si hay definición y ya hay un episodio primario abierto:
+    enlazar la sesión a ese episodio, no crear otro
+```
+
+### Ver estimaciones — `GET /prediction-episodes/{id}`
+
+Tres tracks que nunca comparten significado (`SPEC 8.1`), y cada uno se
+abstiene por su propia regla:
+
+| Track | Cómo se calcula | Se abstiene si |
+|---|---|---|
+| `synthetic_reference_v021` | LightGBM sobre datos sintéticos, solo cohorte `demo_fixture` | falta el artefacto del modelo (`model_artifact_unavailable`) |
+| `real_personal_baseline_v1` | `Beta(1+e, 1+n-e)` sobre outcomes reales previos del mismo sujeto/`care_mode`/target, ventana 60 días; `p_mean=(1+e)/(2+n)`, intervalo `[BetaPPF(0.05), BetaPPF(0.95)]` | `verified_outcomes < 5`, conflicto sin resolver, o falta historial de `care_mode` |
+| `real_logit_challenger_v1` | regresión logística preentrenada con offset del baseline + desviaciones de sueño y regulación | siempre en sombra: nunca se expone, el modelo del contrato lo rechaza si se intenta |
+
+Sin política de decisión validada, no hay bandas verde/ámbar/rojo
+(`decision_policy_version`, `risk_band` quedan `null`, `SPEC 8.6`).
+
+### Recomendación — `GET .../recommendations`
+
+`rag/runtime/decide.py::decide(RuntimeInputs)` es puro y determinista: cero
+llamadas a LLM en runtime. Recibe el escenario mínimo (campos con valor real,
+sin identidad ni notas) y el catálogo activo, evalúa el *predicate* del set y
+el de cada estrategia por separado, fail-closed, y devuelve como máximo tres
+estrategias ya revisadas con sus citas exactas. `medication_adherence` no
+entra al escenario si se respondió `unknown`: un `unknown` no asigna valor.
+
+Mientras las estrategias siguen sin revisar, la familia ve
+`{"status": "awaiting_professional_review", "items": []}`. El filtro por
+actor y grants se aplica en el servidor, nunca solo en el cliente.
+
+### Revisión profesional — `POST .../reviews`
+
+Decisiones posibles: `approved`, `rejected`, `human_plan_substituted`,
+`not_applicable`, `deferred`. Usa concurrencia optimista con `If-Match`: sin
+cabecera → 428; revisión vigente → 201; revisión obsoleta → 409. Una
+sustitución crea un plan del equipo que **no hereda citas** del original
+(`INV-29`) y no puede ampliar los roles de ejecución de la estrategia
+sustituida.
+
+### Ejecución — `POST .../executions`
+
+Registra que alguien aplicó una estrategia o un plan. `exposure_eligible` es
+`false` si la aplicación llegó después del cierre de la ventana target o
+antes de la revisión que la autorizó — se conserva el registro, pero no
+cuenta como exposición válida (`SPEC 10.3`).
+
+### Resultado — `POST .../outcome-reports`
+
+El servidor deriva actor, rol, tenant e instante del contexto autorizado, y
+resuelve así (`OutcomeService`, sobre la proyección al cutoff):
+
+```text
+1. yes elegible: timing_status in {early, on_time} y occurred_at en la ventana.
+2. no elegible: solo timing_status = on_time.
+3. hay yes y no elegibles a la vez -> conflicted, ever_conflicted=true.
+4. solo yes -> yes; solo no -> no.
+5. sin reporte concluyente antes del deadline -> pending; al vencer -> unknown.
+```
+
+Ni `no` ni `unknown` cierran la ventana antes de tiempo (`INV-14`). Una
+resolución que alguna vez fue `conflicted` nunca vuelve a presentarse limpia:
+`ever_conflicted` es monotónico.
+
+---
+
+## 3. Las fórmulas detrás de "sugerir" y "priorizar"
+
+- **Default binario**: `k` ocurrencias en `N` observaciones elegibles (ventana
+  limpia de 60 días, mismo tenant/sujeto/fuente/campo) →
+  `Beta(1+k, 1+N-k)`, se sugiere si `BetaPPF(0.05) > 0.70` y el campo está en
+  la allowlist (`food_changes`, `activity_participation`,
+  `social_interactions`, `eating_status`, `attendance_status`).
+- **Default categórico/ordinal**: Dirichlet con `alpha_j = 1+n_j`; candidato es
+  el `argmax`; sin sugerencia si hay empate.
+- **VoI**: información mutua aproximada entre la respuesta y el outcome,
+  `VoI(X) = h(p_bar) - sum(q_j * h(p_j))` en nats; `null` (nunca `0`) si no
+  hay modelo condicional.
+- **Anomalía / cola completa**: se abre si `relevant_event_flag=true`,
+  `medication_adherence=missed`, `daily_regulation_state=frequent_dysregulation`,
+  `alertness` extremo, probabilidad categórica personal `< 0.05`, o
+  `|robust_z| >= 2.0` sobre los últimos 30 días (mediana + MAD).
+
+Ninguna de estas fórmulas vive en `apps/api`: el store solo lee filas y el
+adaptador solo las pasa; el cálculo entero está en `ml/`.
+
+---
+
+## 4. Autorización
+
+Todo acceso a datos clínicos exige tenant + rol + **grant activo sobre el
+sujeto**, no solo rol (`SPEC 2.26`). Comprobado en la demo:
+
+```text
+cuidadora  -> GET /evaluation              403 role_not_allowed
+cuidador B -> GET /prediction-episodes/…   404 not_found   (no 403: no revela existencia)
+profesional sin acreditación -> GET inbox  403 accreditation_required
+```
+
+Cross-tenant siempre es 404, nunca 403: un 403 confirmaría que el recurso
+existe. Cada negativa queda en auditoría append-only, sin payload clínico.
+
+---
+
+## 5. Cómo correr el backend
 
 ```bash
-# 1. Sembrar la base local con datos ficticios (estado honesto de release).
-python -m tools.seed --catalog blocked
+# 1. Sembrar la base local (datos completamente ficticios).
+python -m tools.seed --catalog blocked          # estado honesto de release
+python -m tools.seed --catalog fixture-active   # para recorrer el flujo profesional
 
-#    Para recorrer el flujo profesional completo con un catálogo fixture:
-#    python -m tools.seed --catalog fixture-active
-
-# 2. Levantar la API en 127.0.0.1.
+# 2. Levantar la API.
 uvicorn "apps.api.main:create_app" --factory --host 127.0.0.1 --port 8000
 
-# 3. Levantar el frontend.
-pnpm --dir apps/web dev
+#    Contra el dominio real de P1 en vez de los mocks:
+FARO_P1_ADAPTERS=real uvicorn "apps.api.main:create_app" --factory --port 8000
 ```
 
-La aplicación queda en `http://127.0.0.1:3000`. La documentación OpenAPI está en
-`http://127.0.0.1:8000/docs` y se deshabilita automáticamente en modo piloto.
-
-### Cuentas de demostración
-
-La demo usa sesiones locales ficticias preseeded (`SPEC 12.3`). El token no es un
-secreto de producción y el modo piloto rechaza este mecanismo.
-
-| Token | Persona ficticia | Rol |
-|---|---|---|
-| `demo-cuidadora-ana` | Ana Ríos | `caregiver` |
-| `demo-profesional-a` | Pilar Soto | `professional` acreditada |
-| `demo-evaluador-a` | Evaluador Demo A | `model_evaluator` |
-| `demo-profesional-sin-acreditacion` | Profesional sin acreditación | `professional` sin acreditación vigente |
-| `demo-cuidador-b` | Cuidador Demo B | `caregiver` de otra organización |
-
-Los tres primeros están en el selector de cuenta del frontend; los otros dos
-existen para probar 403 auditados.
+`GET /health` dice contra qué está corriendo:
+`{"status": "ok", "spec_version": "0.3.0", "mode": "demo", "adapters": "p1"}`.
+La documentación OpenAPI vive en `/docs` y se deshabilita sola en modo
+piloto (`FARO_MODE=pilot`).
 
 ### Variables de entorno
 
@@ -108,292 +233,23 @@ existen para probar 403 auditados.
 | `FARO_AUDIT_SECRET` | valor de demo | Secreto HMAC de asignación de auditoría |
 | `FARO_SCENARIO_SECRET` | valor de demo | Clave del escenario mínimo cifrado |
 | `FARO_P1_ADAPTERS` | `mock` | `real` corre contra `ml/**` y `rag/runtime` |
-| `NEXT_PUBLIC_FARO_API` | `http://127.0.0.1:8000/api/v1` | Origen de la API para el frontend |
 
----
+### Cuentas de demostración
 
-## Rutas
-
-Las 11 rutas de producto de `SPEC 11.1`, más tres de soporte del despliegue
-(`/health`, `GET /api/v1/session` y `GET /api/v1/form-sessions/{id}`).
-
-| Método | Ruta | Resultado |
+| Token | Persona ficticia | Rol |
 |---|---|---|
-| POST | `/api/v1/form-sessions` | Abre sesión y fija auditoría |
-| POST | `/api/v1/form-sessions/{id}/answers` | Añade respuesta y recalcula orden |
-| POST | `/api/v1/form-sessions/{id}/submit` | Cierra y crea o enlaza episodio primario |
-| GET | `/api/v1/prediction-episodes/{id}` | Devuelve outputs autorizados |
-| GET | `/api/v1/outcome-requests` | Lista outcomes pendientes del actor |
-| POST | `/api/v1/prediction-episodes/{id}/outcome-reports` | Reporta yes/no/unknown |
-| GET | `/api/v1/prediction-episodes/{id}/recommendations` | Devuelve catálogo precomputado |
-| GET | `/api/v1/recommendation-instances?review_status=pending` | Inbox profesional autorizado |
-| POST | `/api/v1/recommendation-instances/{id}/reviews` | Registra decisión por estrategia |
-| POST | `/api/v1/recommendation-instances/{id}/executions` | Registra aplicación |
-| GET | `/api/v1/evaluation/{model_version}` | Reporte versionado |
-
-Todo POST exige `Idempotency-Key`. Las reviews y ejecuciones exigen `If-Match`.
-Una abstención es HTTP 200 con estado explícito y nunca usa el sobre de error.
+| `demo-cuidadora-ana` | Ana Ríos | `caregiver` |
+| `demo-profesional-a` | Pilar Soto | `professional` acreditada |
+| `demo-evaluador-a` | Evaluador Demo A | `model_evaluator` |
+| `demo-profesional-sin-acreditacion` | — | `professional` sin acreditación vigente (para 403) |
+| `demo-cuidador-b` | — | `caregiver` de otra organización (para 404 cross-tenant) |
 
 ---
 
-## Cómo depende P2 del dominio de P1
-
-Toda dependencia pasa por un puerto, y el conjunto de adaptadores se elige con
-`FARO_P1_ADAPTERS`:
-
-```text
-apps/api/ports/        protocolos: defaults, formulario, predicción, runtime RAG
-apps/api/adapters/p1   adaptadores reales sobre `ml/**` y `rag/runtime`
-apps/api/adapters/mock adaptadores fixture, camino seleccionable de test y demo
-apps/api/store/history.py  lecturas que el dominio puro necesita como entrada
-apps/api/contracts/    re-export de `packages/shared`
-apps/web/lib/contracts.ts  re-export de `@faro/contract`
-apps/web/lib/texts.ts      mapea `FARO_TEXTS_ES` a los nombres de la UI
-```
-
-El contrato ejecutable ya no se duplica: `apps/api/contracts/**`,
-`apps/api/canonical.py` y `apps/web/lib/contracts.ts` reexportan
-`packages/shared`, y los validadores de P1 son los que hacen cumplir SPEC 8.5,
-10.2 y 11.5 en las respuestas.
-
-### Qué quedó cableado contra P1
-
-| Puerto | Lo que llama de P1 |
-|---|---|
-| `defaults` | `assign_audit_mode`, y `compute_default_decision` sobre `eligible_history` |
-| `form` | `build_form_plan` con la cobertura de `compute_dqi`, y `build_scenario` |
-| `prediction` | `score_simulation`, `build_personal_baseline`, y la versión en sombra del challenger |
-| `rag` | `decide(RuntimeInputs)` con `RuntimeCatalog` |
-
-`ml.prediction.predict` y `rag.runtime.recommend` no existen: P1 publica el doble
-track por separado y `decide`. El adaptador arma ambas formas; los puertos, los
-servicios y el store no cambiaron para acomodarlas.
-
-### Qué sigue en mock, y por qué
-
-`apps/api/adapters/mock` no se borró: es el camino de `tests/p2`, donde una
-sugerencia de fixture permite comprobar INV-01 con datos que el estimador real
--correctamente- no produce sobre una cohorte sintética. Los mocks no calculan
-ninguna fórmula del SPEC.
-
-| Puerto | Hace | No hace |
-|---|---|---|
-| `defaults` | Lee sugerencias de fixture y asigna auditoría HMAC estable | No calcula Beta, Dirichlet ni ventanas limpias |
-| `form` | Ordena por prioridad declarada y construye el escenario mínimo | No calcula DQI, VoI ni anomalías; `voi_nats` siempre `null` |
-| `prediction` | Devuelve score de simulación de fixture y abstenciones | No entrena, no estima, no calibra |
-| `rag` | Evalúa fail-closed el predicate del set y de cada estrategia | No indexa, no recupera, no usa BM25/RRF ni verifica citas |
-
----
-
-## Solicitudes a P1
-
-Estas son las divergencias que P2 necesita resolver con P1. Cada una lleva ruta,
-request, response y el test consumidor que la fija. Las que H1 ya resolvió están
-marcadas como cerradas, con lo que P1 decidió.
-
-Las que siguen abiertas están declaradas en un solo lugar del código: cada
-respuesta de producto que las necesita es una **subclase** del modelo publicado
-en `packages/shared`, en `apps/api/contracts/models.py` y en
-`apps/web/lib/contracts.ts`. Nada del contrato se redeclara; lo único declarado
-es el campo que falta.
-
-### R1 - `submit` no puede decir por qué no hubo target — **abierta**
-
-`SPEC 4.3` distingue dos causas de fallo cerrado: cero versiones activas
-(`target_definition_unavailable`) y más de una (`target_definition_ambiguous`).
-`SubmitStatus` de P1 tiene tres valores y `FormSubmitResponse` no lleva razones,
-así que la segunda causa no llega al cliente.
-
-- Ruta: `POST /api/v1/form-sessions/{id}/submit`
-- Request: sin cuerpo.
-- Response propuesta: `FormSubmitResponse` más
-  `"reasons": ["target_definition_ambiguous"]`.
-- Razón: distinguir "no hay definición" de "hay más de una" sin inventar un
-  cuarto valor de `status`.
-- Test consumidor:
-  `tests/p2/test_episodes_and_outcomes.py::test_two_effective_target_versions_fail_closed`.
-- Mientras tanto: `SubmitFormSessionView` declara `reasons`, y P2 persiste
-  `form_sessions.prediction_status = 'target_definition_ambiguous'`.
-
-### R2 - precedencia de `entry_mode` para sesión profesional con `unknown` — **abierta**
-
-`SPEC 5.5` ordena `professional_observed` (regla 2) antes de `explicit_unknown`
-(regla 3). Una sesión `professional_observation` en la que el profesional
-responde `unknown` cumple ambas, pero `professional_observed` asigna valor y
-`unknown` es por definición una decisión sin valor (`SPEC 8.2`).
-
-- Ruta: `POST /api/v1/form-sessions/{id}/answers`
-- Request: `{"answer": {"field_code": "gi_status", "interaction": "unknown"}}` en
-  una sesión `session_kind=professional_observation`.
-- Response actual: `{"entry_mode": "explicit_unknown", ...}`.
-- Razón: la alternativa literal persistiría una observación
-  `professional_observed` sin valor, que la propia tabla prohíbe.
-- Test consumidor:
-  `tests/p2/test_form_sessions.py::test_explicit_unknown_persists_without_a_value`.
-- Decisión pedida: confirmar la precedencia o declarar la combinación inválida.
-
-### R3 - catálogo cerrado de `behavior_tags` — **abierta, y P2 dejó de inventarlo**
-
-`SPEC 5.2` declara `behavior_tags` como catálogo versionado sin enumerarlo. P2
-había propuesto seis valores; H1 publicó el campo como `tag_set` con forma de
-token (`^[a-z][a-z0-9_]*$`) y sin catálogo, que es lo que `SPEC 19` manda: una
-decisión ausente se registra como pregunta, no se inventa.
-
-- Consecuencia visible: el control de `behavior_tags` ya no ofrece opciones y lo
-  dice; la interfaz no completa vocabulario clínico por su cuenta.
-- Decisión pedida: publicar el catálogo versionado, o declarar el campo fuera de
-  alcance en v0.3.
-
-### R4 - capability de acreditación para revisar una recomendación de caso — **abierta**
-
-`SPEC 13.1` pide "`required_approver_role` acreditado" con capability de grant
-`recommendation_review`, sin fijar qué capability de acreditación aplica. P2 usa
-`subject_care`, reservando `strategy_review` para autoría. Confirmar.
-
-### R5 - la sesión de formulario no publica su bloque de outcome pendiente — **abierta**
-
-`SPEC 6.9` pone el outcome pendiente como paso 1 del plan, en un bloque aparte
-que no consume cupos. `FormPlan` de P1 lo reduce a `outcome_pending: bool` y
-`FormSessionResponse` no lo lleva, así que la pregunta, sus anclas y sus plazos
-no llegan al cliente por el contrato.
-
-- Ruta: `POST /api/v1/form-sessions` y `GET /api/v1/form-sessions/{id}`
-- Response propuesta: `FormSessionResponse` más
-  `"outcome_pending": {"prediction_episode_id", "question_es",
-  "severity_anchors_es", "target_end_at", "capture_deadline_at", "state"}`, y
-  además `status`, `submitted_at`, `answered_field_codes` y `plan_source`.
-- Test consumidor: `tests/integration/test_caregiver_journey.py` paso 8.
-- Mientras tanto: `FormSessionView` los declara.
-
-### R6 - el inbox profesional no publica de quién es el registro — **abierta**
-
-`RecommendationInstanceView` lleva `subject_id`, no una etiqueta visible. Sin
-ella el profesional lee UUIDs.
-
-- Ruta: `GET /api/v1/recommendation-instances?review_status=pending`
-- Response propuesta: `RecommendationInstanceView` más `"subject_label"`.
-- Test consumidor: `tests/p2/test_recommendations.py::test_inbox_only_lists_subjects_with_an_active_grant`.
-
-### R7 - el inbox publica el hash del escenario, no el escenario — **abierta**
-
-`RecommendationInstanceView` lleva `scenario_hash`, que identifica el escenario
-pero no lo describe. Quien revisa necesita ver el escenario mínimo de
-`SPEC 9.7` -sin identificadores directos- para juzgar aplicabilidad, y qué
-estrategias siguen pendientes.
-
-- Ruta: `GET /api/v1/recommendation-instances?review_status=pending`
-- Response propuesta: más `"scenario": ScenarioV1`, `"runtime_status"` y
-  `"pending_strategy_version_ids"`.
-- Test consumidor: `tests/p2/test_recommendations.py::test_professional_sees_the_scenario_without_identifiers`.
-
-### R8 - un item de recomendación no dice quién lo aprueba ni quién lo aplica — **abierta**
-
-`StrategyItem` y `HumanPlanItem` publican texto y citas. Sin
-`required_approver_role` y `allowed_executor_roles` el cliente no sabe quién
-puede aprobar ni quién puede aplicar; sin `non_actionable` no puede mostrar que
-una dependencia suspendida bloquea nuevas acciones (`SPEC 10.2`); sin
-`execution_status` no sabe si ya se registró una aplicación (`SPEC 10.3`).
-
-- Ruta: `GET /api/v1/prediction-episodes/{id}/recommendations`
-- Test consumidor: `tests/p2/test_recommendations.py::test_suspended_dependency_makes_the_instance_non_actionable`.
-
-### R9 - `POST .../answers` no tiene response publicada — **abierta**
-
-El contrato publica `FormAnswerRequest` y no un modelo de respuesta. El cliente
-necesita saber qué observación se creó y con qué `entry_mode` la derivó el
-servidor (`SPEC 5.5`), además del plan recalculado.
-
-- Ruta: `POST /api/v1/form-sessions/{id}/answers`
-- Response propuesta: `{"field_observation_id", "field_code", "entry_mode",
-  "session"}`.
-- Test consumidor: `tests/p2/test_form_sessions.py::test_manual_answer_over_a_presented_default_is_default_edited`.
-
-### R10 - el episodio no publica el estado de su outcome — **abierta**
-
-`PredictionEpisodeResponse` no lleva el estado derivado de la solicitud ni el
-instante de predicción, distinto del cutoff `as_of_at` (`SPEC 4.1`).
-
-- Ruta: `GET /api/v1/prediction-episodes/{id}`
-- Response propuesta: más `"prediction_at"`, `"outcome_state"` y
-  `"resolution_status"`.
-- Test consumidor:
-  `tests/p2/test_episodes_and_outcomes.py::test_deadline_without_a_conclusive_report_becomes_unknown_and_missing`.
-
-### R11 - el reporte de evaluación no dice qué fila es — **abierta**
-
-`EvaluationResponse` no lleva `evaluation_report_id`, el estado del modelo
-(`ModelState`, `SPEC 14.2`) ni cuándo se publicó.
-
-- Ruta: `GET /api/v1/evaluation/{model_version}`
-- Test consumidor: `tests/p2/test_evaluation.py::test_evaluator_reads_a_published_report`.
-
-### R12 - una corrección de observación no se puede expresar — **abierta**
-
-`SPEC 5.8` hace append-only la observación diaria y una corrección se enlaza con
-`supersedes_id`; `SPEC 5.5` permite declarar el instante efectivo de lo
-observado. `AnswerSubmission` no lleva ninguno de los dos.
-
-- Ruta: `POST /api/v1/form-sessions/{id}/answers`
-- Request propuesto: `AnswerSubmission` más `"effective_at"` y `"supersedes_id"`.
-- Test consumidor: `tests/p2/test_form_sessions.py::test_correction_keeps_the_original_row`.
-
-### R13 - el contrato no lleva token de concurrencia — **abierta**
-
-`SPEC 11.2` exige `If-Match` sobre los recursos con revisión y ninguna respuesta
-publicada lleva un token que el cliente pueda devolver.
-
-- Ruta: `GET /api/v1/prediction-episodes/{id}/recommendations` y el inbox.
-- Response propuesta: más `"revision"`. La lectura individual además lo manda en
-  la cabecera `ETag`.
-- Test consumidor: `tests/p2/test_recommendations.py::test_review_requires_if_match_and_rejects_a_stale_revision`.
-
-### R14 - reportar un outcome no devuelve el estado de la solicitud — **abierta**
-
-`SPEC 4.4` deriva el estado de la `OutcomeRequest` del reloj y de la resolución
-activa. P1 publica la regla (`derive_request_state`) pero `OutcomeReportResponse`
-no devuelve su resultado, y el cliente no puede derivarla sin reimplementar la
-precedencia.
-
-- Ruta: `POST /api/v1/prediction-episodes/{id}/outcome-reports`
-- Response propuesta: más `"request_state"`.
-- Test consumidor: `tests/p2/test_episodes_and_outcomes.py::test_incompatible_reports_produce_conflicted`.
-
-### R15 - la ejecución no dice qué se aplicó ni si cuenta — **abierta**
-
-`StrategyExecutionResponse` no dice qué estrategia o plan se aplicó, y
-`SPEC 10.3` distingue una aplicación tardía, que se conserva pero no se atribuye.
-P1 publica la regla (`exposure_is_eligible`) pero no un campo donde devolver su
-resultado.
-
-- Ruta: `POST /api/v1/recommendation-instances/{id}/executions`
-- Response propuesta: más `"strategy_version_id"`, `"human_plan_version_id"` y
-  `"exposure_eligible"`.
-- Test consumidor: `tests/integration/test_professional_journey.py::test_a_late_application_is_kept_but_not_attributed`.
-
-### Cerradas por H1
-
-- **Nombres de enums.** `SessionKind`, `EpisodeStatus`, `OutcomeValue`,
-  `ResolutionStatus`, `OutcomeRequestStatus`, `ItemType`, `CatalogAvailability` y
-  `ReportEstimability` de P2 pasan a los nombres publicados. `PredictionStatus`
-  nombra el estado de una salida y el cierre de sesión usa `SubmitStatus`.
-  `VersionStatus` se separa en `StrategyStatus` y `CatalogStatus`.
-- **Valores.** `estimate_kind` usa `simulation_score` y
-  `shadow_challenger_score`; una métrica estimada es `estimated`, no
-  `estimable`; `interval` es `{lower, upper}`.
-- **Textos.** La copia visible es la de `packages/shared/texts.py` y llega
-  generada al frontend; la API dejó de repetir el aviso de emergencia en cada
-  respuesta.
-- **`EpisodeRole`.** P1 publica solo `primary`; `secondary` era un valor que
-  nada escribía.
-- **`accept_default`.** `AnswerSubmission` exige declarar el valor aceptado, y
-  el servidor lo compara con el presentado antes de guardarlo.
-- **Bytes canónicos.** `apps/api/canonical.py` reexporta
-  `packages/shared/canonical.py`: había dos implementaciones de `SPEC 5.9`.
-
-## Verificación
+## 6. Verificación
 
 ```bash
-# Contrato: nada de `generated/` ni de `examples/` se edita a mano.
+# Contrato: nada de generated/ ni examples/ se edita a mano.
 python -m tools.contracts.generate
 python -m tools.contracts.examples
 git diff --exit-code packages/shared/generated packages/shared/examples
@@ -403,73 +259,31 @@ ruff check . && ruff format --check .
 lint-imports
 pytest tests -q
 
-# Frontend
-pnpm -C apps/web typecheck && pnpm -C apps/web test && pnpm -C apps/web build
-
-# El camino real existe de verdad.
+# El camino real existe de verdad, no solo el mock.
 FARO_P1_ADAPTERS=real pytest tests/integration -q
 ```
 
-`tests/p2/test_openapi.py` compara el documento OpenAPI publicado con la tabla de
-rutas de `SPEC 11.1` y comprueba que cada respuesta use un modelo explícito.
-`lint-imports` comprueba que la integración no rompió las capas: `packages` no
-depende de nadie, `ml` y `rag` no importan `apps`, y el store no importa ningún
-módulo de cálculo.
-
-### Invariantes cubiertos por P2
-
-`tests/p2/test_invariants.py` nombra uno por uno los invariantes que `TAREAS 11`
-asigna a P2: INV-01, INV-05, INV-08, INV-11 a INV-15, INV-27, INV-29, INV-30 e
-INV-31. Los invariantes algorítmicos y de contrato viven en `tests/p1`.
-
-Desde la integración, varios los hace cumplir el propio contrato y no una
-comprobación de P2: `PredictionOutputView` rechaza una abstención con número, una
-simulación presentada como probabilidad y cualquier exposición del challenger;
-`FormSessionResponse` rechaza un default dentro de una sesión auditada;
-`FormSubmitResponse` rechaza un episodio sin definición de target;
-`OutcomeResolutionView` rechaza un conflicto presentado limpio; `HumanPlanItem`
-rechaza un plan del equipo con citas; e `IdempotencyScope` rechaza un scope
-armado con el template de la ruta. `packages/shared/examples/invalid/` tiene un
-ejemplo por cada uno, y `tests/integration/test_adapter_sets.py` comprueba que se
-sostienen en los dos conjuntos de adaptadores.
+`tests/p2/test_openapi.py` compara el OpenAPI publicado contra `SPEC 11.1`.
+`tests/p2/test_invariants.py` cubre los invariantes que le tocan a P2
+(INV-01, 05, 08, 11-15, 27, 29-31); los algorítmicos y de contrato viven en
+`tests/p1`. `lint-imports` verifica que las capas no se rompieron.
 
 ---
 
-## Saneamiento v0.2 realizado
+## 7. Estado real del release
 
-`TAREAS P2.2` pide retirar el legado. Se retiraron:
+Cuatro estados independientes, y ninguno implica al otro:
 
-- `tests/conftest.py`: fixture global v0.2 que entrenaba un modelo por sesión.
-- `tests/unit/**`: `test_api.py` y `test_store.py` probaban la API v0.2 que este
-  trabajo reemplaza; `test_voi.py`, `test_narrative.py`, `test_eval.py`,
-  `test_strategies.py` y `test_bluba_adapter.py` cubrían módulos de `ml/`, cuyo
-  reemplazo corresponde a P1 en `tests/p1`.
-- `tests/invariants/**`: `test_constitution.py` y `test_dependency_rule.py`; la
-  regla de dependencias la comprueba `import-linter`.
-- `apps/api/**` v0.2 completo, reemplazado por la implementación de este SPEC.
-- El contrato provisional de P2: `apps/api/contracts/**`, `apps/api/canonical.py`
-  y `apps/web/lib/contracts.ts` dejaron de declarar modelos, enums, constantes,
-  textos y hashes propios, y pasaron a reexportar `packages/shared`.
+| Estado | Valor | Por qué |
+|---|---|---|
+| `implementation_status` | `p2_integrated_against_p1` | el backend corre sobre el dominio real; `mock` sigue como camino de test/demo |
+| `corpus_status` | `fixture_only` | no hay corpus clínico legalmente utilizable |
+| `target_definition_status` | `demo_fixture_only` | no hay target real aprobado |
+| `catalog_status` | `blocked_clinical_review` | no hay revisor clínico autorizado; ninguna estrategia llega a `active` |
 
-No se tocó `tests/p1/**`, `ml/**`, `rag/**` ni el contenido de
-`packages/shared/**`.
-
----
-
-## Límites conocidos de esta entrega
-
-- Con la demo sembrada, el dominio real no produce ningún número: la cohorte es
-  `demo_fixture`, sus filas son sintéticas y `SPEC 6.2` no las deja informar una
-  sugerencia; el baseline personal se abstiene por falta de outcomes
-  verificados; y el track de simulación responde `unavailable` porque el binario
-  v0.2 no está en Git. Los números que se ven en el camino `mock` son de
-  fixture y están rotulados como tales.
-- El catálogo fixture del seeder existe para recorrer el flujo profesional. Sus
-  documentos llevan `publisher=FIXTURE_DEMO` y `rights_basis=fixture_demo_only`;
-  no son literatura clínica.
-- El cifrado del escenario mínimo es local y suficiente para que el payload no
-  quede legible en el archivo SQLite. El piloto exige un gestor de claves
-  institucional.
-- La serialización por `(tenant_id, subject_id)` usa `BEGIN IMMEDIATE`, que en
-  SQLite serializa a todos los escritores. En PostgreSQL el equivalente es
-  `SELECT ... FOR UPDATE` sobre la fila del sujeto.
+Con la demo sembrada, el dominio real no inventa nada: el estimador de
+defaults no sugiere sobre la cohorte sintética `demo_fixture` (`SPEC 6.2`), el
+baseline personal se abstiene por falta de outcomes verificados, el track
+sintético responde `unavailable` porque el binario v0.2 no está en Git, y el
+catálogo de recomendaciones responde `clinical_review_unavailable`. Eso es lo
+correcto de ver con estos datos, no una falla.
