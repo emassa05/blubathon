@@ -1,0 +1,19 @@
+{
+  "tenant_id": "3a6fadbd-ad44-402d-81c5-5e2de2365242",
+  "ingested_at": "2026-08-25T19:55:00.000Z",
+  "supersedes_id": null,
+  "field_observation_id": "12724833-dfe3-4a08-9870-30c97df12470",
+  "subject_id": "f64b2806-24ea-441c-9dc3-93f76d252bd6",
+  "form_session_id": "2d28e07d-72e9-419a-9a1a-87a8a1a3eedc",
+  "field_code": "sleep_hours",
+  "value": 8.0,
+  "source": "school",
+  "actor_id": "eb7bbe2b-8f55-4637-a7f5-409b64ff566e",
+  "entry_mode": "manual_no_default",
+  "data_origin": "real",
+  "cohort_kind": "real_subject",
+  "effective_at": "2026-08-25T19:55:00.000Z",
+  "local_date": "2026-08-25",
+  "source_mapping_id": null,
+  "raw_value": null
+}

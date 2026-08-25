@@ -3,6 +3,25 @@ root_packages =
     apps
     ml
     packages
+    rag
+    tools
+include_external_packages = True
+
+# CONVENTIONS 4. A comment does not enforce a boundary; these contracts do.
+
+[importlinter:contract:shared-is-independent]
+name = The shared contract depends on nobody
+type = forbidden
+source_modules =
+    packages
+forbidden_modules =
+    apps
+    ml
+    rag
+    fastapi
+    sqlite3
+    lightgbm
+    sklearn
 
 [importlinter:contract:ml-does-not-import-apps]
 name = Pure ML domain does not import application code
@@ -11,3 +30,62 @@ source_modules =
     ml
 forbidden_modules =
     apps
+    fastapi
+    uvicorn
+    sqlite3
+
+[importlinter:contract:store-does-not-compute]
+name = The store persists; it does not compute defaults, VoI or risk
+type = forbidden
+source_modules =
+    apps.api.store
+# `apps/api -> ml` is an allowed dependency, so this names the computation
+# modules rather than all of `ml`: an error taxonomy or a versioned adapter is
+# not a calculation. The list grows with `ml/defaults`, `ml/form` and
+# `ml/prediction` in M2.
+forbidden_modules =
+    ml.defaults
+    ml.engine
+    ml.eval
+    ml.form
+    ml.prediction
+    ml.features
+    ml.voi
+
+[importlinter:contract:rag-does-not-touch-the-clinic]
+name = RAG never reads the clinical store or the application
+type = forbidden
+source_modules =
+    rag
+forbidden_modules =
+    apps
+    ml
+    fastapi
+    sqlite3
+
+[importlinter:contract:runtime-has-no-model-index-or-network]
+name = The RAG runtime calls no LLM, no embeddings, no index and no network
+# SPEC 9.8 / C29: runtime is a pure decision. Forbidding `rag.authoring` covers
+# BM25, RRF and the local draft in one rule; the rest name the transports a
+# future edit could reach for.
+type = forbidden
+source_modules =
+    rag.runtime
+forbidden_modules =
+    rag.authoring
+    httpx
+    requests
+    socket
+    urllib
+    lightgbm
+    sklearn
+    numpy
+    scipy
+
+[importlinter:contract:layers]
+name = Application above domain above contract
+type = layers
+layers =
+    apps
+    ml : rag
+    packages

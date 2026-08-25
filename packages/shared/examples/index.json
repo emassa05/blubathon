@@ -1,0 +1,174 @@
+{
+  "contract_version": "faro-contract-0.3.0",
+  "generated_by": "python -m tools.contracts.examples",
+  "note": "Fictional payloads. No example asserts a real person, source, licence or clinical approval.",
+  "valid": [
+    {
+      "file": "valid/error.cross_tenant.json",
+      "model": "ErrorResponse"
+    },
+    {
+      "file": "valid/error.idempotency_conflict.json",
+      "model": "ErrorResponse"
+    },
+    {
+      "file": "valid/evaluation.real_not_estimable.json",
+      "model": "EvaluationResponse"
+    },
+    {
+      "file": "valid/evaluation.simulation_only.json",
+      "model": "EvaluationResponse"
+    },
+    {
+      "file": "valid/form_answer.accept_default.json",
+      "model": "FormAnswerRequest"
+    },
+    {
+      "file": "valid/form_answer.edit_default.json",
+      "model": "FormAnswerRequest"
+    },
+    {
+      "file": "valid/form_answer.manual.json",
+      "model": "FormAnswerRequest"
+    },
+    {
+      "file": "valid/form_session.audit.json",
+      "model": "FormSessionResponse"
+    },
+    {
+      "file": "valid/form_session.with_default.json",
+      "model": "FormSessionResponse"
+    },
+    {
+      "file": "valid/outcome.conflicted.json",
+      "model": "OutcomeReportResponse"
+    },
+    {
+      "file": "valid/outcome.early_no_pending.json",
+      "model": "OutcomeReportResponse"
+    },
+    {
+      "file": "valid/outcome.explicit_unknown_pending.json",
+      "model": "OutcomeReportResponse"
+    },
+    {
+      "file": "valid/outcome.late.json",
+      "model": "OutcomeReportResponse"
+    },
+    {
+      "file": "valid/outcome.no.json",
+      "model": "OutcomeReportResponse"
+    },
+    {
+      "file": "valid/outcome.yes.json",
+      "model": "OutcomeReportResponse"
+    },
+    {
+      "file": "valid/prediction.personal_abstained.json",
+      "model": "PredictionEpisodeResponse"
+    },
+    {
+      "file": "valid/prediction.synthetic_score.json",
+      "model": "PredictionEpisodeResponse"
+    },
+    {
+      "file": "valid/recommendation.abstained.json",
+      "model": "RecommendationResponse"
+    },
+    {
+      "file": "valid/recommendation.clinical_review_unavailable.json",
+      "model": "RecommendationResponse"
+    },
+    {
+      "file": "valid/recommendation.match.json",
+      "model": "RecommendationResponse"
+    }
+  ],
+  "invalid": [
+    {
+      "file": "invalid/episode.shifted_window.invalid.json",
+      "model": "PredictionEpisode",
+      "violates": "SPEC 4.1: the target window is exactly 24 hours after prediction_at"
+    },
+    {
+      "file": "invalid/evaluation.synthetic_without_simulation_only.invalid.json",
+      "model": "EvaluationResponse",
+      "violates": "SPEC 14.3 / INV-34: synthetic metrics are labelled simulation_only"
+    },
+    {
+      "file": "invalid/form_answer.accept_default_without_presentation.invalid.json",
+      "model": "FormAnswerRequest",
+      "violates": "SPEC 5.5 rule 5: accept_default requires the presentation it responds to"
+    },
+    {
+      "file": "invalid/form_answer.unknown_with_value.invalid.json",
+      "model": "FormAnswerRequest",
+      "violates": "SPEC 5.5 rule 3 / CONVENTIONS 8.2: an explicit unknown assigns no value"
+    },
+    {
+      "file": "invalid/form_session.audited_with_default.invalid.json",
+      "model": "FormSessionResponse",
+      "violates": "SPEC 6.6 / INV-04: an audited session returns no defaults"
+    },
+    {
+      "file": "invalid/idempotency.route_template_path.invalid.json",
+      "model": "IdempotencyScope",
+      "violates": "SPEC 11.2: the scope uses the concrete path, not the route template"
+    },
+    {
+      "file": "invalid/observation.source_not_allowed.invalid.json",
+      "model": "FieldObservation",
+      "violates": "SPEC 5.4: sleep_hours is reported from home only"
+    },
+    {
+      "file": "invalid/outcome.conflicted_not_ever_conflicted.invalid.json",
+      "model": "OutcomeReportResponse",
+      "violates": "SPEC 4.4: ever_conflicted is monotonic and a conflict sets it"
+    },
+    {
+      "file": "invalid/outcome.no_with_occurred_at.invalid.json",
+      "model": "OutcomeReportResponse",
+      "violates": "SPEC 4.4: only a yes report carries occurred_at"
+    },
+    {
+      "file": "invalid/outcome.yes_without_occurred_at.invalid.json",
+      "model": "OutcomeReportResponse",
+      "violates": "SPEC 4.4: a yes report states when the event occurred"
+    },
+    {
+      "file": "invalid/prediction.abstained_with_probability.invalid.json",
+      "model": "PredictionEpisodeResponse",
+      "violates": "SPEC 11.5 / INV-21: an abstention carries no probability, interval or band"
+    },
+    {
+      "file": "invalid/prediction.challenger_exposed.invalid.json",
+      "model": "PredictionEpisodeResponse",
+      "violates": "SPEC 8.5 / 2.15: the shadow challenger is never exposed in v0.3"
+    },
+    {
+      "file": "invalid/prediction.simulation_as_probability.invalid.json",
+      "model": "PredictionEpisodeResponse",
+      "violates": "SPEC 2.10 / 8.2: a designed simulation is never labelled a clinical probability"
+    },
+    {
+      "file": "invalid/recommendation.abstained_with_items.invalid.json",
+      "model": "RecommendationResponse",
+      "violates": "SPEC 11.6: an abstained response returns no items"
+    },
+    {
+      "file": "invalid/recommendation.human_plan_with_citations.invalid.json",
+      "model": "RecommendationResponse",
+      "violates": "SPEC 10.2 / INV-29: a human plan does not inherit the RAG citations"
+    },
+    {
+      "file": "invalid/scenario.field_outside_allowlist.invalid.json",
+      "model": "ScenarioV1",
+      "violates": "SPEC 9.7: build_scenario reads only the five allowlisted fields"
+    },
+    {
+      "file": "invalid/submit.target_unavailable_with_episode.invalid.json",
+      "model": "FormSubmitResponse",
+      "violates": "SPEC 4.2 / INV-13: no target definition means no episode is fabricated"
+    }
+  ]
+}

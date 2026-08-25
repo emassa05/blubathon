@@ -1,0 +1,8 @@
+{
+  "answer": {
+    "field_code": "sleep_quality",
+    "interaction": "unknown",
+    "value": "interrupted",
+    "default_presentation_id": null
+  }
+}

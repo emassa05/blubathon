@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "idempotency_conflict",
+    "message_es": "Esa clave de idempotencia ya se usó con un contenido distinto.",
+    "request_id": "1e3dcd29-1b69-4cc2-97dd-0030d147103f"
+  }
+}

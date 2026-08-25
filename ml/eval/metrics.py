@@ -1,145 +1,114 @@
-"""Métricas de evaluación — SPEC §13. Funciones puras: `y_true, y_pred -> dict`."""
+"""The metrics of SPEC 14.3, each with an explicit unsupported case.
+
+Average precision comes from scikit-learn, not from a hand-rolled version whose
+tie handling nobody has checked (CONVENTIONS 9.4). AUC is simply not computed
+with one class, and calibration is a maximum-likelihood fit that reports
+`not_estimable` rather than a number when it cannot converge.
+
+Every function here returns `None` when the data does not support the estimate.
+Zero is a value; the absence of an estimate is not.
+"""
 
 from __future__ import annotations
 
+import math
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Final
 
-def _clip01(x: float) -> float:
-    return max(0.0, min(1.0, x))
+import numpy as np
+from scipy.optimize import minimize
+from sklearn.metrics import average_precision_score, roc_auc_score
 
-
-def average_precision(y_true: list[int], y_score: list[float]) -> float:
-    """`auc_pr` — average precision (área bajo la curva precisión-recall)."""
-    n_pos = sum(y_true)
-    if n_pos == 0:
-        return 0.0
-    order = sorted(range(len(y_score)), key=lambda i: -y_score[i])
-    tp = fp = 0
-    prev_recall = 0.0
-    ap = 0.0
-    for i in order:
-        if y_true[i] == 1:
-            tp += 1
-        else:
-            fp += 1
-        precision = tp / (tp + fp)
-        recall = tp / n_pos
-        ap += precision * (recall - prev_recall)
-        prev_recall = recall
-    return ap
+_PROBABILITY_FLOOR: Final = 1e-12
+_CALIBRATION_MAX_ITERATIONS: Final = 500
+_CALIBRATION_TOLERANCE: Final = 1e-10
 
 
-def auc_roc(y_true: list[int], y_score: list[float]) -> float:
-    n_pos = sum(y_true)
-    n_neg = len(y_true) - n_pos
-    if n_pos == 0 or n_neg == 0:
-        return 0.5
-    pos_scores = [s for s, y in zip(y_score, y_true, strict=True) if y == 1]
-    neg_scores = [s for s, y in zip(y_score, y_true, strict=True) if y == 0]
-    wins = 0.0
-    for ps in pos_scores:
-        for ns in neg_scores:
-            if ps > ns:
-                wins += 1
-            elif ps == ns:
-                wins += 0.5
-    return wins / (n_pos * n_neg)
+def _validate(labels: Sequence[int], probabilities: Sequence[float]) -> None:
+    if len(labels) != len(probabilities):
+        raise ValueError("labels and probabilities must have the same length")
+    for probability in probabilities:
+        if not 0.0 <= probability <= 1.0 or math.isnan(probability):
+            raise ValueError("a probability outside [0,1] is not a prediction")
+    for label in labels:
+        if label not in (0, 1):
+            raise ValueError("a label is 0 or 1")
 
 
-def brier_score(y_true: list[int], y_prob: list[float]) -> float:
-    if not y_true:
-        return 0.0
-    return sum((p - y) ** 2 for p, y in zip(y_prob, y_true, strict=True)) / len(y_true)
+def has_both_classes(labels: Sequence[int]) -> bool:
+    return 0 in labels and 1 in labels
 
 
-def expected_calibration_error(y_true: list[int], y_prob: list[float], n_bins: int = 10) -> float:
-    """`ece` con `n_bins` bins de igual ancho en [0,1]."""
-    if not y_true:
-        return 0.0
-    bins = [[] for _ in range(n_bins)]
-    for p, y in zip(y_prob, y_true, strict=True):
-        idx = min(n_bins - 1, int(_clip01(p) * n_bins))
-        bins[idx].append((p, y))
-    n = len(y_true)
-    ece = 0.0
-    for bucket in bins:
-        if not bucket:
-            continue
-        conf = sum(p for p, _ in bucket) / len(bucket)
-        acc = sum(y for _, y in bucket) / len(bucket)
-        ece += (len(bucket) / n) * abs(conf - acc)
-    return ece
+def brier_score(labels: Sequence[int], probabilities: Sequence[float]) -> float | None:
+    """`mean((p - y)^2)`. Defined per row, so one class is still fine."""
+
+    _validate(labels, probabilities)
+    if not labels:
+        return None
+    pairs = zip(labels, probabilities, strict=True)
+    return float(np.mean([(probability - label) ** 2 for label, probability in pairs]))
 
 
-def alert_budget_recall(
-    y_true: list[int], y_score: list[float], child_ids: list[str], budget_per_child: int
-) -> dict:
-    """Recall de crisis con presupuesto de `budget_per_child` alertas por niño
-    (SPEC §13: se reporta como curva; aquí, el punto para el presupuesto dado
-    más la curva completa 1..N)."""
-    by_child: dict[str, list[tuple[float, int]]] = {}
-    for cid, s, y in zip(child_ids, y_score, y_true, strict=True):
-        by_child.setdefault(cid, []).append((s, y))
+def average_precision(labels: Sequence[int], probabilities: Sequence[float]) -> float | None:
+    """scikit-learn's `average_precision_score`; `None` without both classes."""
 
-    def recall_at(budget: int) -> float:
-        tp = 0
-        total_pos = sum(y_true)
-        if total_pos == 0:
-            return 0.0
-        for pairs in by_child.values():
-            top = sorted(pairs, key=lambda p: -p[0])[:budget]
-            tp += sum(y for _, y in top)
-        return tp / total_pos
-
-    max_budget = max((len(v) for v in by_child.values()), default=1)
-    curve = {b: recall_at(b) for b in range(1, max_budget + 1)}
-    return {"at_budget": recall_at(budget_per_child), "curve": curve}
+    _validate(labels, probabilities)
+    if not has_both_classes(labels):
+        return None
+    return float(average_precision_score(np.asarray(labels), np.asarray(probabilities)))
 
 
-def decision_coverage(statuses: list[str]) -> float:
-    """% de días-niño con `status == 'ok'` (no abstiene)."""
-    if not statuses:
-        return 0.0
-    return sum(1 for s in statuses if s == "ok") / len(statuses)
+def auc_roc(labels: Sequence[int], probabilities: Sequence[float]) -> float | None:
+    """Secondary to average precision, and never computed with one class."""
+
+    _validate(labels, probabilities)
+    if not has_both_classes(labels):
+        return None
+    return float(roc_auc_score(np.asarray(labels), np.asarray(probabilities)))
 
 
-def fairness_sex(y_true: list[int], y_score: list[float], sex: list[str]) -> dict:
-    """`auc_pr` y recall por sexo (F vs M), reportado honestamente."""
-    out = {}
-    for group in ("F", "M"):
-        idx = [i for i, s in enumerate(sex) if s == group]
-        if not idx:
-            out[group] = {"auc_pr": None, "recall_at_10pct": None, "n": 0}
-            continue
-        yt = [y_true[i] for i in idx]
-        ys = [y_score[i] for i in idx]
-        n_pos = sum(yt)
-        if n_pos == 0:
-            recall = None
-        else:
-            k = max(1, round(0.10 * len(yt)))
-            top = sorted(range(len(ys)), key=lambda i: -ys[i])[:k]
-            recall = sum(yt[i] for i in top) / n_pos
-        out[group] = {"auc_pr": average_precision(yt, ys), "recall_at_10pct": recall, "n": len(idx)}
-    return out
+def logit(probability: float) -> float:
+    clipped = min(max(probability, _PROBABILITY_FLOOR), 1.0 - _PROBABILITY_FLOOR)
+    return math.log(clipped / (1.0 - clipped))
 
 
-def baseline_always_base_rate(y_true: list[int]) -> list[float]:
-    """Baseline obligatorio 1 (§13): predecir siempre la tasa base."""
-    rate = sum(y_true) / len(y_true) if y_true else 0.0
-    return [rate] * len(y_true)
+@dataclass(frozen=True, slots=True)
+class CalibrationFit:
+    """Intercept and slope of `y ~ a + b*logit(p)`, or why there are none."""
+
+    estimable: bool
+    intercept: float | None = None
+    slope: float | None = None
+    not_estimable_reason: str | None = None
 
 
-def baseline_yesterday_dysregulation(dysregulation_yesterday: list[bool]) -> list[float]:
-    """Baseline obligatorio 2 (§13): 'ayer hubo desregulación -> mañana crisis'."""
-    return [1.0 if d else 0.0 for d in dysregulation_yesterday]
+def calibration_fit(labels: Sequence[int], probabilities: Sequence[float]) -> CalibrationFit:
+    """Unpenalised maximum likelihood. One class or no convergence refuses."""
 
+    _validate(labels, probabilities)
+    if not has_both_classes(labels):
+        return CalibrationFit(estimable=False, not_estimable_reason="single_class")
+    if len(labels) < 3:
+        return CalibrationFit(estimable=False, not_estimable_reason="insufficient_rows")
 
-def evaluate(y_true: list[int], y_score: list[float]) -> dict:
-    """Métricas puntuales sobre un test set: `y_true, y_pred -> dict`."""
-    return {
-        "auc_pr": average_precision(y_true, y_score),
-        "auc_roc": auc_roc(y_true, y_score),
-        "brier": brier_score(y_true, y_score),
-        "ece": expected_calibration_error(y_true, y_score),
-        "lead_time_hours": 24,
-    }
+    x = np.asarray([logit(probability) for probability in probabilities], dtype=np.float64)
+    y = np.asarray(labels, dtype=np.float64)
+
+    def negative_log_likelihood(coefficients: np.ndarray) -> float:
+        intercept, slope = coefficients
+        eta = intercept + slope * x
+        # log(1 + exp(eta)) written stably for large |eta|.
+        stable = np.logaddexp(0.0, eta)
+        return float(np.mean(stable - y * eta))
+
+    result = minimize(
+        negative_log_likelihood,
+        x0=np.zeros(2, dtype=np.float64),
+        method="L-BFGS-B",
+        tol=_CALIBRATION_TOLERANCE,
+        options={"maxiter": _CALIBRATION_MAX_ITERATIONS},
+    )
+    if not result.success or not np.all(np.isfinite(result.x)):
+        return CalibrationFit(estimable=False, not_estimable_reason="convergence_failure")
+    return CalibrationFit(estimable=True, intercept=float(result.x[0]), slope=float(result.x[1]))
