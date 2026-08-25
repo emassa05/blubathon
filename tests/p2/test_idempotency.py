@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
+from apps.api.store import idempotency as store
 from tests.p2.test_form_sessions import open_session
 from tools.seed import ids
 
@@ -85,3 +89,19 @@ def test_a_failed_command_rolls_back_completely(caregiver, db) -> None:
         (f"%{session['form_session_id']}%",),
     ).fetchone()["n"]
     assert keys == 0
+
+
+def test_a_route_template_can_never_become_an_idempotency_scope() -> None:
+    """SPEC 11.2. El oráculo es `examples/invalid/idempotency.route_template_path`.
+
+    El scope lo declara `packages.shared.IdempotencyScope`, así que el path del
+    template no llega a construirse ni siquiera por error de programación.
+    """
+    with pytest.raises(ValidationError):
+        store.scope(
+            tenant_id=ids.TENANT_A,
+            actor_id=ids.CAREGIVER_A,
+            method="POST",
+            path="/api/v1/form-sessions/{form_session_id}/answers",
+            key="k",
+        )

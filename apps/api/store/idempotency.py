@@ -1,8 +1,9 @@
 """Almacén de claves idempotentes (SPEC 11.2, CONVENTIONS 12.3).
 
-El scope es `(tenant_id, actor_id, method, normalized_concrete_path, key)`. El
-path concreto incluye todos los IDs normalizados, así que la misma clave sobre
-dos IDs distintos produce dos recursos distintos y nunca comparte replay.
+El scope es `(tenant_id, actor_id, method, normalized_concrete_path, key)` y lo
+declara `packages.shared.IdempotencyScope`, cuyo validador rechaza un path que
+sea el template de la ruta. Así la invariante no vive en un comentario: el
+ejemplo inválido `idempotency.route_template_path` es su oráculo.
 """
 
 from __future__ import annotations
@@ -12,11 +13,8 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from apps.api.canonical import content_hash
-from apps.api.contracts.constants import SPEC_VERSION
+from apps.api.contracts.models import IdempotencyScope, request_fingerprint
 from apps.api.store.json_columns import dump, load
-
-IDEMPOTENCY_ARTIFACT = "idempotent_request"
 
 
 def normalize_path(path: str) -> str:
@@ -25,19 +23,31 @@ def normalize_path(path: str) -> str:
     return trimmed or "/"
 
 
+def scope(*, tenant_id: str, actor_id: str, method: str, path: str, key: str) -> IdempotencyScope:
+    """SPEC 11.2. Un template de ruta no llega a construirse."""
+    return IdempotencyScope(
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        method=method,
+        normalized_concrete_path=normalize_path(path),
+        idempotency_key=key,
+    )
+
+
 def request_hash(
+    request_scope: IdempotencyScope,
     *,
     path_params: dict[str, Any],
     query: dict[str, Any],
     body: Any,
 ) -> str:
-    """Hash JCS con separación de dominio sobre path params, query y body."""
-    payload = {
-        "path_params": {key: str(value) for key, value in sorted(path_params.items())},
-        "query": {key: query[key] for key in sorted(query)},
-        "body": body,
-    }
-    return content_hash(IDEMPOTENCY_ARTIFACT, SPEC_VERSION, payload)
+    """Hash del scope, los path params, la query canónica y el body."""
+    return request_fingerprint(
+        request_scope,
+        path_params={key: str(value) for key, value in sorted(path_params.items())},
+        query={key: query[key] for key in sorted(query)},
+        body=body,
+    )
 
 
 @dataclass(frozen=True, slots=True)

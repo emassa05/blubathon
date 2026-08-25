@@ -82,8 +82,18 @@ class Services:
           ya no vale responde 403 y no revela la respuesta histórica. En el camino
           normal la autorización la hace el propio servicio, dentro de `execute`.
         """
+        request_scope = idempotency.scope(
+            tenant_id=actor.tenant_id,
+            actor_id=actor.actor_id,
+            method=request.method,
+            path=request.concrete_path,
+            key=request.key,
+        )
         request_sha256 = idempotency.request_hash(
-            path_params=request.path_params, query=request.query, body=request.body
+            request_scope,
+            path_params=request.path_params,
+            query=request.query,
+            body=request.body,
         )
         with self.database.write() as connection:
             now = self.now()
