@@ -1,230 +1,665 @@
-# FARO — Convenciones de código
-### Cómo escribimos, cómo nos dividimos, cómo no nos pisamos · v1.0
+# FARO - Convenciones de implementación v2.0
 
-> **Relación con el [`SPEC.md`](SPEC.md).** El SPEC dice **qué** hace el sistema (contratos, números, invariantes) y está congelado. Este documento dice **cómo escribimos el código**. Son documentos distintos a propósito: el SPEC cambia solo con acuerdo de los dos; esto puede evolucionar mientras programamos.
->
-> **Toda IA que genere código para este proyecto lee este archivo primero.** Sin esto, cada archivo sale con un estilo distinto y el repo termina siendo un collage.
+## Cómo construir SPEC v0.3.0 sin mezclar responsabilidades
+
+Este documento define cómo escribir y organizar el código. `SPEC.md` define qué debe hacer el
+producto. Si ambos difieren, manda `SPEC.md`.
 
 ---
 
-## 1. Forma del repositorio
+## 1. Lectura obligatoria
 
-**Un repositorio. Dos procesos que se hablan por HTTP.**
+Antes de editar código o generar artefactos se leen, en este orden:
 
-```
+1. `SPEC.md`.
+2. `CONVENTIONS.md`.
+3. `TAREAS.md`.
+4. `FUNDAMENTOS.md` para comprender fórmulas y evidencia.
+
+Los archivos históricos y `Untitled document.md` no son normativos.
+
+---
+
+## 2. Principios
+
+1. La solución más pequeña que cumple el SPEC es la correcta.
+2. Una capa nueva necesita una responsabilidad que no pueda vivir en una capa existente.
+3. No se crea abstracción para una única implementación hipotética.
+4. Contratos, estados y fórmulas se hacen explícitos antes de crear UI.
+5. Un valor ausente permanece ausente.
+6. La abstención se diseña y prueba como salida normal.
+7. La historia clínica, de recomendaciones y de consentimiento es append-only.
+8. Un número de política se etiqueta como política; no se vende como evidencia.
+9. Ningún LLM ocupa una posición donde pueda alterar riesgo o recomendaciones activas.
+10. Dos personas nunca editan el mismo archivo durante el mismo hito.
+
+---
+
+## 3. Forma objetivo del repositorio
+
+```text
 faro/
+├── SPEC.md
+├── CONVENTIONS.md
+├── TAREAS.md
+├── FUNDAMENTOS.md
 ├── apps/
-│   ├── web/          Next.js 15 · TypeScript · Tailwind · shadcn/ui
-│   │                 corre en Node, puerto 3000
-│   └── api/          FastAPI · Python 3.12 · Pydantic v2
-│       ├── routes/   los 8 endpoints (SPEC §11)      · P1
-│       └── store/    persistencia SQLite             · P2
-│                     corre en Python, puerto 8000, prefijo /api/v1
+│   ├── api/
+│   │   ├── main.py
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── store/
+│   │   └── migrations/
+│   └── web/
+│       ├── app/
+│       ├── components/
+│       ├── lib/
+│       └── styles/
 ├── packages/
-│   └── shared/       EL CONTRATO. Tipos zod (TS) ↔ pydantic (PY), SPEC §2 y §11
-├── ml/               Librería Python PURA. No sabe qué es HTTP.
-│   ├── spec_constants.py   ← todos los números 🔒 del SPEC, una sola vez
-│   ├── errors.py           ← las 4 excepciones (§6 de este doc)
-│   ├── synth/        generador causal            SPEC §8
-│   ├── features/     C0 calidad + C1 baseline    SPEC §5, §9.1
-│   ├── engine/       C2 modelo + C3 decisión     SPEC §9, §6
-│   │                 + baseline.py (logística de §8.2, desbloquea a P2)
-│   ├── voi/          VoI, filtro, salvaguardas   SPEC §7
-│   ├── narrative/    payload → plantilla/LLM     SPEC §10
-│   ├── strategies/   catálogo (datos)            SPEC §12
-│   └── eval/         métricas y ablaciones       SPEC §13
-├── data/             faro.db (SQLite) + parquet — generado, en .gitignore
-├── tests/            suite de invariantes (§7 de este doc)
-└── README.md         setup en 1 comando
+│   └── shared/
+│       ├── models.py
+│       ├── texts.py
+│       ├── schema/
+│       └── generated/
+├── ml/
+│   ├── defaults/
+│   ├── form/
+│   ├── features/
+│   ├── prediction/
+│   ├── eval/
+│   ├── adapters/
+│   ├── spec_constants.py
+│   └── errors.py
+├── rag/
+│   ├── domain/
+│   ├── authoring/
+│   └── runtime/
+├── tools/
+│   ├── rag_authoring/
+│   ├── contracts/
+│   ├── train/
+│   └── seed/
+├── tests/
+│   ├── p1/
+│   ├── p2/
+│   └── integration/
+├── data/
+└── fixtures/
 ```
 
-**Arranque local:** `pnpm dev` (web) y `uvicorn app:app --reload` (api), en dos terminales. Nada de Docker: es una dependencia más que se puede caer el día del pitch.
+No se mueve código existente solo por estética. La migración a esta forma ocurre cuando una tarea
+del `TAREAS.md` necesita modificar ese módulo.
 
 ---
 
-## 2. La regla de dependencias 🔒
+## 4. Dependencias
 
-**Las flechas van en un solo sentido. Sin excepciones.**
+Las dependencias válidas son:
 
+```text
+apps/web -> apps/api (HTTP solamente)
+
+apps/api -> packages/shared
+apps/api -> ml
+apps/api -> rag/runtime
+apps/api -> apps/api/store
+
+ml -> packages/shared
+rag -> packages/shared
+
+tools/rag_authoring -> rag/authoring
+tools/train -> ml
 ```
-apps/web  →  apps/api  →  ml/engine  →  ml/features  →  ml/synth
-                              ↓              ↓
-                        ml/spec_constants · packages/shared
-```
 
-- `ml/*` **NUNCA** importa de `apps/*`.
-- `ml/*` no sabe qué es HTTP, ni SQLite, ni React, ni un request.
-- `apps/api` es una capa delgada: recibe, valida, llama a `ml/`, serializa. **Cero lógica de negocio.**
-- Si un módulo de `ml/` necesita leer algo del disco, no lo lee: **lo recibe como parámetro**.
+Prohibiciones:
 
-**Por qué esto importa más de lo que parece:** a Bluba le estamos prometiendo *"tomen el motor y pónganle su propia interfaz"*. Si el motor sabe de HTTP, esa promesa es mentira. **La regla arquitectónica y el argumento del pitch son lo mismo.**
+- `ml` no importa `apps`, SQL, FastAPI ni React.
+- `rag` no importa `apps` ni el store clínico.
+- `packages/shared` no importa `ml`, `rag` ni `apps`.
+- `apps/web` no abre SQLite ni carga artefactos Python.
+- `rag/authoring` no consulta sujetos, observaciones o outcomes.
+- `rag/runtime` no llama embeddings ni LLM.
+- `apps/api/store` no calcula defaults, VoI o riesgo.
 
-Se verifica en CI con `import-linter` (~10 líneas de config).
+`import-linter` debe comprobar al menos estas reglas. Un comentario no sustituye el contrato.
 
 ---
 
-## 3. Mapa de propiedad — quién toca qué 🔒
+## 5. Propiedad exclusiva
 
-**La regla anti-enredo: cada archivo tiene un dueño. Si necesitas tocar algo del otro, se avisa por chat antes, no después.**
+La propiedad detallada vive en `TAREAS.md`. La frontera permanente es:
 
 | Zona | Dueño | El otro puede |
 |---|---|---|
-| `packages/shared/` | **P1** | leer, nunca editar sin avisar |
-| `ml/spec_constants.py`, `ml/errors.py` | **P1** | leer, nunca editar |
-| `ml/synth/`, `ml/features/`, `ml/engine/` | **P1** | leer |
-| `apps/api/main.py`, `apps/api/routes/` | **P1** | leer |
-| `ml/voi/`, `ml/narrative/`, `ml/strategies/`, `ml/eval/` | **P2** | leer |
-| `apps/api/store/` | **P2** | leer |
-| `tests/invariants/` | **P2** | agregar tests en archivos propios |
-| `README.md` | **P1** | P2 agrega su sección al final |
-| `apps/web/` **completo** | Fase 2 — de quien se bifurque | ver `TAREAS.md` |
-| `SPEC.md`, `CONVENTIONS.md` | **los dos**, con acuerdo | — |
+| `packages/shared/**` | P1 | leer y solicitar cambios |
+| `ml/**` | P1 | leer |
+| `rag/**` | P1 | leer |
+| `tools/train/**`, `tools/rag_authoring/**` | P1 | ejecutar |
+| `tools/contracts/**`, `data/manifest.json`, `data/*.manifest.json` | P1 | ejecutar/leer |
+| `data/**` excepto manifests aprobados | P2 | limpieza final; P1 puede generar artefactos ignorados |
+| `apps/api/**` | P2 | leer |
+| `apps/web/**` | P2 | leer |
+| `tools/seed/**` | P2 | ejecutar |
+| `tests/p1/**` | P1 | leer |
+| `tests/p2/**`, `tests/integration/**` | P2 | leer |
+| `pyproject.toml`, `.importlinter`, `.gitignore` | P1 | solicitar cambio |
+| `package.json`, `pnpm-lock.yaml`, `.github/**` | P2 | solicitar cambio |
+| Los cuatro documentos normativos | congelados durante implementación | nadie sin acuerdo |
 
-**Regla de oro:** dos personas nunca editan el mismo archivo el mismo día. Si eso pasa, el archivo estaba mal dividido — se parte, no se negocia.
+Reglas:
+
+1. P2 nunca corrige directamente un contrato de `packages/shared`.
+2. P2 solicita el cambio con ejemplo de request/response y motivo.
+3. P1 actualiza contrato, schema generado y fixture en un único cambio.
+4. P2 integra solo después de que el contrato publicado esté verde.
+5. Si una tarea exige tocar una zona ajena, la tarea está mal dividida y se rediseña.
+6. Una dependencia de zona ajena se solicita con paquete, versión, licencia, motivo y test; el dueño
+   del manifest aplica el cambio.
 
 ---
 
-## 4. Los números del SPEC tienen un solo dueño 🔒
+## 6. Contratos compartidos
 
-Todo valor marcado 🔒 en el SPEC vive **una sola vez**, en `ml/spec_constants.py`, con su referencia:
+`packages/shared` es independiente y contiene:
+
+- Modelos Pydantic.
+- Enums y tipos cerrados.
+- Textos normativos de UI.
+- JSON Schema generado.
+- Tipos TypeScript/Zod generados o verificados desde el mismo schema.
+
+Reglas:
+
+- `extra="forbid"` en fronteras de API.
+- IDs UUID v4.
+- Timestamps UTC conscientes de zona.
+- `FormSession.opened_at` y `submitted_at` son distintos; el episodio usa
+  `as_of_at = prediction_at = submitted_at`.
+- El servidor genera `opened_at`, `submitted_at`, `ingested_at` y `reported_at`; un tiempo efectivo
+  declarado por cliente es otro campo y nunca fija el cutoff.
+- Enums cerrados, sin strings libres donde existe catálogo.
+- Todo response tiene modelo explícito.
+- Ningún `dict[str, object]` sustituye un contrato estable.
+- Una pareja opcional se valida como pareja: ambos campos o ninguno.
+- El schema generado no se edita a mano.
+- Un cambio incompatible exige nueva versión de contrato.
+
+El contrato no importa constantes desde `ml`. Las constantes contractuales viven en
+`packages/shared/constants.py`; las fórmulas internas viven en `ml/spec_constants.py`.
+
+---
+
+## 7. Constantes y evidencia
+
+Cada constante normativa incluye:
 
 ```python
-"""Espejo en código del SPEC.md. Un cambio aquí exige un cambio allá."""
+ConstantSpec(
+    value=0.70,
+    decision_class="policy",
+    spec_ref="SPEC 6.6 / C09",
+)
+```
 
-RANDOM_SEED = 42                          # SPEC §0.9
-BAND_AMBER, BAND_RED = 0.15, 0.35         # SPEC §4
-ABSTAIN_ICD, ABSTAIN_WIDTH = 0.35, 0.60   # SPEC §6
-ABSTAIN_MIN_HISTORY_DAYS = 5              # SPEC §6
-VOI_K, VOI_KAPPA = 20, 0.15               # SPEC §7.1, §7.2
-STALENESS_CEILING_DAYS = 7                # SPEC §7.5a
-EXPLORATION_MODULO = 7                    # SPEC §7.5c
-PROVENANCE_WEIGHTS = {                    # SPEC §2.5
-    "observed": 1.0, "confirmed": 1.0,
-    "assumed_stable": 0.5, "unknown": 0.0,
+Clases válidas:
+
+```text
+mathematical
+evidence
+policy
+engineering
+```
+
+Prohibido:
+
+- Duplicar un literal del registro de constantes.
+- Marcar un parámetro de simulación como evidencia.
+- Agregar un umbral porque "se ve bien".
+- Cambiar un número sin actualizar SPEC, test y versión.
+- Usar un comentario como única referencia.
+
+Las fórmulas puras reciben sus parámetros. Las funciones no leen configuración global oculta.
+
+---
+
+## 8. Datos y procedencia
+
+### 8.1 Append-only
+
+Se crean nuevas filas para:
+
+- Observaciones.
+- Outcomes.
+- Revisiones.
+- Ejecuciones.
+- Consentimientos.
+- Versiones de documento, estrategia y modelo.
+
+Una corrección usa `supersedes_id`. No se sobrescribe el valor anterior.
+
+Toda lectura estadística usa `project_as_of` del SPEC: selecciona solo la hoja vigente de cada
+cadena conocida al cutoff. Una corrección futura no cambia snapshots históricos; ramas y ciclos
+fallan, no se resuelven por conveniencia.
+
+### 8.2 Ausencia
+
+Reglas:
+
+- `None`/`null` significa sin valor.
+- `false` es una respuesta observada.
+- `0` es un conteo observado.
+- `unknown` es una decisión explícita sin valor.
+- Un campo omitido no es `unknown` automáticamente.
+- Una ausencia de evento no es un outcome negativo.
+
+### 8.3 Entry mode
+
+El servidor deriva `entry_mode`; el cliente solo declara interacción.
+
+Nunca se confía en un `entry_mode` enviado por navegador.
+
+### 8.4 Adaptadores
+
+Los adaptadores:
+
+- Conservan valor fuente.
+- Usan tablas de mapping versionadas.
+- Fallan ante categorías desconocidas.
+- No convierten categorías en conteos.
+- No convierten asistencia en participación.
+- No generan timestamps ficticios sin marcarlos como importación.
+- Tienen fixtures literales de cada categoría fuente.
+
+### 8.5 Contexto y corte temporal
+
+- `source` en una observación significa `home`, `therapy` o `school`; no identifica al actor ni a
+  una publicación.
+- `source_id` se reserva para corpus; `actor_id` y `source_mapping_id` tienen responsabilidades
+  separadas.
+- El servidor asigna `opened_at` y `submitted_at`; el navegador no fija el cutoff.
+- Un snapshot rechaza datos cuyo tiempo efectivo o de ingesta sea posterior a `as_of_at`.
+- Un `yes` temprano es elegible si el evento ya ocurrió dentro del target; un `no` temprano no
+  cierra la ventana.
+- Reporte (`yes|no|unknown`) y resolución (`pending|yes|no|unknown|conflicted`) usan tipos distintos.
+- Resoluciones son materializaciones append-only recalculadas tras cada corrección; su
+  `ever_conflicted` es monotónico.
+- Un episodio alguna vez conflictivo no entra al dataset primario v0.3, aunque tenga adjudicación.
+
+---
+
+## 9. Estadística
+
+### 9.1 Funciones puras
+
+Las funciones estadísticas reciben datos y devuelven resultados sin I/O:
+
+```python
+posterior_default(counts, prior, quantile) -> PosteriorDefault
+compute_dqi(history, as_of_at, policy) -> DataQuality
+compute_predictive_voi(values, probabilities) -> float
+build_personal_baseline(outcomes, policy) -> Estimate
+```
+
+El DQI se reporta sin convertirlo en gate global. Mientras `SPEC 15` no registre un umbral, cada
+track se abstiene solo por sus reglas explícitas.
+
+El challenger implementa la función objetivo, folds y offset literales del SPEC. No se sustituye
+por `LogisticRegression` si la librería no soporta el offset fijado. Toda evaluación consume una
+`EvaluationProtocolVersion`, no flags ad hoc de notebook.
+
+### 9.2 Precisión
+
+- Cálculos internos en `float64`.
+- Redondeo solo en serialización.
+- Banda o estado se calcula con el mismo valor serializado que valida el contrato.
+- Cuantiles usan SciPy; no se aproximan manualmente.
+- Empates y NaN tienen comportamiento explícito.
+
+### 9.3 Reproducibilidad
+
+- Semilla offline `42` donde exista aleatoriedad controlada.
+- Splits y bootstrap agrupados por `subject_id`.
+- Snapshots de dataset inmutables y hasheados.
+- Un training run registra código, configuración, dependencias y dataset hash.
+- Timestamps operativos no participan en igualdad de resultados estadísticos.
+
+### 9.4 Métricas
+
+- Average precision viene de scikit-learn.
+- Brier usa su definición estándar.
+- AUC no se calcula con una sola clase.
+- Bootstrap agrupa por sujeto.
+- Toda selección vive dentro del fold.
+- Hyperparameters se eligen en inner grouped folds de cada outer train; el outer outcome nunca
+  participa en selección.
+- Cada reporte real usa una sola `target_definition_version` exacta.
+- Una métrica sin soporte devuelve `not_estimable`, no cero.
+
+---
+
+## 10. Formulario
+
+- Un default se renderiza como ayuda, no como valor del control.
+- `accept_default` exige acción explícita.
+- Si el campo tuvo una presentación, cualquier otro valor deriva `default_edited`; el cliente no
+  puede enviarlo como `manual_no_default`.
+- `unknown` persiste sin valor.
+- Todos los campos aplicables permanecen accesibles.
+- Recálculo secuencial ocurre tras cada respuesta confirmada.
+- `audit_mode` se fija al crear la sesión y no cambia.
+- El outcome pendiente no consume un slot diario; `QuestionPresentation` define qué fue realmente
+  destacado y permite reproducir antigüedad/exploración.
+- Si una sesión cae dentro de un target primario abierto, se enlaza al episodio: no crea ventanas
+  solapadas.
+- Sin target definition seleccionable, la sesión cierra sin episodio ni outcome request real.
+- El estado de outcome request se deriva de resolución/reloj; no se muta una segunda máquina que
+  pueda quedar desincronizada.
+- La UI nunca inventa defaults localmente.
+- El navegador envía solo campos tocados.
+- Estados loading, error, vacío, abstención y conflicto son obligatorios.
+
+Los textos visibles salen de `packages/shared/texts.py` o del catálogo versionado.
+
+---
+
+## 11. RAG y LLM
+
+### 11.1 Separación
+
+`rag/authoring` puede:
+
+- Indexar literatura permitida.
+- Recuperar fragmentos.
+- Pedir un borrador a un LLM local.
+- Verificar citas.
+- Crear una versión draft.
+- Operar en `hybrid` o `lexical_only` declarado por un build manifest completo.
+- Usar un solo `ScenarioV1`/`ScenarioPredicate` y comprobar set y estrategia fail-closed.
+- Construir ScenarioV1 solo mediante `build_scenario` P1; P2 persiste, no replica precedencias.
+
+`rag/runtime` solo puede:
+
+- Recibir un escenario categórico.
+- Buscar un set precomputado.
+- Filtrar incompatibilidades.
+- Devolver texto aprobado y citas.
+
+### 11.2 Prompts
+
+- Viven versionados como package data.
+- Declaran input y output schema.
+- No incluyen datos personales.
+- Solo reciben fragmentos de literatura versionada con derechos registrados.
+- Nunca reciben notas, mensajes ni otro texto libre clínico o escrito por usuarios.
+- Un cambio de prompt crea nueva versión de build.
+- El output del LLM nunca se activa sin revisión.
+- Extractor, chunker, BM25, embeddings, RRF, prompts y normalización quedan hasheados en el manifest.
+- Reviews de autoría son eventos con actor, accreditation, hash y decisión; nunca se reutiliza la
+  recommendation review de un caso.
+- Ningún escenario de caso entra a retrieval: export exige base separada, consulta generalizada y
+  certificación de privacidad.
+
+### 11.3 Citas
+
+- Cada claim apunta a un fragmento literal.
+- El fragmento se verifica contra hash y localizador.
+- DOI es opcional; URL, versión y localizador son obligatorios.
+- Una fuente retirada invalida versiones dependientes.
+- No se usa la frase "cero alucinación".
+
+---
+
+## 12. API
+
+### 12.1 Servicios
+
+Las rutas:
+
+- Validan request.
+- Autorizan actor y tenant.
+- Llaman un servicio de aplicación.
+- Serializan response.
+
+No contienen SQL ni fórmulas.
+
+Los servicios:
+
+- Abren una transacción por comando.
+- Cargan estado requerido.
+- Llaman dominio puro.
+- Persisten eventos.
+- Devuelven contrato compartido.
+
+GET no crea instancias ni solicitudes de autoría. La instancia de recomendación y cualquier intent
+deduplicado se persisten atómicamente al crear el episodio; el GET posterior es lectura estable.
+El response de recomendaciones es union de strategy aprobada o human plan sustituido y se filtra en
+servidor. Aprobación/sustitución exige el approver role; una exposición exige la review activa
+compatible y dependencias todavía activas. Suspensión deja historia no accionable.
+
+### 12.2 Errores
+
+Formato:
+
+```json
+{
+  "error": {
+    "code": "stable_code",
+    "message_es": "Mensaje sanitizado.",
+    "request_id": "uuid"
+  }
 }
 ```
 
-**Prohibido 🔒:** escribir un literal numérico del SPEC en cualquier otro archivo. Si ves un `0.35` suelto en el código, es un bug.
+Reglas:
 
-*Razón:* el modo de falla clásico de un hackathon es el mismo umbral copiado en cuatro archivos y, para el domingo, con tres valores distintos.
+- Abstención es HTTP 200.
+- Validación es 422.
+- Conflicto de revisión/idempotencia es 409.
+- No autenticado es 401.
+- No autorizado/cross-tenant es 403.
+- Same-tenant sin `SubjectAccessGrant` también es 403.
+- Modelo o catálogo no listo usa salida de estado si es esperable, no 500.
+- Excepción inesperada se registra con stack y request ID, sin payload clínico.
+
+### 12.3 Idempotencia
+
+- Todo POST exige `Idempotency-Key`.
+- El scope incluye tenant, actor, método y path concreto normalizado; path params, query y body se
+  hashean con JCS/separación de dominio. Dos IDs distintos nunca comparten replay.
+- Clave y hash de payload se guardan juntos.
+- Mismo payload devuelve respuesta original.
+- Payload distinto con misma clave devuelve 409.
+- Un replay vuelve a autorizar rol, accreditation, grant, consent y capability antes de devolver la
+  respuesta guardada.
+- Una lista se inserta en una transacción.
 
 ---
 
-## 5. Nombres
+## 13. Persistencia y migraciones
 
-- **Código, DB y API: inglés `snake_case`** (SPEC §0.3). Componentes React en `PascalCase`, variables TS en `camelCase`.
-- **Todo texto visible al usuario: español**, y sale de `packages/shared` o de las tablas del SPEC §12 — **nunca hardcodeado en un componente**.
-- Los nombres canónicos del SPEC §2.1 se usan **tal cual**, de la DB a la URL. `sleep_hours` es `sleep_hours` en todas partes. Nada de `sleepHours` en un lado y `horas_sueno` en otro.
-- Booleanos: `is_`, `has_`, `should_`. Funciones que calculan: verbo (`compute_icd`, `rank_by_voi`).
+- SQL vive solo en `apps/api/store`.
+- No se ejecuta DDL por request.
+- Las migraciones tienen número, nombre y checksum.
+- Toda FK tiene test.
+- SQLite demo usa WAL y `busy_timeout`.
+- El modo piloto rechaza SQLite.
+- JSON almacenado valida schema y versión antes de insertarse.
+- Toda consulta clínica incluye `tenant_id`.
+- Toda consulta de sujeto incluye el grant activo en SQL; no filtra después de cargar filas.
+- Las queries usan parámetros, nunca interpolación de usuario.
+- Los repositorios no hacen commit por fila.
+
+Una migración no se modifica después de compartirse; se crea otra.
 
 ---
 
-## 6. Errores
+## 14. Frontend
 
-```python
-# ml/errors.py — dueño: P1
-class FaroError(Exception): ...
-class InsufficientDataError(FaroError): ...   # SPEC §6
-class ContractViolationError(FaroError): ...  # datos que rompen §2
-class ModelNotReadyError(FaroError): ...      # modelo sin entrenar
+Stack objetivo:
+
+```text
+Next.js 15+
+TypeScript strict
+Tailwind
+componentes accesibles basados en Radix/shadcn cuando aporten valor
 ```
 
-Cuatro. No más. Nada de jerarquías de diez clases.
+Reglas:
 
-**Reglas:**
-- `ml/` lanza excepciones. **`apps/api` es el único que las convierte a HTTP.**
-- Formato de error de la API, fijo en SPEC §11: `{"error": {"code": str, "message_es": str}}`.
-- **La abstención NO es un error.** Es un `RiskResponse` válido con `status="insufficient_data"` y HTTP 200. Confundir esto rompe el SPEC §0.7.
-- Nunca un `except:` desnudo. Nunca un `except Exception: pass`.
+- Mobile-first y usable en desktop.
+- Sin animaciones automáticas intensas.
+- Respeta `prefers-reduced-motion`.
+- No depende solo del color para estados.
+- Botones y controles con área táctil mínima de 44 px.
+- Focus visible y navegación por teclado.
+- Lenguaje afirmativo, no diagnóstico.
+- En entrada, abstención, resultado y recomendaciones se muestra que Faro no monitorea emergencias
+  ni debe retrasar protocolos urgentes o de resguardo.
+- La abstención no se presenta como error.
+- Una sugerencia tiene estilo distinto de un valor confirmado.
+- Las citas se pueden abrir y verificar.
+- Un borrador no revisado nunca aparece como recomendación aprobada.
+
+No se agrega PWA, offline sync ni notificaciones push en v0.3.
 
 ---
 
-## 7. Tests: la suite de invariantes 🔒
+## 15. Seguridad y privacidad
 
-**No buscamos cobertura. Buscamos que las 13 reglas del SPEC §0 sean imposibles de romper sin que CI lo grite.**
+- No se loguean cuerpos de requests clínicos.
+- No se usan IDs externos como UUID derivables sin secreto.
+- Secrets solo en variables de entorno o secret store.
+- `.env` nunca entra a Git.
+- CORS usa allowlist explícita.
+- Documentación OpenAPI se deshabilita en piloto salvo rol administrador.
+- Toda lectura o escritura real genera evento de auditoría.
+- Roles se combinan con grants por sujeto; professionals además requieren acreditación institucional
+  vigente. Tenant y rol por sí solos no autorizan.
+- Consent, accreditation y authoring authorization se proyectan al cutoff por purpose/capability;
+  cada training/evaluation run reautoriza, aunque el snapshot sea anterior.
+- El corpus RAG y la DB clínica usan almacenamientos separados.
+- Ningún modelo externo recibe payload personal.
+- Índices, embeddings y prompts se auditan para impedir texto libre clínico; la literatura
+  autorizada no se clasifica como texto de usuario.
+- Los tests usan datos ficticios, no exports reales.
 
-`tests/invariants/` — un test por regla, con el `§` en el nombre:
+---
 
-```python
-def test_s0_2_sin_leakage():
-    """Barajar los valores del día t+1 no debe cambiar ninguna predicción."""
+## 16. Tests
 
-def test_s0_5_nunca_imputa():
-    """La matriz que recibe LightGBM todavía contiene NaN."""
+Buscamos invariantes, no porcentaje artificial de cobertura.
 
-def test_s0_7_abstiene_bajo_icd():
-    """ICD=0.30 → status='insufficient_data', risk is None."""
+Capas:
 
-def test_s0_9_determinismo():
-    """Dos corridas con seed 42 → salida idéntica."""
-
-def test_s0_12_sugerencia_no_tocada_no_existe():
-    """Una sugerencia sin confirmar no llega a /ingest."""
-
-def test_s2_5_assumed_stable_sin_valor():
-    """provenance='assumed_stable' con valor no nulo → ContractViolationError."""
-
-def test_s4_bordes_de_banda():
-    """0.1499→verde · 0.15→ambar · 0.3499→ambar · 0.35→rojo"""
+```text
+tests/p1           contratos, estadística, ML, RAG e invariantes de P1
+tests/p2           API, store, UI e invariantes de P2
+tests/integration  extremo a extremo, dueño P2
 ```
 
-Ese último atrapa el clásico `<` vs `<=` — el bug que te hace quedar mal **en vivo**.
+Reglas:
 
-**Regla 🔒:** ningún merge a `main` con la suite de invariantes en rojo. Los tests de UI son opcionales; estos no.
-
----
-
-## 8. Herramientas — mínimas
-
-| | Herramienta | Config |
-|---|---|---|
-| Python: lint + formato | **ruff** | una sola herramienta, instantánea |
-| Python: validación | **pydantic v2** | solo en las fronteras (API, ingesta) |
-| TypeScript | **`strict: true`** | y nada más |
-| Tests | **pytest** | |
-| Dependencias JS | **pnpm** | |
-
-**No usamos:** `mypy --strict` (te comes el domingo peleando con los tipos de LightGBM), Docker, Nx/Turborepo, husky.
-
-Un solo comando para verificar antes de subir: `ruff check . && ruff format --check . && pytest tests/invariants -q`.
-
----
-
-## 9. Git
-
-- Rama `main`, siempre verde. Ramas cortas solo para lo riesgoso.
-- **`git pull` antes de cada `push`.** Con el mapa de propiedad del §3, los conflictos deberían ser casi imposibles; si aparecen, es señal de que se rompió el mapa.
-- Commits pequeños, en imperativo y en español: `agrega calculo de ICD`, `corrige borde de banda ambar`.
-- `data/` en `.gitignore`, salvo `manifest.json`.
-- **Nunca** se sube un `.env`, un modelo entrenado, ni un `node_modules`.
+- Cada regla de `SPEC 17` tiene un test nombrado.
+- Tests de estadística comparan resultados numéricos conocidos.
+- Tests de LLM usan transporte simulado; no dependen de Ollama real.
+- Tests de tiempo usan reloj inyectado.
+- Tests de auditoría usan secreto fijo de prueba.
+- Tests de DB corren sobre migraciones reales.
+- Tests de autorización incluyen cross-tenant.
+- Tests de autorización incluyen same-tenant/wrong-subject, grant revocado y lista filtrada en DB.
+- Tests de RAG verifican texto citado contra hash.
+- Tests de outcome cubren `yes` temprano elegible y `no` temprano provisional.
+- Tests de outcome separan reporte/resolución, cutoff abierto, conflicto permanente y ausencia al
+  deadline; tests de episodios impiden targets primarios solapados.
+- Tests de target cubren cero/múltiples definiciones activas, demo synthetic y mapping de import.
+- Tests de GET prueban que recomendaciones no crean filas y retornan el envelope persistido.
+- Tests de evaluación prueban que lambda se elige solo dentro del outer train.
+- Tests idempotentes reutilizan una key/body sobre dos path IDs y exigen recursos distintos.
+- Un test no se llama "mueve el riesgo" si no afirma desigualdad.
+- Un test no acepta igualdad cuando el requisito exige aumento estricto.
+- Los tests públicos no se saltan silenciosamente por ausencia de datos privados.
 
 ---
 
-## 10. Definition of Done
+## 17. Herramientas
 
-Una tarea está lista cuando:
+Python:
 
-1. ✅ Corre localmente sin errores en consola.
-2. ✅ `ruff` y la suite de invariantes pasan.
-3. ✅ No introdujo ningún literal del SPEC fuera de `spec_constants.py`.
-4. ✅ Respeta la regla de dependencias (§2).
-5. ✅ Si tocó un contrato de `packages/shared`, **le avisó al otro**.
-6. ✅ Está en `main`.
+```text
+ruff check .
+ruff format --check .
+pytest tests -q
+lint-imports
+```
+
+Frontend:
+
+```text
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Contratos:
+
+```text
+python -m tools.contracts.generate
+git diff --exit-code packages/shared/generated
+```
+
+No se introducen Docker, colas, microservicios o Kubernetes para la demo local. PostgreSQL y OIDC
+pertenecen al perfil piloto posterior.
 
 ---
 
-## 11. Lo que NO vamos a hacer 🔒
+## 18. Git
 
-Con 2 personas y 60 horas, esto **resta**:
+- Commits pequeños y no interactivos.
+- No se hace commit directo de datos, DB, modelos, índices o secrets.
+- No se reescribe historia compartida.
+- No se usa `git reset --hard` ni force push.
+- Cada commit toca solo la zona del dueño.
+- Los contratos se publican antes de que el consumidor los integre.
+- Un archivo generado se actualiza junto a su fuente.
+- `main` debe permanecer verde.
 
-| No | Por qué |
-|---|---|
-| Repository pattern, inyección de dependencias, clases base abstractas | "Clean architecture" de manual **es otra forma de espagueti**: cuatro archivos para leer una fila |
-| Cobertura del 100% | 15 tests de invariantes valen más que 200 triviales |
-| Docstrings en todo | Solo donde el *por qué* no es obvio, con el `§` del SPEC |
-| Microservicios, colas, cachés | No hay carga que lo justifique |
-| Optimizar antes de medir | 36.000 filas. SQLite se ríe |
-| Abstraer "por si acaso" | **Una capa de indirección solo se justifica con dos implementaciones reales.** No las tenemos |
-| **PWA** (manifest, service worker, offline) | Fuera de alcance por decisión del 24 ago. La web corre en el navegador como cualquier sitio |
+El trabajo documental solicitado en esta sesión no se commitea ni se pushea.
 
-**La regla que resume todo:** el código debe poder leerse a las 3 AM del domingo por la persona que no lo escribió.
+---
+
+## 19. Definition of Done
+
+Una tarea está terminada cuando:
+
+1. Cumple el criterio literal de `TAREAS.md`.
+2. Tiene tests relevantes y no nominales.
+3. No rompe dependencias ni propiedad.
+4. No introduce números normativos fuera del registro.
+5. No mezcla real y sintético.
+6. No inventa valores ausentes.
+7. Mantiene historial append-only.
+8. Pasa formato, lint, tests, contratos y build aplicables.
+9. Documenta limitaciones visibles al usuario si corresponde.
+10. No deja TODO silencioso en una ruta activa.
+
+---
+
+## 20. Lo que no hacemos
+
+- Repository pattern genérico sobre cada tabla.
+- Clases base abstractas sin dos implementaciones reales.
+- Fine-tuning del LLM.
+- LLM de producción redactando acciones nuevas.
+- Autocomplete silencioso.
+- Promoción automática de modelos o catálogo.
+- Métricas caseras cuando existe implementación validada.
+- Conversión de categorías a números para facilitar un modelo.
+- Causalidad inferida desde feedback observacional.
+- Compatibilidad hacia atrás sin consumidor o dato persistido que la requiera.
+- Seguridad ficticia basada solo en CORS o UUID.
+- Features derivadas de notas libres.
+- Claims clínicos sin fuente, versión y revisión.
+
+La regla final: si una persona no puede explicar de dónde salió un dato, un número o una
+recomendación, esa salida no se publica.

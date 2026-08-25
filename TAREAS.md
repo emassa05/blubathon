@@ -1,291 +1,945 @@
-# FARO — División del trabajo entre 2 personas
-### Dominios separados · quién hace qué · criterios de terminación · v3.0
+# FARO - Plan de implementación para dos personas v4.0
 
-> Lee primero [`CONVENTIONS.md`](CONVENTIONS.md) §3 (mapa de propiedad). Este documento es el **reparto y el orden**; aquel es **las reglas**.
->
-> **Secuencia:** primero el backend completo y funcional. El frontend arranca después, cuando el diseño esté hecho.
->
-> **Cada tarea tiene un "✅ Listo cuando".** Una tarea no está terminada hasta que cumple todos sus puntos. Nada se entrega a medias.
+## SPEC v0.3.0, propiedad exclusiva y handoffs por contrato
 
----
+Este documento convierte `SPEC.md` en trabajo ejecutable para exactamente dos personas. No cambia
+el alcance ni decide fórmulas nuevas.
 
-## FASE 1 · BACKEND
-
-### Los dos dominios
-
-| | **P1 · DATOS Y MODELO** | **P2 · DECISIÓN Y SALIDA** |
-|---|---|---|
-| Pregunta que responde | *¿de dónde salen los datos y cómo se calcula el número?* | *¿qué se pregunta, qué se responde y cómo se mide?* |
-| Dueño de | `packages/shared`, `ml/spec_constants`, `ml/errors`, `ml/synth`, `ml/features`, `ml/engine`, `apps/api/main.py`, `apps/api/routes/` | `ml/voi`, `ml/narrative`, `ml/strategies`, `ml/eval`, `apps/api/store/`, `tests/invariants` |
-| Peso relativo | ~24 h | ~22 h |
-
-**Quién es P1:** quien esté más cómodo con pandas y scikit-learn. La cadena generador → features → modelo es la de mayor riesgo técnico.
+"Dos personas" significa dos implementadores con propiedad exclusiva de archivos. Un eventual
+`clinical_reviewer` aporta una aprobación externa de gobernanza, no implementa ni edita el
+repositorio y no se contabiliza como capacidad del equipo.
 
 ---
 
-### 🚦 HITO 0 · P1 — lo único que bloquea al otro
+## 1. Objetivo
 
-Es lo primero que se hace, antes que cualquier otra cosa. No es el motor: es **el contrato en código**, para que P2 no dependa nunca de P1.
+Entregar una demo local v0.3 que demuestre:
 
-**Entrega:**
-1. `ml/spec_constants.py` — todos los números 🔒 del SPEC (CONVENTIONS §4).
-2. `packages/shared/` — `DailyLog`, `RiskResponse`, `VoIResponse`, `ExplainResponse` en pydantic.
-3. `ml/errors.py` — las 4 excepciones (CONVENTIONS §6).
-4. `ml/engine/baseline.py` — ver abajo.
-5. `fixtures/` — 3 niños: uno tranquilo, uno de riesgo alto, uno que fuerza abstención.
+- Formulario adaptativo con sugerencias seguras y auditoría.
+- Episodios de predicción con ventana de 24 horas.
+- Outcomes capturables hasta 48 horas sin inventar negativos.
+- Separación visible entre simulación, baseline real y challenger en sombra.
+- RAG offline con catálogo versionado, citas y revisión humana.
+- Revisión, ejecución y outcome como eventos distintos.
+- Frontend de cuidador y profesional.
+- Persistencia append-only, idempotencia y auditoría.
 
-**✅ Listo cuando:**
-- Un test verifica que cada constante coincide con su valor en el SPEC.
-- Los modelos pydantic validan **los ejemplos literales** del SPEC §2.4, §11.1, §11.2 y §11.3 sin modificarlos.
-- `predict_baseline` devuelve una `p` **distinta** al variar `sleep_hours` (si no, el VoI de P2 daría varianza cero).
-- Los 3 fixtures se cargan y validan contra el schema.
-- Está en `main`.
+La demo no es un piloto clínico. `SPEC 13` define qué exige un piloto posterior.
 
-### El desbloqueo: `ml/engine/baseline.py`
+---
 
-Todo el trabajo de P2 necesita **una función que prediga** — pero no necesita la buena.
+## 2. Regla de propiedad
 
-```python
-def predict_baseline(features: dict) -> float:
-    """Regresión logística a mano con los coeficientes de SPEC §8.2.
-    Determinista, sin entrenar, microsegundos."""
+Cada path tiene un único dueño durante toda la implementación.
+
+### P1 - Contrato, estadística y evidencia
+
+Pregunta que responde:
+
+> ¿Qué significa cada dato y cómo se calcula una salida verificable?
+
+Propiedad exclusiva:
+
+```text
+packages/shared/**
+ml/**
+rag/**
+tools/train/**
+tools/rag_authoring/**
+tools/contracts/**
+tests/p1/**
+data/manifest.json
+data/*.manifest.json
+pyproject.toml
+.importlinter
+.gitignore
 ```
 
-P2 construye el VoI completo desde el primer momento, con varianza real y testeable.
+### P2 - Producto, persistencia y experiencia
 
-**No es código desechable:** el SPEC §13 exige baselines de comparación obligatorios. Cuando P1 termine el LightGBM se cambia un import, y este se queda como término de comparación en la lámina de evaluación.
+Pregunta que responde:
 
----
+> ¿Cómo captura, guarda, muestra y audita el producto esas decisiones?
 
-## P1 · DATOS Y MODELO
+Propiedad exclusiva:
 
-### 1.1 · Generador causal sintético — §8 · ~5 h
+```text
+apps/api/**
+apps/web/**
+tools/seed/**
+tests/p2/**
+tests/integration/**
+README.md
+.github/**
+package.json
+pnpm-lock.yaml
+```
 
-DAG, coeficientes, ventanas de arrastre, perfiles de niño, modelo de observación, missingness NMAR.
+### Zonas congeladas
 
-**✅ Listo cuando:**
-- Genera 200 niños × 180 días con `RANDOM_SEED=42`.
-- La base rate observada de `crisis_occurred` cae en `[0.08, 0.12]` (objetivo 0.10, §8.1).
-- Las 9 variables con `w_v ≥ 0.5` tienen distribuciones dentro de sus rangos legales (§2.1).
-- El missingness es **mayor en días de `L(t)` alto** — verificado con un test, no a ojo (§8.6).
-- Los perfiles se cumplen: 60/40 support_level, 70/30 verbal, 30% chronic_gi, 50/50 sexo (§8.4).
-- El camuflaje femenino atenúa las señales observadas ×0.70 con `L` idéntica.
-- **Dos corridas seguidas producen archivos idénticos byte a byte.**
-- Emite `logs.parquet`, `ground_truth.parquet` y `manifest.json` con semilla y parámetros.
-- Todo campo presente lleva `field_provenance = "observed"`; todo ausente, `unknown`.
+```text
+SPEC.md
+CONVENTIONS.md
+TAREAS.md
+FUNDAMENTOS.md
+```
 
-### 1.2 · C0 · Calidad del dato (ICD) — §5, §2.5 · ~4 h
+No se editan durante los hitos. Si aparece una contradicción, se detiene solo la tarea afectada y
+las dos personas acuerdan una versión documental nueva antes de continuar.
 
-**✅ Listo cuando:**
-- `compute_icd(history, date)` devuelve `{icd, coverage, recency, consistency}`, los cuatro en `[0,1]`.
-- `coverage` usa `PROVENANCE_WEIGHTS` — un día entero en `assumed_stable` da la mitad de cobertura que uno `observed`.
-- `recency` decae con vida media de 2 días (`λ = ln(2)/2`).
-- `consistency` devuelve 1.0 con una sola fuente y penaliza el desacuerdo entre fuentes con solape.
-- Test de cada componente por separado + un historial perfecto que da `ICD ≈ 1.0` y uno vacío que da `≈ 0`.
+### Legado
 
-### 1.3 · C1 · Baseline personal (n-of-1) — §9.1 · ~4 h
-
-**✅ Listo cuando:**
-- Calcula z-score robusto (mediana / MAD) por variable, ventana 14–30 días, ajustado por día de semana.
-- Devuelve `NaN` — nunca `0` — cuando hay menos de 5 observaciones de esa variable.
-- Anomalía multivariante por Mahalanobis robusto.
-- Test: una serie constante da `z = 0`; un valor a 3 desviaciones da `|z| > 2`.
-- Genera las features del §9.1: valor crudo, z-score, `*_missing`, lags, medias móviles 3d/7d, tendencia 7d.
-
-### 1.4 · C2 · Modelo y confianza — §9.2, §9.3 · ~5 h
-
-**✅ Listo cuando:**
-- LightGBM entrena con la config fija del §9.2, **sin imputar** (NaN nativo).
-- Splits **por `child_id`** 60/20/20 con semilla 42 — ningún niño aparece en dos particiones (test).
-- Calibración isotónica ajustada en el fold de validación.
-- Ensemble bootstrap `B=20`, semillas 42–61 → `p`, `σ`, `interval` al 80%, `width`.
-- **Test: la matriz que recibe LightGBM todavía contiene `NaN`** (regla §0.5).
-- `auc_pr` en test supera la frecuencia base y los dos baselines obligatorios del §13.
-- MAPIE conforme a `α=0.10` calculado y reportado (no gobierna la UI).
-
-### 1.5 · C3 · Decisión y abstención — §4, §5.3, §6 · ~2 h
-
-**✅ Listo cuando:**
-- Mapea `p` → banda con los cortes exactos del §4.
-- Etiqueta de confianza según la tabla §5.3, combinando `ICD` y `width`.
-- Abstención por las **tres** condiciones del §6, cada una probada por separado.
-- Al abstenerse devuelve `requested_variables` no vacío.
-- Devuelve un `RiskResponse` que valida contra `packages/shared`.
-- **Test de bordes: `0.1499`→verde · `0.15`→ámbar · `0.3499`→ámbar · `0.35`→rojo.**
-
-### 1.6 · Rutas de la API — §11 · ~2 h + ~2 h
-
-Los 8 endpoints conectados al motor real.
-
-**✅ Listo cuando:**
-- Los 8 responden y validan entrada con pydantic.
-- Las 4 excepciones se traducen a `{"error": {"code", "message_es"}}` — y **solo aquí** (CONVENTIONS §6).
-- **La abstención devuelve HTTP 200**, no un error.
-- `/ingest` rechaza `assumed_stable` con valor no nulo → `provenance_conflict`.
-- OpenAPI se genera en `/docs` y describe los 8 endpoints.
-- `import-linter` confirma que `ml/` no importa nada de `apps/`.
-
----
-
-## P2 · DECISIÓN Y SALIDA
-
-### 2.1 · Persistencia SQLite — §1, §2.5 · ~3 h
-
-**✅ Listo cuando:**
-- El esquema refleja `DailyLog` (§2.1) con `field_provenance` como tabla o JSON.
-- `/ingest` acepta un log o una lista, y es idempotente por `(child_id, date, source)`.
-- Rechaza `assumed_stable` con valor no nulo lanzando `ContractViolationError`.
-- `crisis_occurred` acepta `null` y **nunca** lo convierte a `false` por omisión (§3). Test explícito.
-- Siembra `faro.db` desde `logs.parquet`.
-- Consultar el historial de un niño devuelve orden cronológico y campos ausentes como `None`, nunca `0`.
-- Vive en `apps/api/store/` — `ml/` no toca disco (CONVENTIONS §2).
-
-### 2.2 · VoI base — §7.1 · ~3 h
-
-**✅ Listo cuando:**
-- `compute_voi(history, date)` devuelve la lista de variables **faltantes** ordenada por VoI descendente.
-- `K = 20` muestras, reproducible con semilla 42.
-- Las variables ya presentes ese día no aparecen en el ranking.
-- Test: una variable que no mueve la `p` da `VoI ≈ 0`; una que la mueve mucho da `VoI` alto.
-- **Las imputaciones no salen de este módulo** (regla §0.5): el modelo nunca las ve.
-
-### 2.3 · VoI avanzado — §7.2, §7.3, §7.6 · ~3 h
-
-**✅ Listo cuando:**
-- `σ_muestreo = MAD · (1 + κ·d_v)` con `κ = 0.15`; a `d_v = 7` la dispersión es ~2×.
-- **Test: la misma variable con `d_v=0` da VoI menor que con `d_v=8`.**
-- Con menos de 10 días de historia o menos de 5 observaciones de `v`, usa el prior poblacional (§8.4).
-- Las muestras se clipean al rango legal y se redondean al tipo correcto.
-- Recálculo secuencial: responder una pregunta **cambia el ranking** de las siguientes (test).
-- Sugerencia = mediana personal de 14 días, y **solo si hay ≥5 observaciones**; si no, `null`.
-
-### 2.4 · Formulario y salvaguardas — §7.4, §7.5 · ~3 h
-
-**✅ Listo cuando:**
-- `build_form(...)` devuelve el `VoIResponse` completo del §11.2, incluido el **BLOQUE 0** (`closing_question_es`, `closing_target_date`).
-- `closing_question_es` va en `null` si el target del día anterior ya fue reportado, y presente si es `null` — test de ambos casos.
-- `highlighted` tiene 2 elementos, o 3 si `ICD < 0.5`.
-- **Techo de antigüedad:** una variable de `HIGH_WEIGHT` con `d_v ≥ 7` entra a `highlighted` desplazando la de menor VoI — el bloque **no crece**.
-- Desempate del techo: `w_v` → `d_v` → alfabético (test con dos variables empatadas).
-- **Cuota de exploración:** `hash(child_id+date) mod 7 == 0`, determinista y reproducible.
-- **Precedencia:** con techo y exploración el mismo día, manda el techo.
-- **Gatillo por anomalía:** `|z| ≥ 2.0` despliega la cola aunque el filtro diga "No".
-- Con filtro en "No", las variables de la cola reciben `assumed_stable` **sin valor**.
-- Cada salvaguarda tiene su propio test.
-
-### 2.5 · Narrativa — §10.1, §10.2 · ~4 h
-
-**La plantilla determinista se construye primero. El LLM va encima.**
-
-**✅ Listo cuando:**
-- La plantilla produce `headline_es`, `explanation_es`, `actions_es` válidos **sin LLM**.
-- `explanation_es` ≤ 60 palabras; `actions_es` ≤ 3 y **subconjunto** de `candidate_strategies`.
-- Solo nombra drivers presentes en el payload — no inventa causas (test).
-- El LLM 3B se intenta, reintenta una vez si no valida el schema, y **cae a plantilla**.
-- `narrative_source` refleja cuál se usó (`llm` | `template`).
-- **Test: con Ollama apagado, `/explain` devuelve una narrativa válida.**
-- Los prompts viven versionados en `ml/narrative/prompts/`.
-
-### 2.6 · Catálogo de estrategias — §12.1, §12.2 · ~1 h
-
-**✅ Listo cuando:**
-- Las 10 estrategias con su `id` y `label_es` exactos del §12.1.
-- El mapeo driver → estrategias del §12.2, completo.
-- `build_candidates(drivers)` deduplica y devuelve máximo 4.
-- Test: cada uno de los 6 drivers del §12.2 produce al menos una estrategia, y ninguna estrategia devuelta está fuera de la lista cerrada.
-
-### 2.7 · Suite de invariantes — §0 · ~2 h
-
-**✅ Listo cuando:**
-- Existe **un test por cada una de las 13 reglas** del SPEC §0, nombrado con su `§`.
-- Incluye los bordes de banda (§4) y el conflicto de procedencia (§2.5).
-- `import-linter` verifica la regla de dependencias (CONVENTIONS §2).
-- Todo corre en CI y `main` no acepta merge con la suite en rojo.
-
-### 2.8 · Métricas y ablaciones — §13 · ~3 h + ~3 h
-
-**✅ Listo cuando:**
-- Calcula las 9 métricas del §13 sobre el test set.
-- `ece` con 10 bins; `alert_budget_recall` como curva, no como número suelto.
-- `fairness_sex` reporta AUC-PR y recall por sexo **honestamente**, salga lo que salga.
-- **Ablación §13.1:** las 4 políticas (A/B/C/D) con el modelo de adherencia, más `stale_variable_miss_rate` para comparar B contra D.
-- **Ablación §13.2:** entrenar con §8.2 y evaluar con parámetros perturbados (semillas 142–144), reportando la caída.
-- Los dos baselines obligatorios del §13 aparecen en la tabla.
-- Las funciones de métrica son **puras** (`y_true, y_pred → dict`) y testeadas con arreglos sintéticos.
-- `/eval` devuelve el JSON completo.
-
----
-
-## ✅ La Fase 1 está terminada cuando
-
-1. `curl` a `/predict` de un niño de fixture devuelve un `RiskResponse` con riesgo, banda, intervalo, confianza e ICD.
-2. `curl` a `/predict` de un niño con datos pobres devuelve `status="insufficient_data"` con `requested_variables`.
-3. `curl` a `/voi` devuelve `highlighted` + `filter_question_es` + `tail`.
-4. `curl` a `/explain` devuelve narrativa válida **con Ollama apagado**.
-5. `curl` a `/eval` devuelve las métricas y las dos ablaciones.
-6. La suite de invariantes está verde.
-7. `import-linter` y `ruff` están verdes.
-8. Dos corridas completas desde cero producen resultados idénticos.
-
-Recién ahí se toca el frontend.
-
----
-
-## FASE 2 · FRONTEND
-
-**Prerrequisito: el `UI.md`** — inventario de pantallas, rutas por rol, tokens de diseño, estados (cargando, error, vacío, primer uso), reglas de accesibilidad y baja estimulación. Los textos ya están todos en el SPEC §12.3–§12.5; no hay que inventar copy.
-
-| # | Pantalla | SPEC | Peso |
-|---|---|---|---|
-| F.1 | Scaffold Next.js + Tailwind + shadcn + conmutador de rol + cliente de API tipado (zod) | §11 | ~3 h |
-| F.2 | **Formulario adaptativo**: 4 bloques, pregunta filtro, sugerencias en gris, "No sé", anclas verbales | §7.4, §7.6, §12.5 | ~5 h |
-| F.3 | **Tarjeta del día**: anillo de riesgo, banda, confianza, y **el estado de abstención** | §4, §5.3, §6 | ~4 h |
-| F.4 | **Ranking de VoI visible** con su `reason` (*"lleva 7 días sin registrarse"*) | §7.5, §11.2 | ~3 h |
-| F.5 | Modo "¿por qué?" con drivers SHAP + slider contrafactual | §11.3 | ~4 h |
-| F.6 | Panel profesional: timeline riesgo vs. eventos, calidad del registro | — | ~3 h |
-| F.7 | Página pública de evaluación | §13 | ~3 h |
-
-**Criterios transversales de la Fase 2:**
-- Ningún texto en español está hardcodeado en un componente: sale de `packages/shared` o del SPEC §12.
-- Los tres estados de banda y los cuatro de confianza (incluido `null` = abstención) tienen su representación visual.
-- La abstención **no se ve como un error**: es una pantalla legítima que pide un dato.
-- Una sugerencia sin tocar se ve claramente distinta de un valor confirmado.
-- Todas las escalas ordinales muestran las 5 anclas del §12.5 **más "No sé"**.
-
----
-
-## Hitos de sincronización
-
-Por evento, no por reloj.
-
-| Hito | Qué habilita |
+| Zona actual | Responsable de migrarla o retirarla |
 |---|---|
-| **M1** · Hito 0 en `main` | P2 arranca. **El contrato queda congelado.** |
-| **M2** · Generador produciendo datos | P2 pasa de fixtures a datos reales |
-| **M3** · LightGBM reemplaza a `baseline.py` | P2 recalcula métricas sobre el modelo real |
-| **M4** · Fase 1 terminada (los 8 puntos de arriba) | Arranca el diseño y el `UI.md` |
-| **M5** · `UI.md` listo | Arranca la Fase 2 |
+| `tests/unit/**` | P2 |
+| `tests/invariants/**` | P2 solo retira o pone en cuarentena el legado; cada dueño crea reemplazos en su zona |
+| `tests/conftest.py` | P2, se elimina como fixture global |
+| `tests/p1/**` existente | P1 |
+| `fixtures/**` raíz | Solo lectura; nuevos fixtures viven con su dueño |
+| `data/**` no manifest | P2 audita y limpia/quarantina para release; P1 puede generar artefactos ignorados |
+| `SPEC.v0.2.0.bak.md` | Histórico, nadie lo edita |
+| `Untitled document.md` | Histórico, nadie lo edita |
 
-**Regla:** si un contrato de `packages/shared` cambia después de M1, se avisa por chat **antes** de tocarlo. Cambiar el contrato en silencio es la única forma real de romperle el trabajo al otro.
-
----
-
-## Entregables
-
-| Entregable | Dueño |
-|---|---|
-| Repo público + README con setup en 1 comando | P1 |
-| Diagrama de arquitectura | P1 |
-| Deploy (API + web) | P1 |
-| Láminas de rigor: calibración, AUC-PR, ablaciones, equidad por sexo | P2 |
-| Video demo | quien haya hecho el frontend |
-| Láminas de producto y problema | el otro |
-| Envío del formulario de entrega | **los dos juntos, con margen** |
+Después del saneamiento inicial no vuelve a crearse una ruta de tests compartida.
+Si P2 necesita una dependencia Python raíz, solicita paquete, versión, licencia, motivo y test a P1;
+P2 controla directamente las dependencias frontend de su zona.
 
 ---
 
-## Las tres reglas que evitan el enredo
+## 3. Cómo colaborar sin tocar archivos ajenos
 
-1. **Nadie edita un archivo del otro.** Si lo necesitas, se avisa antes. (CONVENTIONS §3)
-2. **El contrato se congela en M1.** Todo lo demás puede cambiar; eso no, sin aviso.
-3. **`main` siempre verde.** `git pull` antes de cada `push`, y la suite de invariantes en verde antes de subir.
+### 3.1 Handoff P1 -> P2
+
+P1 publica de forma atómica:
+
+```text
+modelo Pydantic
+JSON Schema
+tipos TypeScript/Zod generados
+ejemplo JSON válido
+ejemplo JSON inválido
+test del contrato
+versión/hash del contrato
+```
+
+P2 consume esos artefactos sin copiarlos ni editarlos.
+
+### 3.2 Solicitud P2 -> P1
+
+Una solicitud contractual contiene:
+
+1. Ruta y operación.
+2. Request JSON literal.
+3. Response JSON literal.
+4. Razón del cambio.
+5. Test consumidor que falla.
+
+P1 responde editando únicamente su zona. P2 no aplica parches en `packages/shared`.
+
+### 3.3 Revisión
+
+- El revisor comenta; el dueño edita.
+- Un PR o cambio contiene paths de un solo dueño.
+- Las migraciones publicadas no se reescriben.
+- Los contratos generados cambian junto con su fuente.
+- Los fixtures no cruzan carpetas de dueño.
+
+### 3.4 Datos de integración
+
+- P1 crea ejemplos contractuales en `packages/shared/examples`.
+- P1 crea fixtures algorítmicos en `tests/p1/fixtures`.
+- P2 crea fixtures de API/DB en `tests/p2/fixtures`.
+- P2 crea journeys ficticios en `tests/integration/fixtures`.
+- Nadie usa exports reales en tests versionados.
+
+---
+
+## 4. Dependencias y ruta crítica
+
+```text
+M0 decisiones externas
+  -> M1 contrato ejecutable
+     -> M2 dominio y persistencia en paralelo
+        -> M3 flujo cuidador
+        -> M4 RAG y flujo profesional
+           -> M5 volante y evaluación
+              -> M6 integración y release
+```
+
+P2 no espera a que P1 termine algoritmos: después de M1 trabaja contra servicios falsos y ejemplos
+publicados.
+
+---
+
+## 5. M0 - Prerrequisitos externos
+
+**Objetivo:** no fingir evidencia, licencia o revisión que el equipo no posee.
+
+### P1
+
+1. Inventariar fuentes candidatas con URL, versión y derechos.
+2. Registrar modelos candidatos de embeddings/LLM con licencia y model card.
+3. Crear `data/source-evidence.manifest.json`, no identificable, con hashes, schemas y conteos; P1
+   actualiza la allowlist de `.gitignore` sin exponer los CSV.
+4. Preparar la lista de dependencias Python necesaria.
+5. Confirmar que las decisiones numéricas compartidas existan en `SPEC 15` y los parámetros de
+   build queden en manifests versionados.
+
+### P2
+
+1. Identificar quién puede recibir el rol `clinical_reviewer`.
+2. Registrar política de acreditación del rol para la demo.
+3. Obtener o declarar bloqueada una `TargetDefinitionVersion` con pregunta, anclas y reporters
+   aprobados para captura real.
+4. Definir quién puede actuar como `privacy_reviewer` y qué base permite exportar consultas
+   generalizadas a autoría.
+5. Preparar identidades, acreditaciones y grants ficticios para roles, tenants y sujetos.
+6. Definir dominio local y origen web/API de la demo.
+
+### Bloqueo clínico
+
+Un desarrollador no se autodesigna revisor clínico. Si no existe una persona autorizada:
+
+- Se implementa todo el flujo.
+- Las estrategias permanecen `evidence_reviewed` o `draft`.
+- Runtime responde `clinical_review_unavailable`.
+- La demo muestra correctamente la abstención.
+- No se afirma que existe un catálogo clínicamente activo.
+
+### Listo cuando
+
+- Existe al menos una fuente legalmente utilizable para probar autoría.
+- Modelos locales candidatos tienen licencia documentada.
+- Roles ficticios están definidos.
+- El estado del revisor clínico está declarado como disponible o bloqueado.
+- El target real está `active` o explícitamente `blocked`; fixtures demo no se hacen pasar por labels
+  reales.
+- Nadie necesita inventar una cita o aprobación para avanzar.
+- Ambos implementadores acuerdan el freeze inicial de SPEC 0.3.0; desde ese punto aplica semver y
+  las cuatro zonas documentales quedan congeladas.
+
+M0 puede declarar cada dependencia `available` o `blocked`. Un bloqueo de corpus detiene P1.6 y el
+DoD completo; un bloqueo clínico impide activar catálogo; un target bloqueado impide labels reales.
+Ninguno impide construir contratos con fixtures ni demostrar abstención segura.
+
+---
+
+## 6. M1 - Contrato ejecutable
+
+**Dependencia:** M0 documental.
+
+### P1.1 - Romper la dependencia shared -> ml
+
+Construir:
+
+```text
+packages/shared/constants.py
+packages/shared/field_catalog.py
+packages/shared/models.py
+packages/shared/texts.py
+packages/shared/schema/**
+packages/shared/generated/**
+packages/shared/examples/**
+```
+
+Debe incluir:
+
+- 19 campos diarios y matriz de fuentes.
+- `entry_mode`, interacción y origen.
+- Sesiones con `opened_at`, defaults, `QuestionPresentation` y episodios primarios no solapados con
+  `as_of_at = prediction_at = submitted_at`.
+- Snapshots y outputs por track, sin un campo ambiguo `confidence`.
+- `TargetDefinitionVersion` con scope/selección única, target demo separado, reportes con canal y
+  mapping, resoluciones append-only, adjudicación y elegibilidad temporal.
+- Proyección append-only, bytes canónicos, hashes y ventanas locales.
+- Consent por purpose, grants con capabilities/matriz, acreditaciones, authoring authorizations y
+  origen/cohorte/deployment sin nombres ambiguos.
+- Escenarios, strategies con texto/claims, citas, sets, catálogos e intents de autoría.
+- Reviews por estrategia, planes humanos y executions cronológicas.
+- Evaluación estructurada.
+- Errores con request ID.
+- `ConstantSpec` C01-C50.
+
+Generar TypeScript/Zod desde una única fuente. No mantener dos contratos manuales.
+
+### P1.2 - Ejemplos de handoff
+
+Ejemplos mínimos:
+
+```text
+form_session.audit.json
+form_session.with_default.json
+form_answer.manual.json
+form_answer.accept_default.json
+form_answer.edit_default.json
+prediction.synthetic_score.json
+prediction.personal_abstained.json
+recommendation.match.json
+recommendation.abstained.json
+outcome.yes.json
+outcome.no.json
+outcome.explicit_unknown_pending.json
+outcome.early_no_pending.json
+outcome.conflicted.json
+outcome.late.json
+error.idempotency_conflict.json
+error.cross_tenant.json
+```
+
+### P2.1 - Scaffold consumidor
+
+Sin editar contratos:
+
+- Crear app FastAPI v0.3 con las 11 rutas y servicios falsos.
+- Crear `apps/web` con TypeScript strict.
+- Consumir tipos generados por P1.
+- Crear cliente API tipado.
+- Renderizar ejemplos contractuales en páginas de desarrollo.
+- Preparar runner vacío de migraciones.
+
+### Criterios de terminado
+
+- `packages/shared` no importa `ml`, `rag` ni `apps`.
+- Todos los ejemplos validan o fallan según su intención.
+- JSON Schema y TS/Zod se regeneran sin diff inesperado.
+- OpenAPI usa los modelos compartidos.
+- Frontend compila sin tipos duplicados.
+- P2 puede continuar con mocks aunque P1 todavía no tenga algoritmos.
+
+### Handoff H1
+
+```text
+contract_version
+schema_hash
+commit/reference local
+lista de ejemplos
+comando de generación
+```
+
+---
+
+## 7. M2 - Núcleo y persistencia en paralelo
+
+**Dependencia:** H1.
+
+## P1 - Dominio puro
+
+### P1.3 - Smart defaults
+
+Crear `ml/defaults` con APIs puras:
+
+```python
+compute_binary_default(...)
+compute_categorical_default(...)
+compute_default_decision(...)
+assign_audit_mode(...)
+```
+
+Implementar:
+
+- Beta para binarias.
+- Dirichlet y marginal Beta para categorías.
+- Ventana limpia de 60 días.
+- Estratificación por tenant, sujeto, fuente y campo.
+- Proyección append-only al cutoff y ventanas locales exactas.
+- Empate sin sugerencia.
+- Corte estricto `lower > 0.70`.
+- Allowlist y prohibiciones.
+- Exclusión de defaults aceptados/editados.
+- Auditoría HMAC estable al 10%.
+- Vectores golden, incluida la tabla corregida de `FUNDAMENTOS.md`.
+
+No implementar defaults para continuos, conteos, texto, tags u outcomes.
+
+### P1.4 - DQI y formulario
+
+Crear `ml/form` y actualizar features puras:
+
+```python
+compute_dqi(...)
+compute_predictive_voi(...)
+build_form_plan(...)
+detect_form_anomaly(...)
+```
+
+Implementar exactamente:
+
+- Coverage de 5 campos por 14 días.
+- Recencia con vida media de 2 días.
+- Consistencia por tipo de campo.
+- Resultado multiplicativo.
+- Orden outcome, staleness, exploración, VoI, cola.
+- `QuestionPresentation`, prioridad exacta, expansión por vencidos y weekday HMAC de exploración.
+- VoI en nats o estado unavailable.
+- `q_j` Beta/Dirichlet versionado y consultas condicionales no causales.
+- `robust_z` completo con casos sin soporte.
+- Todos los campos aplicables en highlighted+tail.
+- Filtro que no crea valores en cola.
+- `build_scenario` puro desde sesión/profile version con allowlist y abstención por conflicto.
+
+### P1.5 - Predicción dual-track
+
+Reorganizar `ml/engine` hacia `ml/prediction` solo cuando sea necesario.
+
+Construir:
+
+- Adaptador aislado `synthetic_reference_v021`.
+- Rechazo de sujetos reales en track sintético.
+- Baseline personal Beta con outcomes reales.
+- Ventana de 60 días.
+- Solo episodios primarios, misma definición/care mode, inclusión de `yes` temprano válido y
+  exclusión de ever-conflicted/`no` temprano.
+- Intervalo 90%.
+- Abstención por outcomes insuficientes, conflicto y care mode; sin gate muerto por ancho.
+- Features preregistradas del challenger.
+- Missing/other como null, historia personal `[D-30,D)` y objetivo L2 con offset literal.
+- Chequeo de entrenabilidad.
+- Challenger L2 en sombra.
+- Snapshot point-in-time.
+- Sin bandas reales.
+- Sin narrativa de riesgo.
+
+Con los datos actuales, el resultado esperado del challenger es `not_trainable_single_class`.
+
+## P2 - Store y migraciones
+
+### P2.2 - Saneamiento v0.2
+
+- Mover o retirar tests unitarios v0.2.
+- Eliminar fixture global v0.2.
+- Mantener pruebas históricas solo si están aisladas del gate v0.3.
+- No borrar el SPEC histórico.
+- No modificar tests o módulos P1.
+
+### P2.3 - Migraciones
+
+Crear migraciones inmutables:
+
+```text
+001_identity_consent
+002_form_prediction_outcome
+003_corpus_catalog_recommendations
+004_training_evaluation_audit
+```
+
+Las migraciones crean todas las tablas de `SPEC 12.1`, incluida `authoring_requests`.
+
+Requisitos:
+
+- FK activas.
+- `tenant_id` en entidades clínicas.
+- Grants por sujeto, acreditaciones y target definitions versionadas.
+- Unicidad efectiva fail-closed para target por scope y catálogo activo por tenant.
+- `supersedes_id` en eventos corregibles.
+- `opened_at`, `submitted_at`, `as_of_at`, `occurred_at` y `reported_at` con restricciones de orden.
+- Revisiones/versiones explícitas.
+- Idempotency key + payload hash.
+- Índices de consultas principales.
+- WAL y `busy_timeout` en demo.
+- Bloqueo de SQLite en modo piloto.
+- Test de migración desde una DB v0.2 ficticia.
+
+### P2.4 - Store
+
+Implementar comandos concretos, no repositorio genérico:
+
+- Crear/cerrar sesión.
+- Insertar observación append-only.
+- Crear episodio y snapshot.
+- Serializar oportunidad: crear episodio primario o enlazar sesión al activo.
+- Insertar reporte y materializar resolución sin perder conflicto histórico.
+- Derivar inbox/status de outcome request desde resolución activa y reloj, también tras correcciones.
+- Insertar recommendation instance/intento al crear episodio, review por estrategia, plan humano y
+  execution.
+- Guardar versiones de catálogo y evaluación.
+- Idempotencia.
+- Auditoría sin payload clínico.
+- Consultas tenant-scoped.
+
+Una operación de dominio usa una transacción. No se hace commit por fila.
+
+### Criterios de terminado M2
+
+P1:
+
+- Cuantiles conocidos coinciden con SciPy.
+- Una sugerencia aceptada no cambia el posterior futuro.
+- Auditoría no cambia al repetir inputs.
+- VoI unavailable es `None`, no cero.
+- Fila sintética invalida snapshot real.
+- Challenger falla limpiamente con una clase.
+
+P2:
+
+- Migraciones suben desde cero y desde fixture v0.2.
+- Una corrección conserva la fila original.
+- Un lote fallido hace rollback completo.
+- Cross-tenant nunca devuelve una fila.
+- SQLite piloto bloquea arranque.
+
+### Handoff H2
+
+P1 entrega vectores golden y façades puras. P2 entrega historias y snapshots ficticios que validan
+contra contratos P1.
+
+---
+
+## 8. M3 - Flujo vertical de cuidador
+
+**Dependencias:** P1.3-P1.5 y P2.3-P2.4.
+
+### P2.5 - API de formulario
+
+Implementar:
+
+```text
+POST /api/v1/form-sessions
+POST /api/v1/form-sessions/{id}/answers
+POST /api/v1/form-sessions/{id}/submit
+GET  /api/v1/prediction-episodes/{id}
+GET  /api/v1/outcome-requests
+POST /api/v1/prediction-episodes/{id}/outcome-reports
+```
+
+Reglas:
+
+- `Idempotency-Key` en todo POST.
+- Actor, tenant, rol, acreditación y grant por sujeto antes del servicio o list query.
+- `entry_mode` derivado por servidor.
+- Default no tocado crea cero observaciones.
+- Auditoría persistida al abrir.
+- Cada respuesta recalcula el plan.
+- Submit atómico siempre cierra sesión. Con target seleccionable crea episodio primario, snapshot,
+  outputs, recommendation instance y outcome request, o enlaza al episodio activo. Sin target real
+  activo devuelve `target_definition_unavailable` sin crear episodio ni request.
+- El servidor fija `submitted_at`; el episodio persiste `as_of_at=prediction_at=submitted_at`.
+- Ventana target 24 horas, deadline 48.
+- `yes`, `no`, `unknown`, `conflicted`, `early`, `on_time`, `late`: `yes` temprano válido cierra;
+  `no` temprano se conserva sin cerrar.
+- API devuelve `OutcomeReport` y `OutcomeResolution` separadas; `unknown` explícito deja pending.
+- Importaciones guardan `source_mapping_id`; resoluciones son materializaciones append-only con
+  `ever_conflicted` monotónico.
+- Abstención HTTP 200.
+
+### P2.6 - Web cuidador
+
+Pantallas mínimas:
+
+1. Outcome pendiente.
+2. Formulario destacado + cola completa.
+3. Sugerencia visual con aceptar/editar/no sé.
+4. Confirmación de envío.
+5. Score de simulación claramente etiquetado y solo en fixture demo.
+6. Baseline personal o abstención `insufficient_verified_outcomes`.
+7. Estrategias solo después de aprobación profesional.
+
+Entrada, abstención, resultados y estrategias muestran el límite de emergencia del SPEC; nunca
+sugieren esperar una alerta de Faro ante peligro inmediato.
+
+Estados obligatorios:
+
+```text
+loading
+empty
+error
+abstained
+conflicted
+expired
+```
+
+### Test E2E cuidador
+
+1. Sembrar target `demo_fixture` y abrir sesión.
+2. Recargar sin cambiar auditoría.
+3. Dejar una sugerencia sin tocar.
+4. Responder otro campo.
+5. Enviar.
+6. Confirmar que solo se persistió el campo tocado.
+7. Obtener episodio abstendido o simulado.
+8. Reportar `unknown` explícito y comprobar pending; después reportar outcome concluyente.
+9. Repetir POST y recibir el mismo recurso.
+10. Intentar otro sujeto del mismo tenant sin grant y recibir 403 auditado.
+11. Repetir sin target seleccionable: la sesión cierra sin episodio ni outcome request.
+
+### Handoff H3
+
+Journey JSON, screenshots de estados y DB ficticia sembrada. P2 no modifica algoritmos para hacer
+pasar la integración.
+
+---
+
+## 9. M4 - RAG offline y flujo profesional
+
+M4 puede avanzar en paralelo con M3 después de H1 y las migraciones del catálogo.
+
+## P1 - RAG
+
+### P1.6 - Dominio documental
+
+Crear:
+
+```text
+rag/domain
+rag/authoring
+rag/runtime
+tools/rag_authoring
+```
+
+Implementar:
+
+- Manifest de bytes/documento, derechos, extractor/OCR, normalización, chunker y hashes.
+- Chunks con localizador, texto normalizado y hash.
+- Exclusión verificable de notas, mensajes y texto libre de usuario en chunks, embeddings y prompts.
+- Strategy text/claims/citas y estados de documentos, estrategias, sets y catálogos.
+- Claims y citas no vacíos, con cada claim enlazado y hasheado.
+- `AuthoringReview` append-only para evidencia, clínica, set y activación de catálogo; no confundir
+  con recommendation review de caso.
+- `ScenarioV1`/`ScenarioPredicate` único, review del set, implicación set->strategies y catálogo
+  activo único por tenant.
+- BM25 top 20.
+- Retrieval denso top 20 solo si el modelo está registrado.
+- RRF `k=60`.
+- Top 8 final.
+- Borrador LLM local opcional.
+- Verificación literal de citas.
+- Revisión de evidencia.
+- Bloqueo de doble revisión por la misma identidad.
+- Suspensión por fuente retirada.
+- Build manifest reproducible con modo `hybrid|lexical_only` y tie-break por chunk hash.
+
+Si falta embedding aprobado, el build funciona en modo lexical-only y lo declara. No se descarga un
+modelo silenciosamente.
+
+### P1.7 - Runtime determinista
+
+El runtime:
+
+- Recibe escenario categórico mínimo potencialmente seudonimizado.
+- Consume catálogo precomputado.
+- Filtra exclusions y contraindications.
+- Devuelve máximo 3 estrategias.
+- Ordena de forma determinista.
+- Incluye citas exactas.
+- No importa LLM o embeddings.
+- Se abstiene y devuelve `AuthoringRequestIntent` si no hay match; no escribe en DB.
+- Evalúa predicates de set y estrategia por separado; recibe catálogo tenant activo explícito.
+
+## P2 - Profesional
+
+### P2.7 - API profesional
+
+Implementar:
+
+```text
+GET  /api/v1/prediction-episodes/{id}/recommendations
+GET  /api/v1/recommendation-instances?review_status=pending
+POST /api/v1/recommendation-instances/{id}/reviews
+POST /api/v1/recommendation-instances/{id}/executions
+```
+
+Requisitos:
+
+- `If-Match` y 409.
+- Instancia inmutable con versiones exactas.
+- GET sin creación de instancias ni authoring requests; ambos se persisten al crear el episodio.
+- Inbox filtrado en SQL por tenant, rol, acreditación y grants.
+- Reviews por `strategy_version_id`: `approved`, `rejected`, `human_plan_substituted`,
+  `not_applicable`, `deferred`.
+- Plan humano sin citas RAG.
+- Execution por strategy/plan separada del review y con orden temporal validado.
+- Serializer union entrega strategy aprobada o human plan sustituido; exposición exige la decisión
+  activa correspondiente, no solo timestamps.
+- Aprobación y sustitución exigen `required_approver_role`; review, entrega y ejecución revalidan
+  dependencias activas y bloquean instancias suspendidas.
+- Feedback no cambia catálogo activo.
+- Solo recomendaciones aprobadas llegan al cuidador.
+
+### P2.8 - Web profesional
+
+Pantallas mínimas:
+
+1. Inbox de recomendaciones pendientes.
+2. Escenario sin datos identificables innecesarios.
+3. Estrategias y citas verificables.
+4. Aprobar, rechazar, sustituir, diferir o marcar no aplicable.
+5. Registrar aplicación.
+6. Ver outcome pendiente y estado de conflicto.
+7. Historial de versiones sin editarlo.
+
+### Criterios de terminado M4
+
+- Un documento real versionado produce fragmentos verificables.
+- Una cita falsa bloquea activación.
+- Dos revisores iguales bloquean activación.
+- Si no hay revisor clínico autorizado, catálogo no activo y runtime abstiene.
+- La precedencia de disponibilidad distingue corpus, review clínica, suspensión, ambigüedad y no
+  ready con razones estables.
+- Mismo escenario+versión devuelve la misma decisión de dominio; GET repite el envelope persistido.
+- Runtime funciona sin red y sin LLM.
+- No match devuelve HTTP 200; P2 deduplica `AuthoringRequest` por tenant+sujeto al crear el episodio.
+- Exportar a autoría exige base separada y consulta generalizada certificada; ningún atributo de
+  caso llega a retrieval, embeddings o LLM.
+- Review, human plan, execution y outcome son filas separadas.
+
+### Handoff H4
+
+Manifest de corpus y catálogo, hashes y IDs de versión. Cuerpos, índices y modelos permanecen fuera
+de Git.
+
+---
+
+## 10. M5 - Volante y evaluación
+
+## P1
+
+### P1.8 - Snapshots y entrenamiento
+
+`tools/train`:
+
+- Construye snapshots separados por origen.
+- Aplica `project_as_of`, episodios primarios, target version, consentimientos y cutoff temporal.
+- Reautoriza `secondary_model_use` al inicio de cada run; snapshots revocados no se reutilizan y
+  artefactos reales dependientes se suspenden para nuevos usos.
+- Registra IDs, hashes, código, configuración y dependencias.
+- Mantiene el track sintético como simulación.
+- Calcula baseline real.
+- Declara challenger no entrenable cuando corresponda.
+- Nunca promueve automáticamente.
+
+### P1.9 - Evaluación
+
+Implementar:
+
+- Brier score.
+- Average precision de scikit-learn.
+- AUC solo con ambas clases.
+- Calibration intercept y slope.
+- `EvaluationProtocolVersion`: outer LeaveOneGroupOut, selección de lambda en inner grouped folds,
+  OOF externo y bootstrap de 2.000 clusters sujeto.
+- Outer features personales usan solo outcomes del sujeto revelados antes de cada landmark; nunca
+  fit/selección. El reveal schedule queda persistido.
+- Decision coverage.
+- Abstención por razón.
+- Métricas por origen y grupos solo sobre mínimos de privacidad.
+- Dataset/reporte separado por `target_definition_version` exacta; sin pooling v0.3.
+- `alert-budget recall=not_estimable` mientras no exista decision policy.
+- Conteos/completitud cuando no hay dos clases.
+- Reportes de review, execution y outcome por separado.
+
+No usar la palabra eficacia en asociaciones observacionales.
+
+## P2
+
+### P2.9 - Persistencia del volante
+
+- Importar manifests P1 sin entrenar dentro de API.
+- Guardar snapshot, run, model version y report atómicamente.
+- Respetar revocación en snapshots futuros.
+- Auditar build y activación manual.
+- Implementar `GET /api/v1/evaluation/{model_version}`.
+
+### P2.10 - Vista de evaluación
+
+Mostrar:
+
+- Origen real/sintético.
+- Estado estimable/no estimable.
+- Dataset hash y modelo.
+- Métricas con intervalos cuando existan.
+- Limitaciones visibles.
+- Estado del challenger.
+- Completitud de outcomes.
+
+### Criterios de terminado M5
+
+- Repetir con seed 42 produce resultados estadísticos iguales.
+- Snapshot real rechaza sintéticos.
+- Revocación excluye snapshots futuros.
+- Revocación bloquea runs nuevos sobre snapshots viejos y suspende artefactos reales dependientes.
+- ModelVersion y EvaluationReport suspendidos pasan a retired; uso futuro crea versiones nuevas.
+- Challenger no se despliega.
+- Desarrollo OOF no produce `shadow_evaluated`; ese estado exige periodo prospectivo preregistrado.
+- Una sola clase no produce AUC falsa.
+- Menos de 80% de réplicas válidas no produce intervalo; grupos pequeños se suprimen.
+- Cada métrica informa origen, dataset y modelo.
+- Feedback genera propuesta/reporte, no cambio productivo.
+
+---
+
+## 11. M6 - Invariantes y release
+
+Los 35 invariantes de `SPEC 17` se distribuyen sin carpeta compartida.
+
+### P1
+
+Tests algorítmicos y de contrato:
+
+```text
+INV-02, INV-03, INV-04, INV-06, INV-07,
+INV-09, INV-10, INV-16 a INV-28,
+INV-32 a INV-35
+```
+
+Gate:
+
+```text
+ruff check .
+ruff format --check .
+pytest tests/p1 -q
+lint-imports
+generación de contratos sin diff
+auditoría de prompts/índices/features
+```
+
+### P2
+
+Tests de persistencia, seguridad e integración:
+
+```text
+INV-01, INV-05, INV-08, INV-11 a INV-15,
+INV-27, INV-29, INV-30, INV-31
+```
+
+La duplicación de INV-27 se evita así: P1 prueba que el dominio no muta el catálogo; P2 prueba que
+el flujo API tampoco lo muta.
+
+Gate:
+
+```text
+pytest tests/p2 tests/integration -q
+pruebas de migración
+pruebas cross-tenant, same-tenant/wrong-subject y grants revocados
+pruebas de idempotencia/concurrencia, incluida misma key en IDs concretos distintos
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+OpenAPI contra contratos
+```
+
+### Gate conjunto
+
+Ambos ejecutan; cada dueño corrige solo su zona:
+
+```text
+pytest tests -q
+ruff check .
+ruff format --check .
+lint-imports
+pnpm --dir apps/web lint
+pnpm --dir apps/web typecheck
+pnpm --dir apps/web test
+pnpm --dir apps/web build
+```
+
+Después recorren los 18 puntos de `SPEC 20`.
+
+El release manifest declara por separado implementación, corpus, target y catálogo. Sin corpus
+legalmente utilizable no se completa M4 ni el DoD. Sin target activo no se crean labels reales. Sin
+revisor autorizado puede cerrarse implementación técnica como
+`catalog_status=blocked_clinical_review`: debe pasar gates y demostrar abstención, pero no puede
+afirmar catálogo activo.
+
+---
+
+## 12. Qué no construir
+
+- Compatibilidad completa con los ocho endpoints v0.2.
+- Bandas reales verde/ámbar/rojo.
+- Promoción automática de modelos.
+- Entrenamiento real con una sola clase.
+- Random Forest para seleccionar predictores con los datos actuales.
+- LLM en runtime.
+- RAG sobre historiales o notas.
+- Recomendaciones libres fuera del catálogo.
+- Actualización automática por acceptance rate.
+- Fine-tuning.
+- Inferencia causal de eficacia.
+- PWA, offline sync, push, voz o Telegram.
+- Docker, colas, microservicios o Kubernetes para la demo.
+- PostgreSQL u OIDC dentro del alcance demo.
+- Repository pattern genérico.
+- Contratos TypeScript mantenidos a mano.
+- Features desde texto libre.
+- Conversión de categorías a números ficticios.
+- Datos reales, DB, modelos, corpus, índices o secrets en Git.
+- Refactor de módulos no tocados por una tarea.
+
+---
+
+## 13. Orden de recorte si falta tiempo
+
+Nunca se recortan seguridad de datos, abstención, append-only, idempotencia o separación de
+real/sintético.
+
+Se recorta en este orden:
+
+1. Borrador LLM opcional; se conserva retrieval y autoría manual.
+2. Retrieval denso; se declara `lexical_only`.
+3. Gráficos de evaluación; se conserva JSON estructurado.
+4. Polish visual; se conserva accesibilidad y estados.
+5. Challenger entrenado; se conserva chequeo `not_trainable`.
+6. Catálogo activo si falta revisor; se conserva abstención correcta.
+
+No se recortan:
+
+- Outcome explícito.
+- Default no vinculante.
+- Auditoría estable.
+- Citas verificables.
+- Revisión versionada.
+- Separación review/execution/outcome.
+- Grants por sujeto y límite de emergencia.
+- Target versionado para cualquier label real.
+
+---
+
+## 14. Estimación relativa
+
+Partiendo del repositorio actual y con dedicación completa:
+
+| Área | P1 | P2 |
+|---|---:|---:|
+| Contratos y generación | Alta | Baja |
+| Defaults, formulario y predicción | Alta | - |
+| RAG autoría/runtime | Muy alta | Media |
+| Training/eval | Alta | Baja |
+| DB/API/idempotencia | - | Muy alta |
+| Web cuidador/profesional | - | Muy alta |
+| Tests | Alta | Muy alta |
+| Corte vertical M1-M3 | 10-14 días hábiles | 12-16 días hábiles |
+| DoD técnico M0-M6 | 25-35 días hábiles | 30-40 días hábiles |
+
+Con trabajo paralelo, el DoD técnico completo representa aproximadamente 6-8 semanas calendario;
+revisión clínica, licencias o disponibilidad de corpus pueden añadir espera sin añadir capacidad de
+implementación. El rango corto corresponde solo al journey cuidador con contratos, persistencia,
+defaults, baseline abstendido y tests esenciales: no incluye autoría RAG completa, flujo profesional,
+evaluación completa ni todos los 35 invariantes.
+
+Con menos de dos semanas por persona puede mostrarse un corte parcial, pero no declararse completo
+el DoD v0.3.
+
+Para equilibrar:
+
+- P1 entrega mocks, ejemplos, TS/Zod y textos completos.
+- P2 no reimplementa fórmulas.
+- P1 asume todos los tests algorítmicos y RAG.
+- P2 limita frontend a los journeys del SPEC, sin dashboard adicional.
+- Ayudar significa revisar o crear un fixture en la zona propia, nunca editar archivos ajenos.
+
+---
+
+## 15. Definition of Done de una tarea
+
+Una tarea se marca lista solo si:
+
+1. Cumple su criterio verificable.
+2. Tiene test que demuestra el comportamiento descrito.
+3. Toca únicamente paths del dueño.
+4. No inventa contrato ni número.
+5. No mezcla datos reales y sintéticos.
+6. No destruye historia.
+7. Expone limitaciones y abstención.
+8. Pasa el gate aplicable.
+9. Produce el artefacto de handoff indicado.
+10. No depende de una aprobación clínica ficticia.
