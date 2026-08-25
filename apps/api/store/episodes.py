@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from apps.api.canonical import domain_hash
+from apps.api.canonical import content_hash
 from apps.api.contracts.constants import SPEC_VERSION
-from apps.api.contracts.enums import EpisodeRole, EpisodeStatus
+from apps.api.contracts.enums import EpisodeRole, PredictionEpisodeStatus
 from apps.api.errors import conflict
 from apps.api.ports.prediction import TrackOutput
 from apps.api.store.json_columns import dump, load_list
@@ -60,7 +60,7 @@ def create_primary_episode(connection: sqlite3.Connection, new: NewEpisode) -> s
             new.subject_id,
             new.form_session_id,
             EpisodeRole.PRIMARY.value,
-            EpisodeStatus.COMPLETED.value,
+            PredictionEpisodeStatus.COMPLETED.value,
             new.as_of_at,
             new.as_of_at,
             new.target_start_at,
@@ -124,7 +124,7 @@ def create_feature_snapshot(
             dump(sorted(consent_ids)),
             profile_version,
             care_mode,
-            domain_hash("feature_snapshot", SPEC_VERSION, payload),
+            content_hash("feature_snapshot", SPEC_VERSION, payload),
             created_at,
         ),
     )

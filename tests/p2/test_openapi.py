@@ -88,7 +88,7 @@ def test_review_and_execution_declare_if_match(client) -> None:
 def test_request_models_forbid_unknown_fields(client) -> None:
     """`extra="forbid"` en fronteras de API (CONVENTIONS 6)."""
     document = client.get("/openapi.json").json()
-    for name in ("OpenFormSessionRequest", "AnswerRequest", "CreateOutcomeReportRequest"):
+    for name in ("FormSessionCreateRequest", "AnswerRequest", "OutcomeReportRequest"):
         schema = document["components"]["schemas"][name]
         assert schema.get("additionalProperties") is False, name
 

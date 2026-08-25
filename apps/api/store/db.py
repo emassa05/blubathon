@@ -11,7 +11,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from apps.api.canonical import format_timestamp
+from apps.api.canonical import canonical_timestamp
 from apps.api.clock import Clock, system_clock
 from apps.api.settings import Settings
 from apps.api.store.migrations import migrate
@@ -54,7 +54,7 @@ class Database:
         return self._settings
 
     def migrate(self) -> int:
-        return migrate(self._connection, format_timestamp(self._clock()))
+        return migrate(self._connection, canonical_timestamp(self._clock()))
 
     @contextmanager
     def write(self) -> Iterator[sqlite3.Connection]:

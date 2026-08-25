@@ -18,6 +18,11 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 DEFAULT_CORS_ORIGINS = ("http://127.0.0.1:3000", "http://localhost:3000")
 
+# C35 declara el motor del piloto con su versión mínima (`postgresql>=16`). El
+# esquema de la URL es la parte anterior a la restricción de versión; el literal
+# sigue viviendo una sola vez, en `packages/shared/constants.py`.
+PILOT_URL_SCHEME = PILOT_DATABASE.split(">", 1)[0]
+
 
 @dataclass(frozen=True, slots=True)
 class Settings:
@@ -50,7 +55,7 @@ class Settings:
     def validate(self) -> None:
         """SPEC 12.3 / INV-30. SQLite en modo piloto bloquea el arranque."""
         if self.deployment_mode is DeploymentMode.PILOT and not self.database_url.startswith(
-            PILOT_DATABASE
+            PILOT_URL_SCHEME
         ):
             raise FaroApiError("pilot_requires_postgresql", 500)
 

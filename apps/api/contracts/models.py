@@ -1,426 +1,365 @@
-"""Modelos de request y response de la API v0.3.
+"""Contrato de request y response de la API v0.3.
 
-PROVISIONAL - PUERTO HACIA P1 (ver ``apps/api/contracts/__init__.py``).
+Los modelos del contrato viven en `packages/shared/domain/**` y H1 los publicó.
+Este módulo los reexporta y **no vuelve a declarar ninguno**: tipos, rangos y
+validadores llegan desde P1, así que las reglas de `SPEC 8.5`, `SPEC 10.2` y
+`SPEC 11.5` las hace cumplir el contrato y no una copia paralela.
 
-`CONVENTIONS 6` sitúa estos modelos en `packages/shared`, propiedad de P1. Se
-declaran aquí para poder construir rutas, servicios y UI antes de H1. Todos usan
-`extra="forbid"`, UUID v4 y timestamps UTC conscientes de zona, y ninguno
-sustituye un contrato con `dict[str, object]`.
+Cinco respuestas de producto necesitan campos que el contrato publicado todavía
+no tiene. Se declaran aquí **como subclase del modelo de P1**, nunca como copia:
+lo único declarado es lo que falta, cada añadido lleva su solicitud, y las
+solicitudes están en "Solicitudes a P1" del `README.md` con ruta, request,
+response, razón y test consumidor.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import UUID4, BaseModel, BeforeValidator, ConfigDict, Field, PlainSerializer
-
-from apps.api.canonical import format_timestamp, parse_timestamp
-from apps.api.contracts.enums import (
-    AnswerInteraction,
-    CatalogAvailability,
+from packages.shared.domain.api import (
+    CitationView,
+    DefaultSuggestion,
+    ErrorDetail,
+    ErrorResponse,
+    EvaluationResponse,
+    FormAnswerRequest,
+    FormQuestion,
+    FormSessionCreateRequest,
+    FormSessionResponse,
+    FormSubmitResponse,
+    HumanPlanItem,
+    IdempotencyScope,
+    OutcomeReportRequest,
+    OutcomeReportResponse,
+    OutcomeReportView,
+    OutcomeRequestListResponse,
+    OutcomeRequestView,
+    OutcomeResolutionView,
+    PredictionEpisodeResponse,
+    PredictionOutputView,
+    RecommendationInboxResponse,
+    RecommendationInstanceView,
+    RecommendationItem,
+    RecommendationResponse,
+    RecommendationReviewRequest,
+    RecommendationReviewResponse,
+    StrategyExecutionRequest,
+    StrategyExecutionResponse,
+    StrategyItem,
+    request_fingerprint,
+)
+from packages.shared.domain.base import FaroModel, Interval, SpanishText, UtcDatetime
+from packages.shared.domain.evaluation import AbstentionBreakdown, MetricValue
+from packages.shared.domain.observation import AnswerSubmission, DataQuality
+from packages.shared.domain.rag import ScenarioV1
+from packages.shared.enums import (
+    CohortKind,
+    DeploymentMode,
     EntryMode,
+    EvaluationReportStatus,
     ExecutionStatus,
-    ItemType,
-    OutcomeRequestStatus,
-    OutcomeValue,
-    PredictionStatus,
-    RecommendationResponseStatus,
-    ResolutionStatus,
-    ReviewDecision,
+    FieldCode,
+    FormSessionStatus,
+    ModelState,
+    NonActionableReason,
+    OutcomeRequestState,
+    OutcomeResolutionStatus,
+    PredictionAbstentionReason,
     Role,
     RuntimeStatus,
-    SessionKind,
-    Source,
-    TimingStatus,
-    VoiStatus,
 )
 
-
-def _timestamp(value: Any) -> datetime:
-    if isinstance(value, datetime):
-        return value
-    if isinstance(value, str):
-        return parse_timestamp(value)
-    raise ValueError("se esperaba un timestamp ISO-8601 UTC")
+# -- envoltorio de producto sobre el contrato publicado -------------------
 
 
-UtcTimestamp = Annotated[
-    datetime,
-    BeforeValidator(_timestamp),
-    PlainSerializer(format_timestamp, return_type=str),
-]
-Uuid = Annotated[UUID4, PlainSerializer(str, return_type=str)]
+class AnswerSubmissionView(AnswerSubmission):
+    """`AnswerSubmission` de P1 más lo que una corrección necesita.
+
+    Solicitud R12: `SPEC 5.8` hace append-only la observación diaria y una
+    corrección se enlaza con `supersedes_id`; `SPEC 5.5` permite declarar el
+    instante efectivo de lo observado. El contrato publicado no lleva ninguno de
+    los dos, así que una corrección no se puede expresar.
+    """
+
+    effective_at: UtcDatetime | None = None
+    supersedes_id: UUID | None = None
 
 
-class FaroModel(BaseModel):
-    """Frontera de API: nada implícito entra ni sale."""
+class AnswerRequest(FormAnswerRequest):
+    """`FormAnswerRequest` de P1 con el envío extendido de la solicitud R12."""
 
-    model_config = ConfigDict(extra="forbid", use_enum_values=True, frozen=True)
-
-
-# -- errores -------------------------------------------------------------
-
-
-class ErrorBody(FaroModel):
-    code: str
-    message_es: str
-    request_id: str
-
-
-class ErrorEnvelope(FaroModel):
-    error: ErrorBody
-
-
-# -- formulario ----------------------------------------------------------
-
-
-class OpenFormSessionRequest(FaroModel):
-    subject_id: Uuid
-    source: Source
-    session_kind: SessionKind = SessionKind.CAREGIVER_DAILY
-
-
-class DefaultSuggestion(FaroModel):
-    """SPEC 11.3. Ayuda, nunca valor del control (CONVENTIONS 10)."""
-
-    presentation_id: Uuid
-    value: Any
-    candidate_count: int
-    posterior_mean: float
-    lower_bound: float
-    n_observations: int
-    estimator_version: str
-
-
-class PlannedQuestionView(FaroModel):
-    field_code: str
-    reason: str
-    voi_nats: float | None = None
-    default: DefaultSuggestion | None = None
+    answer: AnswerSubmissionView
 
 
 class OutcomePendingBlock(FaroModel):
-    """SPEC 6.9: bloque aparte que no consume cupos de campos diarios."""
+    """Bloque de outcome pendiente del formulario (`SPEC 6.9`, paso 1).
 
-    prediction_episode_id: Uuid
-    question_es: str
-    severity_anchors_es: list[str]
-    target_end_at: UtcTimestamp
-    capture_deadline_at: UtcTimestamp
-    status: OutcomeRequestStatus
+    Solicitud R5: `FormSessionResponse` no publica el bloque. `FormPlan` de P1
+    lo reduce a `outcome_pending: bool`, así que la pregunta, sus anclas y sus
+    plazos no llegan al cliente por el contrato.
+    """
+
+    prediction_episode_id: UUID
+    question_es: SpanishText
+    severity_anchors_es: tuple[SpanishText, ...] = ()
+    target_end_at: UtcDatetime
+    capture_deadline_at: UtcDatetime
+    state: OutcomeRequestState
 
 
-class FormSessionView(FaroModel):
-    form_session_id: Uuid
-    subject_id: Uuid
-    source: Source
-    session_kind: SessionKind
-    status: str
-    opened_at: UtcTimestamp
-    submitted_at: UtcTimestamp | None = None
-    audit_mode: bool
-    form_policy_version: str
-    voi_status: VoiStatus
+class FormSessionView(FormSessionResponse):
+    """`FormSessionResponse` de P1 más lo que la pantalla del cuidador necesita.
+
+    Solicitud R5: bloque de outcome pendiente, estado de la sesión, campos ya
+    respondidos y origen del plan. Ninguno existe en el contrato publicado.
+    """
+
+    status: FormSessionStatus
+    submitted_at: UtcDatetime | None = None
     plan_source: str
     outcome_pending: OutcomePendingBlock | None = None
-    highlighted: list[PlannedQuestionView]
-    tail: list[PlannedQuestionView]
-    answered_field_codes: list[str]
-    emergency_notice_es: str
-
-
-class AnswerRequest(FaroModel):
-    """El cliente declara interacción; el servidor deriva `entry_mode`."""
-
-    field_code: str
-    interaction: AnswerInteraction
-    value: Any | None = None
-    default_presentation_id: Uuid | None = None
-    effective_at: UtcTimestamp | None = None
-    supersedes_id: Uuid | None = None
+    answered_field_codes: tuple[FieldCode, ...] = ()
 
 
 class AnswerAcceptedView(FaroModel):
-    field_observation_id: Uuid | None
-    field_code: str
+    """Respuesta de `POST /form-sessions/{id}/answers`.
+
+    Solicitud R9: el contrato publica el request (`FormAnswerRequest`) pero no
+    la respuesta. El cliente necesita saber qué observación se creó y con qué
+    `entry_mode` la derivó el servidor (`SPEC 5.5`), además del plan recalculado.
+    """
+
+    field_observation_id: UUID | None = None
+    field_code: FieldCode
     entry_mode: EntryMode
     session: FormSessionView
 
 
-class SubmitFormSessionRequest(FaroModel):
-    """El cierre no lleva payload: el servidor fija `submitted_at`."""
+class SubmitFormSessionView(FormSubmitResponse):
+    """`FormSubmitResponse` de P1 más las referencias que el cierre creó.
+
+    Solicitud R1: `SubmitStatus` no distingue "no hay definición" de "hay más de
+    una" y la respuesta no lleva razones, así que la causa del cierre fallido no
+    llega al cliente. `reasons` la transporta mientras P1 decide.
+    """
+
+    outcome_request_id: UUID | None = None
+    recommendation_instance_id: UUID | None = None
+    reasons: tuple[PredictionAbstentionReason, ...] = ()
 
 
-class SubmitFormSessionView(FaroModel):
-    form_session_id: Uuid
-    status: PredictionStatus
-    submitted_at: UtcTimestamp
-    prediction_episode_id: Uuid | None = None
-    linked_prediction_episode_id: Uuid | None = None
-    outcome_request_id: Uuid | None = None
-    recommendation_instance_id: Uuid | None = None
-    reasons: list[str] = Field(default_factory=list)
-    emergency_notice_es: str
+class PredictionEpisodeView(PredictionEpisodeResponse):
+    """`PredictionEpisodeResponse` de P1 más el estado del outcome.
+
+    Solicitud R10: la pantalla del cuidador muestra si la ventana sigue abierta
+    sin pedir otra ruta. `prediction_at` es el instante en que se calcularon las
+    salidas, distinto del cutoff `as_of_at` (`SPEC 4.1`).
+    """
+
+    prediction_at: UtcDatetime
+    outcome_state: OutcomeRequestState | None = None
+    resolution_status: OutcomeResolutionStatus | None = None
 
 
-# -- predicción ----------------------------------------------------------
+class StrategyItemView(StrategyItem):
+    """`StrategyItem` de P1 más lo que hace accionable a la estrategia.
 
+    Solicitud R8: sin `required_approver_role` y `allowed_executor_roles` el
+    cliente no sabe quién puede aprobar ni quién puede aplicar; sin
+    `non_actionable` no puede mostrar que una dependencia suspendida bloquea
+    nuevas acciones (`SPEC 10.2`); sin `execution_status` no sabe si ya se
+    registró una aplicación (`SPEC 10.3`).
+    """
 
-class PredictionOutputView(FaroModel):
-    """SPEC 11.5. Sin `confidence`: no tiene semántica única entre tracks."""
-
-    track_id: str
-    intended_use: str
-    status: str
-    estimate_kind: str
-    probability: float | None = None
-    simulation_score: float | None = None
-    interval: tuple[float, float] | None = None
-    interval_method: str | None = None
-    abstention_reasons: list[str]
-    model_version: str
-    input_data_origin: str
-    decision_policy_version: None = None
-    risk_band: None = None
-
-
-class PredictionEpisodeView(FaroModel):
-    prediction_episode_id: Uuid
-    subject_id: Uuid
-    as_of_at: UtcTimestamp
-    prediction_at: UtcTimestamp
-    target_start_at: UtcTimestamp
-    target_end_at: UtcTimestamp
-    capture_deadline_at: UtcTimestamp
-    target_definition_version: str
-    outputs: list[PredictionOutputView]
-    outcome_status: OutcomeRequestStatus | None = None
-    resolution_status: ResolutionStatus | None = None
-    emergency_notice_es: str
-
-
-# -- outcome -------------------------------------------------------------
-
-
-class OutcomeRequestView(FaroModel):
-    outcome_request_id: Uuid
-    prediction_episode_id: Uuid
-    subject_id: Uuid
-    subject_label: str
-    question_es: str
-    severity_anchors_es: list[str]
-    target_start_at: UtcTimestamp
-    target_end_at: UtcTimestamp
-    capture_deadline_at: UtcTimestamp
-    status: OutcomeRequestStatus
-    resolution_status: ResolutionStatus
-
-
-class OutcomeRequestListView(FaroModel):
-    items: list[OutcomeRequestView]
-    emergency_notice_es: str
-
-
-class CreateOutcomeReportRequest(FaroModel):
-    value: OutcomeValue
-    occurred_at: UtcTimestamp | None = None
-    supersedes_id: Uuid | None = None
-
-
-class OutcomeReportView(FaroModel):
-    outcome_report_id: Uuid
-    prediction_episode_id: Uuid
-    value: OutcomeValue
-    occurred_at: UtcTimestamp | None
-    reported_at: UtcTimestamp
-    timing_status: TimingStatus
-    reporter_role: Role
-    target_definition_version: str
-    supersedes_id: Uuid | None = None
-
-
-class OutcomeResolutionView(FaroModel):
-    outcome_resolution_id: Uuid
-    status: ResolutionStatus
-    resolved_at: UtcTimestamp | None
-    qualifying_report_id: Uuid | None
-    ever_conflicted: bool
-    resolution_version: int
-
-
-class OutcomeReportResponse(FaroModel):
-    """SPEC 11.4: reporte y resolución van por separado."""
-
-    report: OutcomeReportView
-    resolution: OutcomeResolutionView
-    request_status: OutcomeRequestStatus
-
-
-# -- recomendación -------------------------------------------------------
-
-
-class CitationView(FaroModel):
-    citation_id: Uuid
-    claim_id: str
-    locator: str
-    quoted_text: str
-    canonical_url: str
-
-
-class RecommendationItemView(FaroModel):
-    item_type: ItemType
-    review_status: str
-    strategy_version_id: Uuid | None = None
-    human_plan_version_id: Uuid | None = None
-    action_text_es: str
     required_approver_role: Role | None = None
-    allowed_executor_roles: list[Role] = Field(default_factory=list)
-    citations: list[CitationView] = Field(default_factory=list)
-    non_actionable: str | None = None
+    allowed_executor_roles: tuple[Role, ...] = ()
+    non_actionable: NonActionableReason | None = None
     execution_status: ExecutionStatus | None = None
 
 
-class RecommendationsView(FaroModel):
-    status: RecommendationResponseStatus
-    recommendation_instance_id: Uuid
-    catalog_version: str | None = None
-    corpus_version: str | None = None
-    availability_reason: CatalogAvailability
-    reasons: list[str] = Field(default_factory=list)
-    items: list[RecommendationItemView] = Field(default_factory=list)
+class HumanPlanItemView(HumanPlanItem):
+    """`HumanPlanItem` de P1 con los mismos añadidos de la solicitud R8.
+
+    `strategy_version_id` solo viaja hacia un profesional: es la estrategia que
+    el plan humano sustituyó, y la familia no necesita verla (`SPEC 10.2`).
+    """
+
+    strategy_version_id: UUID | None = None
+    required_approver_role: Role | None = None
+    allowed_executor_roles: tuple[Role, ...] = ()
+    non_actionable: NonActionableReason | None = None
+    execution_status: ExecutionStatus | None = None
+
+
+RecommendationItemView = StrategyItemView | HumanPlanItemView
+
+
+class RecommendationsView(RecommendationResponse):
+    """`RecommendationResponse` de P1 más el token de concurrencia.
+
+    Solicitud R13: `SPEC 11.2` exige `If-Match` sobre los recursos con revisión,
+    y el contrato publicado no lleva ningún token que el cliente pueda devolver.
+    `revision` viaja además en la cabecera `ETag` de la lectura individual.
+
+    `items` cambia de tipo al de la solicitud R8; los estados, las versiones y
+    los validadores siguen siendo los de P1.
+    """
+
+    items: tuple[RecommendationItemView, ...] = ()
     revision: str
-    emergency_notice_es: str
 
 
-class ScenarioView(FaroModel):
-    """SPEC 9.7: sin identidad, notas, IDs externos ni historial."""
+class RecommendationInstanceSummary(RecommendationInstanceView):
+    """`RecommendationInstanceView` de P1 más lo que el inbox profesional usa.
 
-    schema_version: str
-    field_values: dict[str, str]
-    context_tags: list[str]
-    profile_tags: list[str]
-    contraindication_tags: list[str]
+    Solicitud R7: el contrato publica `scenario_hash`, que identifica el
+    escenario pero no lo describe. Quien revisa necesita ver el escenario mínimo
+    (`SPEC 9.7`, sin identificadores directos) para juzgar aplicabilidad, saber
+    qué estrategias siguen pendientes y de quién es el registro.
+    """
 
-
-class RecommendationInstanceSummary(FaroModel):
-    recommendation_instance_id: Uuid
-    prediction_episode_id: Uuid
-    subject_id: Uuid
-    subject_label: str
-    created_at: UtcTimestamp
-    catalog_version: str | None
-    corpus_version: str | None
+    subject_label: SpanishText
     runtime_status: RuntimeStatus
-    scenario: ScenarioView | None
-    pending_strategy_version_ids: list[Uuid]
+    scenario: ScenarioV1 | None = None
+    pending_strategy_version_ids: tuple[UUID, ...] = ()
     revision: str
 
 
-class RecommendationInboxView(FaroModel):
-    items: list[RecommendationInstanceSummary]
-    emergency_notice_es: str
+class RecommendationInboxView(RecommendationInboxResponse):
+    """`RecommendationInboxResponse` con los resúmenes de la solicitud R7."""
+
+    items: tuple[RecommendationInstanceSummary, ...] = ()
 
 
-class HumanPlanInput(FaroModel):
-    action_text_es: str = Field(min_length=1, max_length=2000)
-    allowed_executor_roles: list[Role] = Field(min_length=1)
+class OutcomeReportResponseView(OutcomeReportResponse):
+    """`OutcomeReportResponse` de P1 más el estado derivado de la solicitud.
+
+    Solicitud R14: `SPEC 4.4` deriva el estado de la `OutcomeRequest` del reloj
+    y de la resolución activa. P1 publica la regla (`derive_request_state`) pero
+    la respuesta al reportar no la devuelve, y el cliente no puede derivarla sin
+    reimplementar la precedencia.
+    """
+
+    request_state: OutcomeRequestState
 
 
-class CreateReviewRequest(FaroModel):
-    strategy_version_id: Uuid
-    decision: ReviewDecision
-    human_plan: HumanPlanInput | None = None
-    supersedes_id: Uuid | None = None
+class ExecutionView(StrategyExecutionResponse):
+    """`StrategyExecutionResponse` de P1 más qué se aplicó y si cuenta.
 
+    Solicitud R15: la respuesta publicada no dice qué estrategia o plan se
+    aplicó, y `SPEC 10.3` distingue una aplicación tardía, que se conserva pero
+    no se atribuye. P1 publica la regla (`exposure_is_eligible`) pero no un
+    campo donde devolver su resultado.
+    """
 
-class ReviewView(FaroModel):
-    review_id: Uuid
-    recommendation_instance_id: Uuid
-    strategy_version_id: Uuid
-    decision: ReviewDecision
-    reviewed_by: Uuid
-    reviewer_role: Role
-    reviewed_at: UtcTimestamp
-    human_plan_version_id: Uuid | None = None
-    supersedes_id: Uuid | None = None
-    revision: str
-
-
-class CreateExecutionRequest(FaroModel):
-    status: ExecutionStatus
-    strategy_version_id: Uuid | None = None
-    human_plan_version_id: Uuid | None = None
-    applied_at: UtcTimestamp | None = None
-    supersedes_id: Uuid | None = None
-
-
-class ExecutionView(FaroModel):
-    strategy_execution_id: Uuid
-    recommendation_instance_id: Uuid
-    strategy_version_id: Uuid | None
-    human_plan_version_id: Uuid | None
-    status: ExecutionStatus
-    actor_id: Uuid
-    actor_role: Role
-    recorded_at: UtcTimestamp
-    applied_at: UtcTimestamp | None
+    strategy_version_id: UUID | None = None
+    human_plan_version_id: UUID | None = None
     exposure_eligible: bool
-    revision: str
 
 
-# -- evaluación ----------------------------------------------------------
+class EvaluationReportView(EvaluationResponse):
+    """`EvaluationResponse` de P1 más la identidad de la fila publicada.
+
+    Solicitud R11: el reporte servido no dice qué fila es
+    (`evaluation_report_id`), en qué estado está el modelo (`ModelState`,
+    `SPEC 14.2`) ni cuándo se publicó.
+    """
+
+    model_config = EvaluationResponse.model_config | {"protected_namespaces": ()}
+
+    evaluation_report_id: UUID
+    model_state: ModelState
+    published_at: UtcDatetime | None = None
 
 
-class MetricView(FaroModel):
-    name: str
-    estimability: Literal["estimable", "not_estimable"]
-    value: float | None = None
-    interval: tuple[float, float] | None = None
-    reason: str | None = None
-
-
-class EvaluationReportView(FaroModel):
-    model_config = ConfigDict(
-        extra="forbid", use_enum_values=True, frozen=True, protected_namespaces=()
-    )
-
-    evaluation_report_id: Uuid
-    model_version: str
-    track_id: str
-    model_state: str
-    intended_use: str
-    data_origin: str
-    dataset_sha256: str
-    target_definition_version: str | None
-    protocol_version: str
-    metrics: list[MetricView]
-    abstention_by_reason: dict[str, float]
-    limitations_es: list[str]
-    published_at: UtcTimestamp | None
-    simulation_only: bool
-
-
-# -- sujetos (soporte de UI) ---------------------------------------------
+# -- rutas de soporte, fuera de `SPEC 11.1` -------------------------------
 
 
 class SubjectView(FaroModel):
-    subject_id: Uuid
-    display_label: str
-    cohort_kind: str
+    """Sujeto con etiqueta visible. Ruta de soporte, no del contrato."""
+
+    subject_id: UUID
+    display_label: SpanishText
+    cohort_kind: CohortKind
 
 
 class SessionContextView(FaroModel):
-    actor_id: Uuid
-    display_name: str
-    tenant_id: Uuid
-    roles: list[Role]
-    subjects: list[SubjectView]
-    deployment_mode: str
+    """`GET /session`: quién soy y sobre qué sujetos tengo grant.
+
+    No es una ruta de `SPEC 11.1` y P1 no publica un modelo para ella. No
+    devuelve ningún dato clínico.
+    """
+
+    actor_id: UUID
+    display_name: SpanishText
+    tenant_id: UUID
+    roles: tuple[Role, ...] = ()
+    subjects: tuple[SubjectView, ...] = ()
+    deployment_mode: DeploymentMode
     adapters_source: str
-    emergency_notice_es: str
 
 
 def uuid_or_none(value: UUID | str | None) -> str | None:
     return None if value is None else str(value)
+
+
+__all__ = [
+    "AbstentionBreakdown",
+    "AnswerAcceptedView",
+    "AnswerRequest",
+    "AnswerSubmission",
+    "AnswerSubmissionView",
+    "CitationView",
+    "DataQuality",
+    "DefaultSuggestion",
+    "ErrorDetail",
+    "ErrorResponse",
+    "EvaluationReportStatus",
+    "EvaluationReportView",
+    "EvaluationResponse",
+    "ExecutionStatus",
+    "ExecutionView",
+    "FaroModel",
+    "FormAnswerRequest",
+    "FormQuestion",
+    "FormSessionCreateRequest",
+    "FormSessionResponse",
+    "FormSessionView",
+    "FormSubmitResponse",
+    "HumanPlanItem",
+    "HumanPlanItemView",
+    "IdempotencyScope",
+    "Interval",
+    "MetricValue",
+    "OutcomePendingBlock",
+    "OutcomeReportRequest",
+    "OutcomeReportResponse",
+    "OutcomeReportResponseView",
+    "OutcomeReportView",
+    "OutcomeRequestListResponse",
+    "OutcomeRequestView",
+    "OutcomeResolutionView",
+    "PredictionEpisodeResponse",
+    "PredictionEpisodeView",
+    "PredictionOutputView",
+    "RecommendationInboxResponse",
+    "RecommendationInboxView",
+    "RecommendationInstanceSummary",
+    "RecommendationInstanceView",
+    "RecommendationItem",
+    "RecommendationItemView",
+    "RecommendationResponse",
+    "RecommendationReviewRequest",
+    "RecommendationReviewResponse",
+    "RecommendationsView",
+    "ScenarioV1",
+    "SessionContextView",
+    "StrategyExecutionRequest",
+    "StrategyExecutionResponse",
+    "StrategyItem",
+    "StrategyItemView",
+    "SubjectView",
+    "SubmitFormSessionView",
+    "request_fingerprint",
+    "uuid_or_none",
+]

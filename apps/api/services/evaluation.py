@@ -9,13 +9,8 @@ from __future__ import annotations
 import sqlite3
 
 from apps.api.auth.context import ActorContext
-from apps.api.contracts.enums import (
-    AccreditationCapability,
-    DataOrigin,
-    IntendedUse,
-    Role,
-)
-from apps.api.contracts.models import EvaluationReportView, MetricView
+from apps.api.contracts.enums import AccreditationCapability, Role
+from apps.api.contracts.models import AbstentionBreakdown, EvaluationReportView, MetricValue
 from apps.api.errors import AuditIntent, forbidden, not_found
 from apps.api.services.base import Services
 from apps.api.store import audit
@@ -77,25 +72,23 @@ class EvaluationService:
             occurred_at=now,
             request_id=actor.request_id,
         )
+        # SPEC 14.3 / INV-34: `EvaluationResponse` obliga a que un reporte
+        # sintético declare `simulation_only`; el validador de P1 lo comprueba.
         return EvaluationReportView(
             evaluation_report_id=report["evaluation_report_id"],
             model_version=report["model_version"],
             track_id=report["track_id"],
             model_state=report["state"],
+            status=report["status"],
             intended_use=report["intended_use"],
             data_origin=report["data_origin"],
             dataset_sha256=report["dataset_sha256"],
             target_definition_version=report["target_definition_version"],
             protocol_version=report["protocol_version"],
-            metrics=[MetricView(**metric) for metric in report["metrics"]],
-            abstention_by_reason=report["abstention_by_reason"],
+            metrics=[MetricValue(**metric) for metric in report["metrics"]],
+            abstentions=[AbstentionBreakdown(**item) for item in report["abstentions"]],
             limitations_es=[str(item) for item in load_list(report["limitations_es"])],
             published_at=report["published_at"],
-            # SPEC 14.3 / INV-34: las métricas sintéticas llevan `simulation_only`.
-            simulation_only=(
-                report["data_origin"] == DataOrigin.SYNTHETIC.value
-                or report["intended_use"] == IntendedUse.SIMULATION_ONLY.value
-            ),
         )
 
     def _deny(

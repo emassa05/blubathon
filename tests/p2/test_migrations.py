@@ -9,7 +9,7 @@ import sqlite3
 
 import pytest
 
-from apps.api.canonical import format_timestamp
+from apps.api.canonical import canonical_timestamp
 from apps.api.clock import FrozenClock
 from apps.api.errors import FaroApiError
 from apps.api.settings import Settings
@@ -112,10 +112,10 @@ def test_migrations_run_over_a_fictional_v0_2_database(tmp_path) -> None:
 def test_a_published_migration_cannot_change(tmp_path) -> None:
     path = tmp_path / "checksum.db"
     connection = connect(path)
-    migrate(connection, format_timestamp(START))
+    migrate(connection, canonical_timestamp(START))
     connection.execute("UPDATE schema_migrations SET checksum = 'otro' WHERE number = 1")
     with pytest.raises(MigrationError):
-        migrate(connection, format_timestamp(START))
+        migrate(connection, canonical_timestamp(START))
     connection.close()
 
 

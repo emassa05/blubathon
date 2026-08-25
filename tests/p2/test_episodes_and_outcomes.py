@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from apps.api.canonical import format_timestamp, parse_timestamp
+from apps.api.canonical import canonical_timestamp, parse_timestamp
 from tests.p2.test_form_sessions import open_session
 from tools.seed import ids
 
@@ -22,7 +22,13 @@ def complete_session(caller, subject_id: str = ids.SUBJECT_ANA):
     session = open_session(caller, subject_id)
     caller.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "manual", "value": "interrupted"},
+        {
+            "answer": {
+                "field_code": "sleep_quality",
+                "interaction": "manual",
+                "value": "interrupted",
+            }
+        },
     )
     return submit(caller, session["form_session_id"])
 
@@ -116,7 +122,7 @@ def test_snapshot_only_holds_the_projected_observation_ids(caregiver, db) -> Non
         "SELECT * FROM feature_snapshots WHERE prediction_episode_id = ?",
         (result["prediction_episode_id"],),
     ).fetchone()
-    assert snapshot["as_of_at"] == result["submitted_at"]
+    assert parse_timestamp(snapshot["as_of_at"]) == parse_timestamp(result["submitted_at"])
     assert snapshot["content_sha256"]
     assert snapshot["input_data_origin"] == "synthetic"
 
@@ -137,7 +143,7 @@ def test_explicit_unknown_leaves_the_resolution_pending(caregiver) -> None:
     assert body["report"]["value"] == "unknown"
     assert body["report"]["timing_status"] == "early"
     assert body["resolution"]["status"] == "pending"
-    assert body["request_status"] == "open"
+    assert body["request_state"] == "open"
 
 
 def test_early_no_stays_provisional(caregiver) -> None:
@@ -152,7 +158,7 @@ def test_valid_early_yes_resolves_the_window(caregiver, clock) -> None:
     """INV-13: un `yes` temprano válido resuelve antes del cierre."""
     result = complete_session(caregiver)
     clock.advance(hours=3)
-    occurred_at = format_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
+    occurred_at = canonical_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
     body = report(
         caregiver,
         result["prediction_episode_id"],
@@ -160,13 +166,13 @@ def test_valid_early_yes_resolves_the_window(caregiver, clock) -> None:
     ).json()
     assert body["resolution"]["status"] == "yes"
     assert body["resolution"]["qualifying_report_id"] == body["report"]["outcome_report_id"]
-    assert body["request_status"] == "reported"
+    assert body["request_state"] == "reported"
 
 
 def test_yes_outside_the_window_is_rejected(caregiver, clock) -> None:
     result = complete_session(caregiver)
     clock.advance(hours=30)
-    outside = format_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=26))
+    outside = canonical_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=26))
     response = report(
         caregiver,
         result["prediction_episode_id"],
@@ -191,7 +197,7 @@ def test_yes_at_the_exact_window_start_is_rejected(caregiver, clock) -> None:
 def test_incompatible_reports_produce_conflicted(caregiver, clock) -> None:
     """INV-15: reportes incompatibles producen `conflicted` de forma permanente."""
     result = complete_session(caregiver)
-    occurred_at = format_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
+    occurred_at = canonical_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
     clock.advance(hours=25)  # ahora los reportes son `on_time`
     report(
         caregiver,
@@ -201,12 +207,12 @@ def test_incompatible_reports_produce_conflicted(caregiver, clock) -> None:
     body = report(caregiver, result["prediction_episode_id"], {"value": "no"}).json()
     assert body["resolution"]["status"] == "conflicted"
     assert body["resolution"]["ever_conflicted"] is True
-    assert body["request_status"] == "conflicted"
+    assert body["request_state"] == "conflicted"
 
 
 def test_ever_conflicted_never_returns_to_false(caregiver, clock, db) -> None:
     result = complete_session(caregiver)
-    occurred_at = format_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
+    occurred_at = canonical_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
     clock.advance(hours=25)
     yes = report(
         caregiver,
@@ -246,7 +252,7 @@ def test_deadline_without_a_conclusive_report_becomes_unknown_and_missing(caregi
     clock.advance(hours=49)
     episode = caregiver.get(f"/api/v1/prediction-episodes/{result['prediction_episode_id']}").json()
     assert episode["resolution_status"] == "unknown"
-    assert episode["outcome_status"] == "missing"
+    assert episode["outcome_state"] == "missing"
 
 
 def test_a_late_report_is_stored_but_does_not_resolve(caregiver, clock, db) -> None:
@@ -269,7 +275,7 @@ def test_outcome_inbox_lists_only_pending_requests_with_an_open_deadline(caregiv
     assert [item["prediction_episode_id"] for item in inbox["items"]] == [
         result["prediction_episode_id"]
     ]
-    assert inbox["items"][0]["status"] == "open"
+    assert inbox["items"][0]["state"] == "open"
     clock.advance(hours=49)
     assert caregiver.get("/api/v1/outcome-requests").json()["items"] == []
 
@@ -282,4 +288,6 @@ def test_no_occurred_at_for_a_negative_report(caregiver) -> None:
         {"value": "no", "occurred_at": result["submitted_at"]},
     )
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "outcome_occurred_at_forbidden"
+    # `OutcomeReportRequest` de P1 rechaza la combinación en el contrato, así
+    # que la solicitud no llega al servicio y el código es el de validación.
+    assert response.json()["error"]["code"] == "validation_error"

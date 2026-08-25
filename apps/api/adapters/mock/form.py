@@ -23,7 +23,7 @@ from apps.api.contracts.enums import QuestionReason, VoiStatus
 from apps.api.contracts.field_catalog import (
     CANONICAL_FIELD_ORDER,
     MONITORED_FIELD_PRIORITY,
-    SCENARIO_FIELD_ALLOWLIST_V1,
+    SCENARIO_ALLOWLIST_V1,
 )
 from apps.api.ports.form import FormPlan, PlannedQuestion, ScenarioResult
 
@@ -121,7 +121,7 @@ class MockForm:
         by_field: dict[str, list[Any]] = {}
         for observation in observations:
             code = observation["field_code"]
-            if code not in SCENARIO_FIELD_ALLOWLIST_V1:
+            if code not in SCENARIO_ALLOWLIST_V1:
                 continue
             if observation.get("value") is None:
                 continue  # missing/unknown se omite (SPEC 9.7 paso 2).

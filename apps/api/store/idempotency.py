@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from apps.api.canonical import domain_hash
+from apps.api.canonical import content_hash
 from apps.api.contracts.constants import SPEC_VERSION
 from apps.api.store.json_columns import dump, load
 
@@ -37,7 +37,7 @@ def request_hash(
         "query": {key: query[key] for key in sorted(query)},
         "body": body,
     }
-    return domain_hash(IDEMPOTENCY_ARTIFACT, SPEC_VERSION, payload)
+    return content_hash(IDEMPOTENCY_ARTIFACT, SPEC_VERSION, payload)
 
 
 @dataclass(frozen=True, slots=True)

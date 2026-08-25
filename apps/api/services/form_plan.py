@@ -9,7 +9,7 @@ from __future__ import annotations
 import sqlite3
 
 from apps.api.adapters import Ports
-from apps.api.contracts.enums import QuestionReason, SessionKind, Source, VoiStatus
+from apps.api.contracts.enums import FormSessionKind, QuestionReason, Source, VoiStatus
 from apps.api.contracts.field_catalog import (
     DEFAULT_ALLOWLIST_V1,
     FIELD_CATALOG,
@@ -17,8 +17,8 @@ from apps.api.contracts.field_catalog import (
 )
 from apps.api.contracts.models import (
     DefaultSuggestion,
+    FormQuestion,
     OutcomePendingBlock,
-    PlannedQuestionView,
 )
 from apps.api.ports import FormPlan, PlannedQuestion
 from apps.api.store import form_sessions as sessions_store
@@ -138,7 +138,7 @@ def _persist_defaults(
     """SPEC 6.6 y 6.8: una sesión auditada o profesional no muestra sugerencias."""
     if bool(session["audit_mode"]):
         return
-    if session["session_kind"] == SessionKind.PROFESSIONAL_OBSERVATION.value:
+    if session["session_kind"] == FormSessionKind.PROFESSIONAL_OBSERVATION.value:
         return
     for field_code in DEFAULT_ALLOWLIST_V1:
         if field_code in answered or source not in _sources_for(field_code):
@@ -173,20 +173,20 @@ def _persist_defaults(
         )
 
 
-def _sources_for(field_code: str) -> tuple[Source, ...]:
-    return FIELD_CATALOG[field_code].sources
+def _sources_for(field_code: str) -> frozenset[Source]:
+    return FIELD_CATALOG[field_code].allowed_sources
 
 
 def question_views(
     connection: sqlite3.Connection, *, plan: FormPlan, form_session_id: str
-) -> tuple[list[PlannedQuestionView], list[PlannedQuestionView]]:
+) -> tuple[list[FormQuestion], list[FormQuestion]]:
     """SPEC 11.3. `highlighted + tail` conserva todos los campos aplicables."""
     defaults = {
         row["field_code"]: row
         for row in sessions_store.session_default_presentations(connection, form_session_id)
     }
 
-    def view(field_code: str, reason: str, voi_nats: float | None) -> PlannedQuestionView:
+    def view(field_code: str, reason: str, voi_nats: float | None) -> FormQuestion:
         row = defaults.get(field_code)
         suggestion = (
             None
@@ -201,7 +201,7 @@ def question_views(
                 estimator_version=row["estimator_version"],
             )
         )
-        return PlannedQuestionView(
+        return FormQuestion(
             field_code=field_code, reason=reason, voi_nats=voi_nats, default=suggestion
         )
 
@@ -218,7 +218,7 @@ def outcome_block(
     *,
     request_row: sqlite3.Row,
     target_row: sqlite3.Row,
-    status: str,
+    state: str,
 ) -> OutcomePendingBlock:
     return OutcomePendingBlock(
         prediction_episode_id=request_row["prediction_episode_id"],
@@ -226,5 +226,5 @@ def outcome_block(
         severity_anchors_es=[str(item) for item in load_list(target_row["severity_anchors_es"])],
         target_end_at=request_row["target_end_at"],
         capture_deadline_at=request_row["capture_deadline_at"],
-        status=status,
+        state=state,
     )

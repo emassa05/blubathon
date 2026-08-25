@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from apps.api.canonical import domain_hash
+from apps.api.canonical import content_hash
 from apps.api.contracts.constants import SPEC_VERSION
 from apps.api.contracts.enums import ReviewDecision, RuntimeStatus
 from apps.api.store.json_columns import dump, load_list
@@ -242,7 +242,7 @@ def create_human_plan(
             author_actor_id,
             dump(sorted(allowed_executor_roles)),
             plan_version,
-            domain_hash("human_plan_version", SPEC_VERSION, payload),
+            content_hash("human_plan_version", SPEC_VERSION, payload),
             created_at,
         ),
     )
@@ -312,6 +312,26 @@ def active_executions(
     return projection.leaves
 
 
+def active_execution_id(
+    connection: sqlite3.Connection,
+    *,
+    recommendation_instance_id: str,
+    strategy_version_id: str | None,
+    human_plan_version_id: str | None,
+    cutoff: str,
+) -> str | None:
+    """Hoja vigente de ese ítem, que una corrección pasa a superseder."""
+    for row in active_executions(
+        connection, recommendation_instance_id=recommendation_instance_id, cutoff=cutoff
+    ):
+        if (
+            row["strategy_version_id"] == strategy_version_id
+            and row["human_plan_version_id"] == human_plan_version_id
+        ):
+            return str(row["strategy_execution_id"])
+    return None
+
+
 def execution(connection: sqlite3.Connection, strategy_execution_id: str) -> sqlite3.Row | None:
     return connection.execute(
         "SELECT * FROM strategy_executions WHERE strategy_execution_id = ?",
@@ -340,7 +360,7 @@ def revision_etag(
         ),
         "executions": sorted((row["strategy_execution_id"], row["status"]) for row in executions),
     }
-    return domain_hash("recommendation_instance_revision", SPEC_VERSION, payload)
+    return content_hash("recommendation_instance_revision", SPEC_VERSION, payload)
 
 
 def pending_instance_ids(

@@ -15,7 +15,7 @@ from typing import Any
 from apps.api.adapters import Ports
 from apps.api.auth.authorization import AuthorizationService
 from apps.api.auth.context import ActorContext
-from apps.api.canonical import format_timestamp
+from apps.api.canonical import canonical_timestamp
 from apps.api.clock import Clock, system_clock
 from apps.api.errors import conflict
 from apps.api.settings import Settings
@@ -61,7 +61,7 @@ class Services:
 
     def now(self) -> str:
         """Tiempo de servidor en bytes canónicos (SPEC 5.9)."""
-        return format_timestamp(self.clock())
+        return canonical_timestamp(self.clock())
 
     # -- idempotencia ----------------------------------------------------
 

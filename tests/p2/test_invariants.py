@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from apps.api.canonical import format_timestamp, parse_timestamp
+from apps.api.canonical import canonical_timestamp, parse_timestamp
 from apps.api.store.json_columns import load_list
 from tests.p2.test_episodes_and_outcomes import complete_session, report
 from tests.p2.test_form_sessions import open_session
@@ -46,7 +46,7 @@ def test_inv_08_answering_the_filter_with_no_creates_no_queue_observations(careg
     session = open_session(caregiver)
     caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "relevant_event_flag", "interaction": "manual", "value": False},
+        {"answer": {"field_code": "relevant_event_flag", "interaction": "manual", "value": False}},
     )
     rows = db.connection.execute(
         "SELECT field_code, value FROM field_observations WHERE form_session_id = ?",
@@ -72,7 +72,13 @@ def test_inv_11_a_later_correction_does_not_alter_a_persisted_snapshot(
     later = open_session(caregiver)
     caregiver.post(
         f"/api/v1/form-sessions/{later['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "manual", "value": "restorative"},
+        {
+            "answer": {
+                "field_code": "sleep_quality",
+                "interaction": "manual",
+                "value": "restorative",
+            }
+        },
     )
     after = db.connection.execute(
         "SELECT projected_observation_ids, content_sha256 FROM feature_snapshots"
@@ -125,7 +131,7 @@ def test_inv_14_an_early_no_stays_pending_and_the_deadline_yields_unknown(caregi
 
 def test_inv_15_incompatible_reports_produce_conflicted(caregiver, clock) -> None:
     result = complete_session(caregiver)
-    occurred_at = format_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
+    occurred_at = canonical_timestamp(parse_timestamp(result["submitted_at"]) + timedelta(hours=2))
     clock.advance(hours=25)
     report(
         caregiver,

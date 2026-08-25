@@ -7,14 +7,14 @@ implícita.
 
 from __future__ import annotations
 
-from apps.api.contracts.enums import AnswerInteraction, EntryMode, IntakeChannel, SessionKind
+from apps.api.contracts.enums import AnswerInteraction, EntryMode, FormSessionKind, IntakeChannel
 from apps.api.errors import invalid
 
 
 def derive_entry_mode(
     *,
     intake_channel: IntakeChannel,
-    session_kind: SessionKind,
+    session_kind: FormSessionKind,
     audit_mode: bool,
     interaction: AnswerInteraction,
     has_current_presentation: bool,
@@ -34,7 +34,7 @@ def derive_entry_mode(
         return EntryMode.EXPLICIT_UNKNOWN
 
     # 2. Sesión de observación profesional: no muestra defaults.
-    if session_kind is SessionKind.PROFESSIONAL_OBSERVATION:
+    if session_kind is FormSessionKind.PROFESSIONAL_OBSERVATION:
         if has_current_presentation:
             raise invalid("validation_error", reason="professional_session_has_no_defaults")
         return EntryMode.PROFESSIONAL_OBSERVED

@@ -19,31 +19,32 @@ import sqlite3
 from typing import Any
 
 from apps.api.auth.context import ActorContext
-from apps.api.canonical import format_timestamp
+from apps.api.canonical import canonical_timestamp
 from apps.api.contracts.enums import (
     AccreditationCapability,
     ExecutionStatus,
     GrantCapability,
-    ItemType,
     NonActionableReason,
     RecommendationResponseStatus,
     ReviewDecision,
+    ReviewStatus,
     Role,
     RuntimeStatus,
 )
 from apps.api.contracts.models import (
     CitationView,
-    CreateExecutionRequest,
-    CreateReviewRequest,
     ExecutionView,
+    HumanPlanItemView,
     RecommendationInboxView,
     RecommendationInstanceSummary,
     RecommendationItemView,
+    RecommendationReviewRequest,
+    RecommendationReviewResponse,
     RecommendationsView,
-    ReviewView,
-    ScenarioView,
+    ScenarioV1,
+    StrategyExecutionRequest,
+    StrategyItemView,
 )
-from apps.api.contracts.texts import EMERGENCY_NOTICE_ES
 from apps.api.errors import (
     AuditIntent,
     conflict,
@@ -110,11 +111,9 @@ class RecommendationService:
                 recommendation_instance_id=instance["recommendation_instance_id"],
                 catalog_version=instance["catalog_version"],
                 corpus_version=instance["corpus_version"],
-                availability_reason=instance["availability_reason"],
                 reasons=[str(item) for item in load_list(instance["abstention_reasons"])],
                 items=[],
                 revision=revision,
-                emergency_notice_es=EMERGENCY_NOTICE_ES,
             )
 
         reviews = store.active_reviews(
@@ -157,9 +156,9 @@ class RecommendationService:
                 plan = store.human_plan(connection, active["human_plan_version_id"])
                 if plan is None:
                     continue
-                item = RecommendationItemView(
-                    item_type=ItemType.HUMAN_PLAN.value,
-                    review_status=decision,
+                # SPEC 10.2: un plan humano existe porque una review lo sustituyó;
+                # su `review_status` es siempre `human_plan_substituted`.
+                item = HumanPlanItemView(
                     human_plan_version_id=plan["human_plan_version_id"],
                     strategy_version_id=(strategy_version_id if is_professional else None),
                     action_text_es=plan["action_text_es"],
@@ -175,8 +174,7 @@ class RecommendationService:
                     ),
                 )
             else:
-                item = RecommendationItemView(
-                    item_type=ItemType.STRATEGY.value,
+                item = StrategyItemView(
                     review_status=decision or PENDING,
                     strategy_version_id=strategy_version_id,
                     action_text_es=strategy["action_text_es"],
@@ -203,20 +201,16 @@ class RecommendationService:
                 recommendation_instance_id=instance["recommendation_instance_id"],
                 catalog_version=instance["catalog_version"],
                 corpus_version=instance["corpus_version"],
-                availability_reason=instance["availability_reason"],
                 items=[],
                 revision=revision,
-                emergency_notice_es=EMERGENCY_NOTICE_ES,
             )
         return RecommendationsView(
             status=RecommendationResponseStatus.MATCHED.value,
             recommendation_instance_id=instance["recommendation_instance_id"],
             catalog_version=instance["catalog_version"],
             corpus_version=instance["corpus_version"],
-            availability_reason=instance["availability_reason"],
             items=items,
             revision=revision,
-            emergency_notice_es=EMERGENCY_NOTICE_ES,
         )
 
     # -- inbox profesional ------------------------------------------------
@@ -267,6 +261,10 @@ class RecommendationService:
                     prediction_episode_id=instance["prediction_episode_id"],
                     subject_id=instance["subject_id"],
                     subject_label="" if subject is None else subject["display_label"],
+                    scenario_hash=instance["scenario_hash"],
+                    strategy_version_ids=store.instance_strategy_ids(instance),
+                    # El inbox solo lista instancias con estrategias sin revisar.
+                    review_status=ReviewStatus.PENDING.value,
                     created_at=instance["created_at"],
                     catalog_version=instance["catalog_version"],
                     corpus_version=instance["corpus_version"],
@@ -280,9 +278,9 @@ class RecommendationService:
                     ),
                 )
             )
-        return RecommendationInboxView(items=items, emergency_notice_es=EMERGENCY_NOTICE_ES)
+        return RecommendationInboxView(items=items)
 
-    def _scenario_view(self, *, instance: sqlite3.Row) -> ScenarioView | None:
+    def _scenario_view(self, *, instance: sqlite3.Row) -> ScenarioV1 | None:
         """El escenario que ve el profesional viene de la instancia persistida.
 
         No contiene identidad, notas ni historial (SPEC 9.7): es la copia
@@ -292,7 +290,7 @@ class RecommendationService:
         payload = unseal(instance["encrypted_scenario"], self._services.settings.scenario_secret)
         if payload is None:
             return None
-        return ScenarioView(
+        return ScenarioV1(
             schema_version=payload.get("schema_version", instance["scenario_schema_version"]),
             field_values=payload.get("field_values", {}),
             context_tags=payload.get("context_tags", []),
@@ -337,10 +335,10 @@ class RecommendationService:
         *,
         actor: ActorContext,
         recommendation_instance_id: str,
-        request: CreateReviewRequest,
+        request: RecommendationReviewRequest,
         if_match: str | None,
         now: str,
-    ) -> ReviewView:
+    ) -> RecommendationReviewResponse:
         instance = self._instance(
             connection, actor=actor, recommendation_instance_id=recommendation_instance_id
         )
@@ -361,6 +359,11 @@ class RecommendationService:
         )
 
         strategy_version_id = str(request.strategy_version_id)
+        reviews_now = store.active_reviews(
+            connection,
+            recommendation_instance_id=recommendation_instance_id,
+            cutoff=now,
+        )
         if strategy_version_id not in store.instance_strategy_ids(instance):
             raise invalid("validation_error", reason="strategy_not_in_instance")
         strategy = connection.execute(
@@ -397,23 +400,17 @@ class RecommendationService:
             ):
                 raise conflict("recommendation_dependency_suspended")
 
-        supersedes_id = None if request.supersedes_id is None else str(request.supersedes_id)
-        if supersedes_id is not None:
-            previous = store.review(connection, supersedes_id)
-            if (
-                previous is None
-                or previous["tenant_id"] != actor.tenant_id
-                or previous["recommendation_instance_id"] != recommendation_instance_id
-                or previous["strategy_version_id"] != strategy_version_id
-            ):
-                raise invalid("validation_error", reason="supersedes_id_not_correctable")
+        # CONVENTIONS 8.1: una revisión se corrige apilando otra que enlaza la
+        # activa. El contrato no lleva `supersedes_id`, así que el enlace lo
+        # deriva el servidor a partir de la revisión vigente de esa estrategia.
+        previous = reviews_now.get(strategy_version_id)
+        supersedes_id = None if previous is None else str(previous["review_id"])
 
         human_plan_version_id: str | None = None
         if decision is ReviewDecision.HUMAN_PLAN_SUBSTITUTED:
-            if request.human_plan is None:
-                raise invalid("validation_error", reason="human_plan_required")
+            # `RecommendationReviewRequest` ya exige texto y roles al sustituir.
             allowed = {str(role) for role in load_list(strategy["allowed_executor_roles"])}
-            requested = {str(role) for role in request.human_plan.allowed_executor_roles}
+            requested = {str(role) for role in (request.human_plan_allowed_executor_roles or ())}
             if not requested <= allowed:
                 raise invalid("human_plan_roles_not_subset")
             human_plan_version_id = store.create_human_plan(
@@ -421,13 +418,11 @@ class RecommendationService:
                 tenant_id=actor.tenant_id,
                 recommendation_instance_id=recommendation_instance_id,
                 replaced_strategy_version_id=strategy_version_id,
-                action_text_es=request.human_plan.action_text_es,
+                action_text_es=request.human_plan_action_text_es or "",
                 author_actor_id=actor.actor_id,
                 allowed_executor_roles=tuple(sorted(requested)),
                 created_at=now,
             )
-        elif request.human_plan is not None:
-            raise invalid("validation_error", reason="human_plan_requires_substitution")
 
         review_id = store.insert_review(
             connection,
@@ -460,21 +455,13 @@ class RecommendationService:
         )
         row = store.review(connection, review_id)
         assert row is not None
-        return ReviewView(
+        return RecommendationReviewResponse(
             review_id=row["review_id"],
             recommendation_instance_id=row["recommendation_instance_id"],
             strategy_version_id=row["strategy_version_id"],
             decision=row["decision"],
-            reviewed_by=row["reviewed_by"],
-            reviewer_role=row["reviewer_role"],
             reviewed_at=row["reviewed_at"],
             human_plan_version_id=row["human_plan_version_id"],
-            supersedes_id=row["supersedes_id"],
-            revision=store.revision_etag(
-                connection,
-                recommendation_instance_id=recommendation_instance_id,
-                cutoff=now,
-            ),
         )
 
     # -- ejecución --------------------------------------------------------
@@ -485,7 +472,7 @@ class RecommendationService:
         *,
         actor: ActorContext,
         recommendation_instance_id: str,
-        request: CreateExecutionRequest,
+        request: StrategyExecutionRequest,
         if_match: str | None,
         now: str,
     ) -> ExecutionView:
@@ -570,7 +557,7 @@ class RecommendationService:
             )
 
         status = ExecutionStatus(request.status)
-        applied_at = None if request.applied_at is None else format_timestamp(request.applied_at)
+        applied_at = None if request.applied_at is None else canonical_timestamp(request.applied_at)
         if status is ExecutionStatus.APPLIED and applied_at is None:
             raise invalid("validation_error", reason="applied_at_required")
         if applied_at is not None and applied_at > now:
@@ -578,15 +565,15 @@ class RecommendationService:
         if status is not ExecutionStatus.APPLIED and applied_at is not None:
             raise invalid("validation_error", reason="applied_at_requires_applied")
 
-        supersedes_id = None if request.supersedes_id is None else str(request.supersedes_id)
-        if supersedes_id is not None:
-            previous = store.execution(connection, supersedes_id)
-            if (
-                previous is None
-                or previous["tenant_id"] != actor.tenant_id
-                or previous["recommendation_instance_id"] != recommendation_instance_id
-            ):
-                raise invalid("validation_error", reason="supersedes_id_not_correctable")
+        # Igual que una revisión: la corrección apila una fila nueva enlazada a
+        # la vigente, y el enlace lo deriva el servidor.
+        supersedes_id = store.active_execution_id(
+            connection,
+            recommendation_instance_id=recommendation_instance_id,
+            strategy_version_id=strategy_version_id,
+            human_plan_version_id=human_plan_version_id,
+            cutoff=now,
+        )
 
         strategy_execution_id = store.insert_execution(
             connection,
@@ -624,17 +611,10 @@ class RecommendationService:
             strategy_version_id=row["strategy_version_id"],
             human_plan_version_id=row["human_plan_version_id"],
             status=row["status"],
-            actor_id=row["actor_id"],
-            actor_role=row["actor_role"],
             recorded_at=row["recorded_at"],
             applied_at=row["applied_at"],
             exposure_eligible=self._exposure_eligible(
                 connection, instance=instance, execution=row, review=active
-            ),
-            revision=store.revision_etag(
-                connection,
-                recommendation_instance_id=recommendation_instance_id,
-                cutoff=now,
             ),
         )
 

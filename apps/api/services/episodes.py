@@ -6,8 +6,7 @@ import sqlite3
 
 from apps.api.auth.context import ActorContext
 from apps.api.contracts.enums import GrantCapability
-from apps.api.contracts.models import PredictionEpisodeView, PredictionOutputView
-from apps.api.contracts.texts import EMERGENCY_NOTICE_ES
+from apps.api.contracts.models import Interval, PredictionEpisodeView, PredictionOutputView
 from apps.api.errors import not_found
 from apps.api.services.base import Services
 from apps.api.store import episodes as episodes_store
@@ -49,7 +48,7 @@ class EpisodeService:
                 interval=(
                     None
                     if row["interval_low"] is None
-                    else (row["interval_low"], row["interval_high"])
+                    else Interval(lower=row["interval_low"], upper=row["interval_high"])
                 ),
                 interval_method=row["interval_method"],
                 abstention_reasons=list(row["abstention_reasons"]),
@@ -60,7 +59,7 @@ class EpisodeService:
         ]
 
         request_row = outcomes_store.outcome_request(connection, prediction_episode_id)
-        outcome_status = None
+        outcome_state = None
         resolution_status = None
         if request_row is not None:
             # SPEC 4.4: pending con el deadline vencido materializa primero la
@@ -76,7 +75,7 @@ class EpisodeService:
             )
             if resolution is not None:
                 resolution_status = resolution["status"]
-                outcome_status = outcomes_store.derive_request_status(
+                outcome_state = outcomes_store.derive_request_status(
                     resolution_status=resolution["status"],
                     capture_deadline_at=request_row["capture_deadline_at"],
                     now=now,
@@ -92,7 +91,6 @@ class EpisodeService:
             capture_deadline_at=episode["capture_deadline_at"],
             target_definition_version=episode["target_definition_version"],
             outputs=outputs,
-            outcome_status=outcome_status,
+            outcome_state=outcome_state,
             resolution_status=resolution_status,
-            emergency_notice_es=EMERGENCY_NOTICE_ES,
         )

@@ -87,7 +87,13 @@ def test_audit_events_never_carry_clinical_payload(caregiver, db) -> None:
     session = open_session(caregiver)
     caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "notes", "interaction": "manual", "value": "texto clínico secreto"},
+        {
+            "answer": {
+                "field_code": "notes",
+                "interaction": "manual",
+                "value": "texto clínico secreto",
+            }
+        },
     )
     columns = [
         row[1] for row in db.connection.execute("PRAGMA table_info(audit_events)").fetchall()

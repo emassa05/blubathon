@@ -33,7 +33,9 @@ def test_one_key_on_two_concrete_paths_creates_two_resources(caregiver) -> None:
     """CONVENTIONS 16: la misma key sobre dos IDs concretos exige recursos distintos."""
     first = open_session(caregiver, ids.SUBJECT_ANA)
     second = open_session(caregiver, ids.SUBJECT_BETO)
-    body = {"field_code": "sleep_quality", "interaction": "manual", "value": "restorative"}
+    body = {
+        "answer": {"field_code": "sleep_quality", "interaction": "manual", "value": "restorative"}
+    }
     one = caregiver.post(
         f"/api/v1/form-sessions/{first['form_session_id']}/answers", body, key="same-key"
     )
@@ -73,7 +75,7 @@ def test_a_failed_command_rolls_back_completely(caregiver, db) -> None:
     before = db.connection.execute("SELECT COUNT(*) AS n FROM field_observations").fetchone()["n"]
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_hours", "interaction": "manual", "value": 99.0},
+        {"answer": {"field_code": "sleep_hours", "interaction": "manual", "value": 99.0}},
     )
     assert response.status_code == 422
     after = db.connection.execute("SELECT COUNT(*) AS n FROM field_observations").fetchone()["n"]

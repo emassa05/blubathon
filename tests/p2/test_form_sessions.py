@@ -79,7 +79,7 @@ def test_manual_answer_over_a_presented_default_is_default_edited(caregiver) -> 
     session = open_session(caregiver)
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "food_changes", "interaction": "manual", "value": True},
+        {"answer": {"field_code": "food_changes", "interaction": "manual", "value": True}},
     )
     assert response.status_code == 201, response.text
     assert response.json()["entry_mode"] == "default_edited"
@@ -95,9 +95,14 @@ def test_accepting_a_default_stores_the_presented_value(caregiver, db) -> None:
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
         {
-            "field_code": "food_changes",
-            "interaction": "accept_default",
-            "default_presentation_id": presented["default"]["presentation_id"],
+            "answer": {
+                "field_code": "food_changes",
+                "interaction": "accept_default",
+                # `AnswerSubmission` exige declarar el valor aceptado; el
+                # servidor lo compara con el presentado antes de guardarlo.
+                "value": presented["default"]["value"],
+                "default_presentation_id": presented["default"]["presentation_id"],
+            }
         },
     )
     assert response.status_code == 201, response.text
@@ -116,7 +121,7 @@ def test_explicit_unknown_persists_without_a_value(caregiver, db) -> None:
     session = open_session(caregiver)
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "unknown"},
+        {"answer": {"field_code": "sleep_quality", "interaction": "unknown"}},
     )
     assert response.status_code == 201
     assert response.json()["entry_mode"] == "explicit_unknown"
@@ -134,7 +139,13 @@ def test_field_not_allowed_for_source_is_rejected(caregiver) -> None:
     session = open_session(caregiver)
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "attendance_status", "interaction": "manual", "value": "present"},
+        {
+            "answer": {
+                "field_code": "attendance_status",
+                "interaction": "manual",
+                "value": "present",
+            }
+        },
     )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "field_not_allowed_for_source"
@@ -144,7 +155,7 @@ def test_out_of_range_value_is_rejected_not_coerced(caregiver) -> None:
     session = open_session(caregiver)
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_hours", "interaction": "manual", "value": 25.0},
+        {"answer": {"field_code": "sleep_hours", "interaction": "manual", "value": 25.0}},
     )
     assert response.status_code == 422
 
@@ -154,7 +165,7 @@ def test_unknown_category_fails_closed(caregiver) -> None:
     session = open_session(caregiver)
     response = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "manual", "value": "muy_mal"},
+        {"answer": {"field_code": "sleep_quality", "interaction": "manual", "value": "muy_mal"}},
     )
     assert response.status_code == 422
 
@@ -164,15 +175,17 @@ def test_correction_keeps_the_original_row(caregiver, db) -> None:
     session = open_session(caregiver)
     first = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "night_awakenings", "interaction": "manual", "value": 2},
+        {"answer": {"field_code": "night_awakenings", "interaction": "manual", "value": 2}},
     ).json()
     second = caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
         {
-            "field_code": "night_awakenings",
-            "interaction": "manual",
-            "value": 3,
-            "supersedes_id": first["field_observation_id"],
+            "answer": {
+                "field_code": "night_awakenings",
+                "interaction": "manual",
+                "value": 3,
+                "supersedes_id": first["field_observation_id"],
+            }
         },
     )
     assert second.status_code == 201
@@ -194,7 +207,13 @@ def test_a_closed_session_does_not_present_new_questions(caregiver, db) -> None:
     session = open_session(caregiver)
     caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "manual", "value": "restorative"},
+        {
+            "answer": {
+                "field_code": "sleep_quality",
+                "interaction": "manual",
+                "value": "restorative",
+            }
+        },
     )
     caregiver.post(f"/api/v1/form-sessions/{session['form_session_id']}/submit")
     before = db.connection.execute(

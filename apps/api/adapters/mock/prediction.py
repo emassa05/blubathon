@@ -23,7 +23,7 @@ from apps.api.contracts.enums import (
     DataOrigin,
     EstimateKind,
     IntendedUse,
-    PredictionOutputStatus,
+    PredictionStatus,
     TrackId,
 )
 from apps.api.ports.prediction import TrackOutput
@@ -65,10 +65,10 @@ class MockPrediction:
         if not is_demo:
             # SPEC 2.14 / INV-18: el modelo sintético rechaza sujetos reales.
             return TrackOutput(
-                track_id=TrackId.SYNTHETIC_REFERENCE.value,
+                track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
                 intended_use=IntendedUse.SIMULATION_ONLY.value,
-                status=PredictionOutputStatus.ABSTAINED.value,
-                estimate_kind=EstimateKind.SIMULATION_DESIGNED_SCORE.value,
+                status=PredictionStatus.ABSTAINED.value,
+                estimate_kind=EstimateKind.SIMULATION_SCORE.value,
                 model_version=SYNTHETIC_MODEL_VERSION,
                 input_data_origin=input_data_origin,
                 abstention_reasons=("real_subject_rejected_by_simulation_track",),
@@ -77,20 +77,20 @@ class MockPrediction:
         score = self._scores.get(subject_id)
         if score is None:
             return TrackOutput(
-                track_id=TrackId.SYNTHETIC_REFERENCE.value,
+                track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
                 intended_use=IntendedUse.SIMULATION_ONLY.value,
-                status=PredictionOutputStatus.ABSTAINED.value,
-                estimate_kind=EstimateKind.SIMULATION_DESIGNED_SCORE.value,
+                status=PredictionStatus.ABSTAINED.value,
+                estimate_kind=EstimateKind.SIMULATION_SCORE.value,
                 model_version=SYNTHETIC_MODEL_VERSION,
                 input_data_origin=DataOrigin.SYNTHETIC.value,
                 abstention_reasons=("simulation_fixture_unavailable",),
             )
         # SPEC 8.2 y 11.5: score de simulación, sin probabilidad ni intervalo.
         return TrackOutput(
-            track_id=TrackId.SYNTHETIC_REFERENCE.value,
+            track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
             intended_use=IntendedUse.SIMULATION_ONLY.value,
-            status=PredictionOutputStatus.OK.value,
-            estimate_kind=EstimateKind.SIMULATION_DESIGNED_SCORE.value,
+            status=PredictionStatus.OK.value,
+            estimate_kind=EstimateKind.SIMULATION_SCORE.value,
             model_version=SYNTHETIC_MODEL_VERSION,
             input_data_origin=DataOrigin.SYNTHETIC.value,
             simulation_score=score,
@@ -101,9 +101,9 @@ class MockPrediction:
         if care_mode is None:
             reasons.append("care_mode_history_unavailable")
         return TrackOutput(
-            track_id=TrackId.REAL_PERSONAL_BASELINE.value,
+            track_id=TrackId.REAL_PERSONAL_BASELINE_V1.value,
             intended_use=IntendedUse.OPERATIONAL_SUPPORT.value,
-            status=PredictionOutputStatus.ABSTAINED.value,
+            status=PredictionStatus.ABSTAINED.value,
             estimate_kind=EstimateKind.PERSONAL_OBSERVED_EPISODE_RATE.value,
             model_version=BASELINE_MODEL_VERSION,
             input_data_origin=input_data_origin,
@@ -112,10 +112,10 @@ class MockPrediction:
 
     def _challenger(self, input_data_origin: str) -> TrackOutput:
         return TrackOutput(
-            track_id=TrackId.REAL_LOGIT_CHALLENGER.value,
+            track_id=TrackId.REAL_LOGIT_CHALLENGER_V1.value,
             intended_use=IntendedUse.SHADOW_EVALUATION.value,
-            status=PredictionOutputStatus.ABSTAINED.value,
-            estimate_kind=EstimateKind.SHADOW_SCORE.value,
+            status=PredictionStatus.ABSTAINED.value,
+            estimate_kind=EstimateKind.SHADOW_CHALLENGER_SCORE.value,
             model_version=CHALLENGER_MODEL_VERSION,
             input_data_origin=input_data_origin,
             abstention_reasons=("not_trainable_single_class",),

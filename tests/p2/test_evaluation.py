@@ -32,7 +32,7 @@ def published_report(db):
         connection.execute(
             "INSERT INTO evaluation_reports(evaluation_report_id, tenant_id, model_version,"
             " dataset_snapshot_id, protocol_version, target_definition_version, data_origin,"
-            " status, metrics, abstention_by_reason, limitations_es, dataset_sha256,"
+            " status, metrics, abstentions, limitations_es, dataset_sha256,"
             " published_at, created_at)"
             " VALUES ('00000000-0000-4000-8000-000000000901', ?, ?, 'ds-1',"
             " 'eval-protocol-1', ?, 'synthetic', 'published', ?, ?, ?, 'sha-dataset',"
@@ -43,20 +43,20 @@ def published_report(db):
                 ids.TARGET_DEMO_FIXTURE,
                 dump(
                     [
-                        {"name": "brier_score", "estimability": "estimable", "value": 0.21},
+                        {"name": "brier_score", "status": "estimated", "value": 0.21},
                         {
                             "name": "auc_roc",
-                            "estimability": "not_estimable",
-                            "reason": "single_class",
+                            "status": "not_estimable",
+                            "not_estimable_reason": "single_class",
                         },
                         {
                             "name": "alert_budget_recall",
-                            "estimability": "not_estimable",
-                            "reason": "no_decision_policy",
+                            "status": "not_estimable",
+                            "not_estimable_reason": "no_decision_policy",
                         },
                     ]
                 ),
-                dump({"insufficient_verified_outcomes": 1.0}),
+                dump([{"reason": "insufficient_verified_outcomes", "count": 1, "rate": 1.0}]),
                 dump(
                     [
                         "Métricas de simulación: no demuestran rendimiento clínico.",
@@ -71,7 +71,9 @@ def published_report(db):
 def test_evaluator_reads_a_published_report(evaluator, published_report) -> None:
     body = evaluator.get(f"/api/v1/evaluation/{published_report}").json()
     assert body["data_origin"] == "synthetic"
-    assert body["simulation_only"] is True
+    # SPEC 14.3 / INV-34: `EvaluationResponse` no admite un reporte sintético
+    # que no sea `simulation_only`; el validador del contrato lo garantiza.
+    assert body["intended_use"] == "simulation_only"
     assert body["dataset_sha256"] == "sha-dataset"
     assert body["model_version"] == published_report
     assert body["limitations_es"]
@@ -81,9 +83,9 @@ def test_a_metric_without_support_is_not_estimable_not_zero(evaluator, published
     """SPEC 14.3: una métrica sin soporte devuelve `not_estimable`."""
     body = evaluator.get(f"/api/v1/evaluation/{published_report}").json()
     by_name = {metric["name"]: metric for metric in body["metrics"]}
-    assert by_name["auc_roc"]["estimability"] == "not_estimable"
+    assert by_name["auc_roc"]["status"] == "not_estimable"
     assert by_name["auc_roc"]["value"] is None
-    assert by_name["alert_budget_recall"]["reason"] == "no_decision_policy"
+    assert by_name["alert_budget_recall"]["not_estimable_reason"] == "no_decision_policy"
 
 
 def test_a_caregiver_cannot_read_an_evaluation(caregiver, published_report) -> None:

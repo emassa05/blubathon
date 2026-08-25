@@ -6,7 +6,7 @@ import json
 from datetime import timedelta
 from pathlib import Path
 
-from apps.api.canonical import format_timestamp, parse_timestamp
+from apps.api.canonical import canonical_timestamp, parse_timestamp
 from tools.seed import ids
 
 FIXTURE = json.loads(
@@ -23,7 +23,6 @@ def test_caregiver_journey_end_to_end(caregiver, other_tenant_caregiver, db, clo
     assert opened.status_code == 201
     session = opened.json()
     session_id = session["form_session_id"]
-    assert "no monitorea emergencias" in session["emergency_notice_es"]
 
     # 3. Recargar no cambia la auditoría.
     reloaded = caregiver.get(f"/api/v1/form-sessions/{session_id}").json()
@@ -34,7 +33,7 @@ def test_caregiver_journey_end_to_end(caregiver, other_tenant_caregiver, db, clo
         item for item in session["highlighted"] + session["tail"] if item["default"] is not None
     ]
     assert suggested
-    answer = FIXTURE["answers"][0]
+    answer = {"answer": FIXTURE["answers"][0]}
     assert caregiver.post(f"/api/v1/form-sessions/{session_id}/answers", answer).status_code == 201
 
     # 6. Se envía y nace el episodio primario.
@@ -47,7 +46,7 @@ def test_caregiver_journey_end_to_end(caregiver, other_tenant_caregiver, db, clo
         "SELECT field_code FROM field_observations WHERE form_session_id = ?",
         (session_id,),
     ).fetchall()
-    assert [row["field_code"] for row in rows] == [answer["field_code"]]
+    assert [row["field_code"] for row in rows] == [answer["answer"]["field_code"]]
 
     # 7. El episodio muestra abstención real y score de simulación etiquetado.
     episode = caregiver.get(f"/api/v1/prediction-episodes/{episode_id}").json()
@@ -61,11 +60,13 @@ def test_caregiver_journey_end_to_end(caregiver, other_tenant_caregiver, db, clo
         f"/api/v1/prediction-episodes/{episode_id}/outcome-reports", {"value": "unknown"}
     ).json()
     assert unknown["resolution"]["status"] == "pending"
-    assert unknown["request_status"] == "open"
+    assert unknown["request_state"] == "open"
 
     # 9. Después se reporta un outcome concluyente.
     clock.advance(hours=5)
-    occurred_at = format_timestamp(parse_timestamp(submitted["submitted_at"]) + timedelta(hours=4))
+    occurred_at = canonical_timestamp(
+        parse_timestamp(submitted["submitted_at"]) + timedelta(hours=4)
+    )
     conclusive = caregiver.post(
         f"/api/v1/prediction-episodes/{episode_id}/outcome-reports",
         {"value": "yes", "occurred_at": occurred_at},

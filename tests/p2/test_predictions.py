@@ -42,11 +42,18 @@ def test_the_personal_baseline_abstains_with_current_data(caregiver) -> None:
 
 
 def test_an_abstention_carries_no_band_or_decision_policy(caregiver) -> None:
-    """INV-21 y SPEC 8.6: v0.3 no tiene bandas ni política de decisión."""
+    """INV-21 y SPEC 8.6: v0.3 no tiene bandas ni política de decisión.
+
+    El contrato las declara en el episodio, no por salida: `PredictionOutputView`
+    de P1 no tiene dónde poner una banda, y el episodio las fija en `None`.
+    """
     result = complete_session(caregiver)
-    for output in outputs_of(caregiver, result["prediction_episode_id"]).values():
-        assert output["risk_band"] is None
-        assert output["decision_policy_version"] is None
+    episode = caregiver.get(f"/api/v1/prediction-episodes/{result['prediction_episode_id']}").json()
+    assert episode["risk_band"] is None
+    assert episode["decision_policy_version"] is None
+    for output in episode["outputs"]:
+        assert "risk_band" not in output
+        assert "decision_policy_version" not in output
 
 
 def test_the_simulation_track_reports_a_score_not_a_probability(caregiver) -> None:
@@ -54,7 +61,7 @@ def test_the_simulation_track_reports_a_score_not_a_probability(caregiver) -> No
     result = complete_session(caregiver)
     simulation = outputs_of(caregiver, result["prediction_episode_id"])["synthetic_reference_v021"]
     assert simulation["intended_use"] == "simulation_only"
-    assert simulation["estimate_kind"] == "simulation_designed_score"
+    assert simulation["estimate_kind"] == "simulation_score"
     assert simulation["status"] == "ok"
     assert simulation["simulation_score"] is not None
     assert simulation["probability"] is None

@@ -10,20 +10,20 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 
-from apps.api.contracts.enums import CatalogAvailability, VersionStatus
+from apps.api.contracts.enums import CatalogReadiness, CatalogStatus, DocumentStatus, StrategyStatus
 from apps.api.ports.rag import CatalogSet, CatalogSnapshot, RuntimeCitation, RuntimeStrategy
 from apps.api.store.json_columns import load_dict, load_list
 
 
 @dataclass(frozen=True, slots=True)
 class CatalogAvailabilityResult:
-    reason: CatalogAvailability
+    reason: CatalogReadiness
     catalog_version: str | None
     corpus_version: str | None
 
     @property
     def ready(self) -> bool:
-        return self.reason is CatalogAvailability.READY
+        return self.reason is CatalogReadiness.READY
 
 
 def _active_corpus(connection: sqlite3.Connection, cutoff: str) -> str | None:
@@ -42,7 +42,7 @@ def derive_availability(
 ) -> CatalogAvailabilityResult:
     corpus_version = _active_corpus(connection, cutoff)
     if corpus_version is None:
-        return CatalogAvailabilityResult(CatalogAvailability.CORPUS_NOT_READY, None, None)
+        return CatalogAvailabilityResult(CatalogReadiness.CORPUS_NOT_READY, None, None)
 
     active_catalogs = connection.execute(
         "SELECT catalog_version, corpus_version FROM catalog_versions"
@@ -58,28 +58,24 @@ def derive_availability(
         awaiting_clinical = connection.execute(
             "SELECT 1 FROM strategy_versions WHERE status = ?"
             " AND evidence_review_id IS NOT NULL AND clinical_review_id IS NULL LIMIT 1",
-            (VersionStatus.EVIDENCE_REVIEWED.value,),
+            (StrategyStatus.EVIDENCE_REVIEWED.value,),
         ).fetchone()
         if awaiting_clinical is not None:
             return CatalogAvailabilityResult(
-                CatalogAvailability.CLINICAL_REVIEW_UNAVAILABLE, None, corpus_version
+                CatalogReadiness.CLINICAL_REVIEW_UNAVAILABLE, None, corpus_version
             )
         suspended = connection.execute(
             "SELECT 1 FROM catalog_versions WHERE tenant_id = ? AND status = ? LIMIT 1",
-            (tenant_id, VersionStatus.SUSPENDED.value),
+            (tenant_id, CatalogStatus.SUSPENDED.value),
         ).fetchone()
         if suspended is not None:
             return CatalogAvailabilityResult(
-                CatalogAvailability.CATALOG_SUSPENDED, None, corpus_version
+                CatalogReadiness.CATALOG_SUSPENDED, None, corpus_version
             )
-        return CatalogAvailabilityResult(
-            CatalogAvailability.CATALOG_NOT_READY, None, corpus_version
-        )
+        return CatalogAvailabilityResult(CatalogReadiness.CATALOG_NOT_READY, None, corpus_version)
 
     if len(active_catalogs) > 1:
-        return CatalogAvailabilityResult(
-            CatalogAvailability.CATALOG_AMBIGUOUS, None, corpus_version
-        )
+        return CatalogAvailabilityResult(CatalogReadiness.CATALOG_AMBIGUOUS, None, corpus_version)
 
     chosen = active_catalogs[0]
     # Una dependencia antes activa y ahora suspendida bloquea nuevas instancias.
@@ -89,14 +85,12 @@ def derive_availability(
         " (SELECT json_each.value FROM catalog_versions, json_each("
         "  catalog_versions.recommendation_set_version_ids)"
         "  WHERE catalog_versions.catalog_version = ?) LIMIT 1",
-        (VersionStatus.SUSPENDED.value, chosen["catalog_version"]),
+        (CatalogStatus.SUSPENDED.value, chosen["catalog_version"]),
     ).fetchone()
     if suspended_dependency is not None:
-        return CatalogAvailabilityResult(
-            CatalogAvailability.CATALOG_SUSPENDED, None, corpus_version
-        )
+        return CatalogAvailabilityResult(CatalogReadiness.CATALOG_SUSPENDED, None, corpus_version)
     return CatalogAvailabilityResult(
-        CatalogAvailability.READY, chosen["catalog_version"], chosen["corpus_version"]
+        CatalogReadiness.READY, chosen["catalog_version"], chosen["corpus_version"]
     )
 
 
@@ -118,7 +112,7 @@ def load_snapshot(
             "SELECT * FROM recommendation_set_versions"
             " WHERE recommendation_set_version_id = ? AND status = ?"
             " AND effective_from <= ? AND suspended_at IS NULL",
-            (set_version_id, VersionStatus.ACTIVE.value, cutoff),
+            (set_version_id, CatalogStatus.ACTIVE.value, cutoff),
         ).fetchone()
         if set_row is None:
             continue
@@ -154,7 +148,7 @@ def _load_strategy(
     row = connection.execute(
         "SELECT * FROM strategy_versions WHERE strategy_version_id = ? AND status = ?"
         " AND effective_from <= ? AND suspended_at IS NULL",
-        (strategy_version_id, VersionStatus.ACTIVE.value, cutoff),
+        (strategy_version_id, StrategyStatus.ACTIVE.value, cutoff),
     ).fetchone()
     if row is None:
         return None
@@ -197,7 +191,7 @@ def dependencies_active(
         " WHERE strategy_version_id = ?",
         (strategy_version_id,),
     ).fetchone()
-    if strategy is None or strategy["status"] != VersionStatus.ACTIVE.value:
+    if strategy is None or strategy["status"] != StrategyStatus.ACTIVE.value:
         return False
     if strategy["suspended_at"] is not None:
         return False
@@ -206,7 +200,7 @@ def dependencies_active(
         " WHERE catalog_version = ?",
         (catalog_version,),
     ).fetchone()
-    if catalog is None or catalog["status"] != VersionStatus.ACTIVE.value:
+    if catalog is None or catalog["status"] != CatalogStatus.ACTIVE.value:
         return False
     if catalog["suspended_at"] is not None or catalog["retired_at"] is not None:
         return False
@@ -214,7 +208,7 @@ def dependencies_active(
         "SELECT status, suspended_at, retired_at FROM corpus_versions WHERE corpus_version = ?",
         (catalog["corpus_version"],),
     ).fetchone()
-    if corpus is None or corpus["status"] != VersionStatus.ACTIVE.value:
+    if corpus is None or corpus["status"] != DocumentStatus.ACTIVE.value:
         return False
     if corpus["suspended_at"] is not None or corpus["retired_at"] is not None:
         return False
@@ -232,6 +226,6 @@ def dependencies_active(
     if not containing_set:
         return False
     return all(
-        row["status"] == VersionStatus.ACTIVE.value and row["suspended_at"] is None
+        row["status"] == CatalogStatus.ACTIVE.value and row["suspended_at"] is None
         for row in containing_set
     )

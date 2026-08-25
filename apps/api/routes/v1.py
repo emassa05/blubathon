@@ -16,24 +16,23 @@ from apps.api.contracts.enums import GrantCapability
 from apps.api.contracts.models import (
     AnswerAcceptedView,
     AnswerRequest,
-    CreateExecutionRequest,
-    CreateOutcomeReportRequest,
-    CreateReviewRequest,
     EvaluationReportView,
     ExecutionView,
+    FormSessionCreateRequest,
     FormSessionView,
-    OpenFormSessionRequest,
-    OutcomeReportResponse,
-    OutcomeRequestListView,
+    OutcomeReportRequest,
+    OutcomeReportResponseView,
+    OutcomeRequestListResponse,
     PredictionEpisodeView,
     RecommendationInboxView,
+    RecommendationReviewRequest,
+    RecommendationReviewResponse,
     RecommendationsView,
-    ReviewView,
     SessionContextView,
+    StrategyExecutionRequest,
     SubjectView,
     SubmitFormSessionView,
 )
-from apps.api.contracts.texts import EMERGENCY_NOTICE_ES
 from apps.api.errors import invalid
 from apps.api.routes.dependencies import Actor, IdempotencyKey, IfMatch, Registry
 from apps.api.services.base import IdempotentRequest
@@ -92,7 +91,6 @@ def session_context(actor: Actor, services: Registry) -> SessionContextView:
             ],
             deployment_mode=services.core.settings.deployment_mode.value,
             adapters_source=services.core.ports.source,
-            emergency_notice_es=EMERGENCY_NOTICE_ES,
         )
 
 
@@ -102,7 +100,7 @@ def session_context(actor: Actor, services: Registry) -> SessionContextView:
 @router.post("/form-sessions", status_code=201, response_model=FormSessionView)
 def open_form_session(
     request: Request,
-    payload: OpenFormSessionRequest,
+    payload: FormSessionCreateRequest,
     actor: Actor,
     services: Registry,
     key: IdempotencyKey,
@@ -221,8 +219,8 @@ def read_prediction_episode(
         )
 
 
-@router.get("/outcome-requests", response_model=OutcomeRequestListView)
-def list_outcome_requests(actor: Actor, services: Registry) -> OutcomeRequestListView:
+@router.get("/outcome-requests", response_model=OutcomeRequestListResponse)
+def list_outcome_requests(actor: Actor, services: Registry) -> OutcomeRequestListResponse:
     now = services.core.now()
     # Al pasar el deadline, `SPEC 4.4` exige materializar la resolución `unknown`
     # antes de derivar `missing`: por eso la lectura usa una transacción de
@@ -234,12 +232,12 @@ def list_outcome_requests(actor: Actor, services: Registry) -> OutcomeRequestLis
 @router.post(
     "/prediction-episodes/{prediction_episode_id}/outcome-reports",
     status_code=201,
-    response_model=OutcomeReportResponse,
+    response_model=OutcomeReportResponseView,
 )
 def create_outcome_report(
     request: Request,
     prediction_episode_id: str,
-    payload: CreateOutcomeReportRequest,
+    payload: OutcomeReportRequest,
     actor: Actor,
     services: Registry,
     key: IdempotencyKey,
@@ -304,12 +302,12 @@ def read_recommendation_inbox(
 @router.post(
     "/recommendation-instances/{recommendation_instance_id}/reviews",
     status_code=201,
-    response_model=ReviewView,
+    response_model=RecommendationReviewResponse,
 )
 def create_recommendation_review(
     request: Request,
     recommendation_instance_id: str,
-    payload: CreateReviewRequest,
+    payload: RecommendationReviewRequest,
     actor: Actor,
     services: Registry,
     key: IdempotencyKey,
@@ -354,7 +352,7 @@ def create_recommendation_review(
 def create_strategy_execution(
     request: Request,
     recommendation_instance_id: str,
-    payload: CreateExecutionRequest,
+    payload: StrategyExecutionRequest,
     actor: Actor,
     services: Registry,
     key: IdempotencyKey,

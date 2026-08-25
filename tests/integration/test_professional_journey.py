@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from apps.api.canonical import format_timestamp, parse_timestamp
+from apps.api.canonical import canonical_timestamp, parse_timestamp
 from tools.seed import ids
 
 FIXTURE = json.loads(
@@ -35,7 +35,13 @@ def test_professional_journey_end_to_end(caregiver, professional, clock, db) -> 
     ).json()
     caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "manual", "value": "interrupted"},
+        {
+            "answer": {
+                "field_code": "sleep_quality",
+                "interaction": "manual",
+                "value": "interrupted",
+            }
+        },
     )
     submitted = caregiver.post(f"/api/v1/form-sessions/{session['form_session_id']}/submit").json()
     episode_id = submitted["prediction_episode_id"]
@@ -75,10 +81,8 @@ def test_professional_journey_end_to_end(caregiver, professional, clock, db) -> 
         {
             "strategy_version_id": pending[1],
             "decision": "human_plan_substituted",
-            "human_plan": {
-                "action_text_es": "Acordamos un aviso verbal breve antes de cada cambio.",
-                "allowed_executor_roles": ["caregiver"],
-            },
+            "human_plan_action_text_es": "Acordamos un aviso verbal breve antes de cada cambio.",
+            "human_plan_allowed_executor_roles": ["caregiver"],
         },
         if_match=revision,
     )
@@ -102,7 +106,9 @@ def test_professional_journey_end_to_end(caregiver, professional, clock, db) -> 
 
     # 7. La cuidadora registra la aplicación del plan humano.
     clock.advance(hours=2)
-    applied_at = format_timestamp(parse_timestamp(submitted["submitted_at"]) + timedelta(hours=1))
+    applied_at = canonical_timestamp(
+        parse_timestamp(submitted["submitted_at"]) + timedelta(hours=1)
+    )
     execution = caregiver.post(
         f"/api/v1/recommendation-instances/{instance_id}/executions",
         {
@@ -116,7 +122,9 @@ def test_professional_journey_end_to_end(caregiver, professional, clock, db) -> 
     assert execution.json()["exposure_eligible"] is True
 
     # 8. El outcome se reporta aparte.
-    occurred_at = format_timestamp(parse_timestamp(submitted["submitted_at"]) + timedelta(hours=2))
+    occurred_at = canonical_timestamp(
+        parse_timestamp(submitted["submitted_at"]) + timedelta(hours=2)
+    )
     outcome = caregiver.post(
         f"/api/v1/prediction-episodes/{episode_id}/outcome-reports",
         {"value": "yes", "occurred_at": occurred_at},
@@ -153,7 +161,13 @@ def test_a_late_application_is_kept_but_not_attributed(caregiver, professional, 
     ).json()
     caregiver.post(
         f"/api/v1/form-sessions/{session['form_session_id']}/answers",
-        {"field_code": "sleep_quality", "interaction": "manual", "value": "interrupted"},
+        {
+            "answer": {
+                "field_code": "sleep_quality",
+                "interaction": "manual",
+                "value": "interrupted",
+            }
+        },
     )
     submitted = caregiver.post(f"/api/v1/form-sessions/{session['form_session_id']}/submit").json()
     instance_id = submitted["recommendation_instance_id"]
@@ -171,7 +185,7 @@ def test_a_late_application_is_kept_but_not_attributed(caregiver, professional, 
     revision = caregiver.get(
         f"/api/v1/prediction-episodes/{submitted['prediction_episode_id']}/recommendations"
     ).json()["revision"]
-    late_applied_at = format_timestamp(
+    late_applied_at = canonical_timestamp(
         parse_timestamp(submitted["submitted_at"]) + timedelta(hours=26)
     )
     execution = caregiver.post(

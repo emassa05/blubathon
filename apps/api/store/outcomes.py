@@ -17,9 +17,9 @@ from typing import Any
 from uuid import uuid4
 
 from apps.api.contracts.enums import (
-    OutcomeRequestStatus,
-    OutcomeValue,
-    ResolutionStatus,
+    OutcomeReportValue,
+    OutcomeRequestState,
+    OutcomeResolutionStatus,
     TimingStatus,
 )
 from apps.api.store.json_columns import dump, load_list
@@ -180,7 +180,7 @@ def compute_resolution(
     eligible_yes = [
         row
         for row in reports
-        if row["value"] == OutcomeValue.YES.value
+        if row["value"] == OutcomeReportValue.YES.value
         and row["timing_status"] in (TimingStatus.EARLY.value, TimingStatus.ON_TIME.value)
         and in_window(row["occurred_at"])
     ]
@@ -188,7 +188,7 @@ def compute_resolution(
     eligible_no = [
         row
         for row in reports
-        if row["value"] == OutcomeValue.NO.value
+        if row["value"] == OutcomeReportValue.NO.value
         and row["timing_status"] == TimingStatus.ON_TIME.value
     ]
 
@@ -201,7 +201,7 @@ def compute_resolution(
             key=lambda row: (row["reported_at"], row["outcome_report_id"]),
         )
         return ResolutionOutcome(
-            status=ResolutionStatus.CONFLICTED.value,
+            status=OutcomeResolutionStatus.CONFLICTED.value,
             resolved_at=latest["reported_at"],
             qualifying_report_id=None,
             ever_conflicted=True,
@@ -209,7 +209,7 @@ def compute_resolution(
     if eligible_yes:
         chosen = first(eligible_yes)
         return ResolutionOutcome(
-            status=ResolutionStatus.YES.value,
+            status=OutcomeResolutionStatus.YES.value,
             resolved_at=chosen["reported_at"],
             qualifying_report_id=chosen["outcome_report_id"],
             ever_conflicted=previously_conflicted,
@@ -217,7 +217,7 @@ def compute_resolution(
     if eligible_no:
         chosen = first(eligible_no)
         return ResolutionOutcome(
-            status=ResolutionStatus.NO.value,
+            status=OutcomeResolutionStatus.NO.value,
             resolved_at=chosen["reported_at"],
             qualifying_report_id=chosen["outcome_report_id"],
             ever_conflicted=previously_conflicted,
@@ -225,13 +225,13 @@ def compute_resolution(
     if now > capture_deadline_at:
         # Sin reporte concluyente al deadline: unknown, nunca `no` (INV-14).
         return ResolutionOutcome(
-            status=ResolutionStatus.UNKNOWN.value,
+            status=OutcomeResolutionStatus.UNKNOWN.value,
             resolved_at=capture_deadline_at,
             qualifying_report_id=None,
             ever_conflicted=previously_conflicted,
         )
     return ResolutionOutcome(
-        status=ResolutionStatus.PENDING.value,
+        status=OutcomeResolutionStatus.PENDING.value,
         resolved_at=None,
         qualifying_report_id=None,
         ever_conflicted=previously_conflicted,
@@ -300,17 +300,17 @@ def materialize_resolution(
 
 def derive_request_status(
     *, resolution_status: str, capture_deadline_at: str, now: str
-) -> OutcomeRequestStatus:
+) -> OutcomeRequestState:
     """SPEC 4.4. El request no guarda estado: se deriva de resolución y reloj."""
-    if resolution_status in (ResolutionStatus.YES.value, ResolutionStatus.NO.value):
-        return OutcomeRequestStatus.REPORTED
-    if resolution_status == ResolutionStatus.CONFLICTED.value:
-        return OutcomeRequestStatus.CONFLICTED
-    if resolution_status == ResolutionStatus.UNKNOWN.value:
-        return OutcomeRequestStatus.MISSING
+    if resolution_status in (OutcomeResolutionStatus.YES.value, OutcomeResolutionStatus.NO.value):
+        return OutcomeRequestState.REPORTED
+    if resolution_status == OutcomeResolutionStatus.CONFLICTED.value:
+        return OutcomeRequestState.CONFLICTED
+    if resolution_status == OutcomeResolutionStatus.UNKNOWN.value:
+        return OutcomeRequestState.MISSING
     if now > capture_deadline_at:
-        return OutcomeRequestStatus.MISSING
-    return OutcomeRequestStatus.OPEN
+        return OutcomeRequestState.MISSING
+    return OutcomeRequestState.OPEN
 
 
 def eligible_reporter_roles(row: sqlite3.Row) -> tuple[str, ...]:

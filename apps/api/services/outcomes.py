@@ -9,24 +9,23 @@ from __future__ import annotations
 import sqlite3
 
 from apps.api.auth.context import ActorContext
-from apps.api.canonical import format_timestamp
+from apps.api.canonical import canonical_timestamp
 from apps.api.contracts.enums import (
     CohortKind,
     DataOrigin,
     GrantCapability,
     IntakeChannel,
-    OutcomeValue,
-    ResolutionStatus,
+    OutcomeReportValue,
+    OutcomeResolutionStatus,
 )
 from apps.api.contracts.models import (
-    CreateOutcomeReportRequest,
-    OutcomeReportResponse,
+    OutcomeReportRequest,
+    OutcomeReportResponseView,
     OutcomeReportView,
-    OutcomeRequestListView,
+    OutcomeRequestListResponse,
     OutcomeRequestView,
     OutcomeResolutionView,
 )
-from apps.api.contracts.texts import EMERGENCY_NOTICE_ES
 from apps.api.errors import AuditIntent, forbidden, invalid, not_found
 from apps.api.services.base import Services
 from apps.api.store import audit, episodes, identity
@@ -42,7 +41,7 @@ class OutcomeService:
 
     def list_requests(
         self, connection: sqlite3.Connection, *, actor: ActorContext, now: str
-    ) -> OutcomeRequestListView:
+    ) -> OutcomeRequestListResponse:
         """SPEC 4.4: resolución pending, deadline abierto, rol y grant activos.
 
         El filtro por sujeto ocurre en SQL con los grants del actor; no se cargan
@@ -55,7 +54,7 @@ class OutcomeService:
             cutoff=now,
         )
         if not subject_ids:
-            return OutcomeRequestListView(items=[], emergency_notice_es=EMERGENCY_NOTICE_ES)
+            return OutcomeRequestListResponse(items=[])
         placeholders = ",".join("?" for _ in subject_ids)
         rows = connection.execute(
             "SELECT r.*, s.display_label FROM outcome_requests AS r"
@@ -72,12 +71,12 @@ class OutcomeService:
             if not any(actor.has_role(role) for role in roles):
                 continue
             resolution = self._refresh_resolution(connection, row=row, now=now)
-            if resolution["status"] != ResolutionStatus.PENDING.value:
+            if resolution["status"] != OutcomeResolutionStatus.PENDING.value:
                 continue
             target_row = identity.target_definition(connection, row["target_definition_version"])
             if target_row is None:
                 continue
-            status = outcomes_store.derive_request_status(
+            state = outcomes_store.derive_request_status(
                 resolution_status=resolution["status"],
                 capture_deadline_at=row["capture_deadline_at"],
                 now=now,
@@ -87,7 +86,7 @@ class OutcomeService:
                     outcome_request_id=row["outcome_request_id"],
                     prediction_episode_id=row["prediction_episode_id"],
                     subject_id=row["subject_id"],
-                    subject_label=row["display_label"],
+                    target_definition_version=row["target_definition_version"],
                     question_es=target_row["question_es"],
                     severity_anchors_es=[
                         str(item) for item in load_list(target_row["severity_anchors_es"])
@@ -95,11 +94,11 @@ class OutcomeService:
                     target_start_at=row["target_start_at"],
                     target_end_at=row["target_end_at"],
                     capture_deadline_at=row["capture_deadline_at"],
-                    status=status.value,
+                    state=state.value,
                     resolution_status=resolution["status"],
                 )
             )
-        return OutcomeRequestListView(items=items, emergency_notice_es=EMERGENCY_NOTICE_ES)
+        return OutcomeRequestListResponse(items=items)
 
     # -- reautorización de replay -----------------------------------------
 
@@ -138,9 +137,9 @@ class OutcomeService:
         *,
         actor: ActorContext,
         prediction_episode_id: str,
-        request: CreateOutcomeReportRequest,
+        request: OutcomeReportRequest,
         now: str,
-    ) -> OutcomeReportResponse:
+    ) -> OutcomeReportResponseView:
         episode = episodes.episode(connection, prediction_episode_id)
         if episode is None or episode["tenant_id"] != actor.tenant_id:
             raise not_found()
@@ -175,9 +174,11 @@ class OutcomeService:
                 ),
             )
 
-        value = OutcomeValue(request.value)
-        occurred_at = None if request.occurred_at is None else format_timestamp(request.occurred_at)
-        if value is OutcomeValue.YES:
+        value = OutcomeReportValue(request.value)
+        occurred_at = (
+            None if request.occurred_at is None else canonical_timestamp(request.occurred_at)
+        )
+        if value is OutcomeReportValue.YES:
             if occurred_at is None:
                 raise invalid("outcome_occurred_at_required")
             if not (episode["target_start_at"] < occurred_at <= episode["target_end_at"]):
@@ -251,15 +252,15 @@ class OutcomeService:
         )
         report_row = outcomes_store.report(connection, outcome_report_id)
         assert report_row is not None
-        status = outcomes_store.derive_request_status(
+        state = outcomes_store.derive_request_status(
             resolution_status=resolution["status"],
             capture_deadline_at=episode["capture_deadline_at"],
             now=now,
         )
-        return OutcomeReportResponse(
+        return OutcomeReportResponseView(
             report=_report_view(report_row),
             resolution=_resolution_view(resolution),
-            request_status=status.value,
+            request_state=state.value,
         )
 
     # -- soporte ---------------------------------------------------------
@@ -288,14 +289,13 @@ def _report_view(row: sqlite3.Row) -> OutcomeReportView:
         reported_at=row["reported_at"],
         timing_status=row["timing_status"],
         reporter_role=row["reporter_role"],
+        intake_channel=row["intake_channel"],
         target_definition_version=row["target_definition_version"],
-        supersedes_id=row["supersedes_id"],
     )
 
 
 def _resolution_view(row: sqlite3.Row) -> OutcomeResolutionView:
     return OutcomeResolutionView(
-        outcome_resolution_id=row["outcome_resolution_id"],
         status=row["status"],
         resolved_at=row["resolved_at"],
         qualifying_report_id=row["qualifying_report_id"],

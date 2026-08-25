@@ -39,7 +39,6 @@ def test_abstained_instance_is_served_as_status_abstained(caregiver) -> None:
     assert view["items"] == []
     assert view["reasons"] == ["clinical_review_unavailable"]
     assert view["catalog_version"] is None
-    assert "emergencias" in view["emergency_notice_es"]
 
 
 def test_missing_corpus_takes_precedence_over_every_other_reason(caregiver, db) -> None:

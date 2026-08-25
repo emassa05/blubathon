@@ -18,7 +18,6 @@ def test_session_context_lists_only_granted_subjects(caregiver) -> None:
     labels = {item["subject_id"] for item in body["subjects"]}
     assert labels == {ids.SUBJECT_ANA, ids.SUBJECT_BETO}
     assert ids.SUBJECT_SIN_GRANT not in labels
-    assert "no monitorea emergencias" in body["emergency_notice_es"]
 
 
 def test_unauthenticated_request_is_401(client) -> None:

@@ -17,7 +17,7 @@ from datetime import timedelta
 from typing import Any
 
 from apps.api.auth.context import ActorContext
-from apps.api.canonical import format_timestamp, keyed_scenario_hash, parse_timestamp
+from apps.api.canonical import canonical_timestamp, keyed_scenario_hash, parse_timestamp
 from apps.api.contracts.constants import (
     FORM_POLICY_VERSION,
     OUTCOME_CAPTURE_LIMIT_HOURS,
@@ -29,25 +29,28 @@ from apps.api.contracts.enums import (
     CohortKind,
     ConsentPurpose,
     DataOrigin,
+    FormSessionKind,
     FormSessionStatus,
     GrantCapability,
     IntakeChannel,
-    PredictionStatus,
-    ResolutionStatus,
+    OutcomeResolutionStatus,
     Role,
     RuntimeStatus,
-    SessionKind,
     Source,
+    SubmitStatus,
 )
-from apps.api.contracts.field_catalog import FieldValueError, is_applicable, validate_value
+from apps.api.contracts.field_catalog import (
+    UnknownFieldValueError,
+    applicable_fields,
+    validate_field_value,
+)
 from apps.api.contracts.models import (
     AnswerAcceptedView,
     AnswerRequest,
+    FormSessionCreateRequest,
     FormSessionView,
-    OpenFormSessionRequest,
     SubmitFormSessionView,
 )
-from apps.api.contracts.texts import EMERGENCY_NOTICE_ES
 from apps.api.errors import invalid, not_found
 from apps.api.services import form_plan
 from apps.api.services.base import Services
@@ -112,7 +115,7 @@ class FormSessionService:
         connection: sqlite3.Connection,
         *,
         actor: ActorContext,
-        request: OpenFormSessionRequest,
+        request: FormSessionCreateRequest,
         now: str,
     ) -> FormSessionView:
         subject_id = str(request.subject_id)
@@ -124,8 +127,8 @@ class FormSessionService:
             cutoff=now,
             action="form_session_open",
         )
-        session_kind = SessionKind(request.session_kind)
-        if session_kind is SessionKind.PROFESSIONAL_OBSERVATION and not actor.has_role(
+        session_kind = FormSessionKind(request.session_kind)
+        if session_kind is FormSessionKind.PROFESSIONAL_OBSERVATION and not actor.has_role(
             Role.PROFESSIONAL
         ):
             raise invalid("role_not_allowed")
@@ -187,22 +190,23 @@ class FormSessionService:
             action="form_answer",
         )
         source = Source(session["source"])
-        if not is_applicable(request.field_code, source):
-            raise invalid("field_not_allowed_for_source", field_code=request.field_code)
+        answer = request.answer
+        if answer.field_code not in applicable_fields(source):
+            raise invalid("field_not_allowed_for_source", field_code=answer.field_code)
 
         presentation = sessions_store.current_default_presentation(
-            connection, form_session_id=form_session_id, field_code=request.field_code
+            connection, form_session_id=form_session_id, field_code=answer.field_code
         )
-        interaction = AnswerInteraction(request.interaction)
-        if request.default_presentation_id is not None and (
+        interaction = AnswerInteraction(answer.interaction)
+        if answer.default_presentation_id is not None and (
             presentation is None
-            or presentation["default_presentation_id"] != str(request.default_presentation_id)
+            or presentation["default_presentation_id"] != str(answer.default_presentation_id)
         ):
             raise invalid("default_presentation_not_current")
 
         entry_mode = derive_entry_mode(
             intake_channel=IntakeChannel.FORM,
-            session_kind=SessionKind(session["session_kind"]),
+            session_kind=FormSessionKind(session["session_kind"]),
             audit_mode=bool(session["audit_mode"]),
             interaction=interaction,
             has_current_presentation=presentation is not None,
@@ -210,31 +214,37 @@ class FormSessionService:
 
         value: Any | None
         if interaction is AnswerInteraction.UNKNOWN:
-            if request.value is not None:
+            if answer.value is not None:
                 raise invalid("validation_error", reason="unknown_carries_no_value")
             value = None
         elif interaction is AnswerInteraction.ACCEPT_DEFAULT:
-            assert presentation is not None
+            # `AnswerSubmission` exige que quien acepta declare el valor que
+            # aceptó. El servidor no lo cree: lo compara con lo presentado, y si
+            # no coincide la interacción declarada es falsa (SPEC 5.5 regla 7).
+            if presentation is None:
+                raise invalid("default_presentation_not_current")
             value = load(presentation["candidate_value"])
+            if validate_field_value(answer.field_code, answer.value) != value:
+                raise invalid("validation_error", reason="accepted_value_is_not_the_presented_one")
         else:
             try:
-                value = validate_value(request.field_code, request.value)
-            except FieldValueError as error:
+                value = validate_field_value(answer.field_code, answer.value)
+            except UnknownFieldValueError as error:
                 raise invalid("validation_error", field_code=error.field_code) from error
 
-        supersedes_id = None if request.supersedes_id is None else str(request.supersedes_id)
+        supersedes_id = None if answer.supersedes_id is None else str(answer.supersedes_id)
         if supersedes_id is not None:
             previous = connection.execute(
                 "SELECT field_observation_id FROM field_observations"
                 " WHERE field_observation_id = ? AND tenant_id = ? AND form_session_id = ?"
                 " AND field_code = ?",
-                (supersedes_id, actor.tenant_id, form_session_id, request.field_code),
+                (supersedes_id, actor.tenant_id, form_session_id, answer.field_code),
             ).fetchone()
             if previous is None:
                 raise invalid("validation_error", reason="supersedes_id_not_correctable")
 
         effective_at = (
-            now if request.effective_at is None else format_timestamp(request.effective_at)
+            now if answer.effective_at is None else canonical_timestamp(answer.effective_at)
         )
         if effective_at > now:
             # El cliente puede declarar un tiempo efectivo, nunca uno futuro.
@@ -248,7 +258,7 @@ class FormSessionService:
                 tenant_id=actor.tenant_id,
                 subject_id=session["subject_id"],
                 form_session_id=form_session_id,
-                field_code=request.field_code,
+                field_code=answer.field_code,
                 value=value,
                 source=source.value,
                 actor_id=actor.actor_id,
@@ -278,7 +288,7 @@ class FormSessionService:
         )
         return AnswerAcceptedView(
             field_observation_id=field_observation_id,
-            field_code=request.field_code,
+            field_code=answer.field_code,
             entry_mode=entry_mode.value,
             session=self.view(connection, actor=actor, form_session_id=form_session_id, now=now),
         )
@@ -338,10 +348,9 @@ class FormSessionService:
             )
             return SubmitFormSessionView(
                 form_session_id=form_session_id,
-                status=PredictionStatus.TARGET_DEFINITION_UNAVAILABLE.value,
+                status=SubmitStatus.TARGET_DEFINITION_UNAVAILABLE.value,
                 submitted_at=now,
                 reasons=[reason],
-                emergency_notice_es=EMERGENCY_NOTICE_ES,
             )
 
         open_episode = sessions_store.open_primary_episode(
@@ -356,7 +365,7 @@ class FormSessionService:
                 connection,
                 form_session_id=form_session_id,
                 submitted_at=now,
-                prediction_status=PredictionStatus.EPISODE_LINKED.value,
+                prediction_status=SubmitStatus.EPISODE_LINKED.value,
                 prediction_episode_id=None,
                 linked_prediction_episode_id=open_episode["prediction_episode_id"],
             )
@@ -368,7 +377,7 @@ class FormSessionService:
             )
             return SubmitFormSessionView(
                 form_session_id=form_session_id,
-                status=PredictionStatus.EPISODE_LINKED.value,
+                status=SubmitStatus.EPISODE_LINKED.value,
                 submitted_at=now,
                 linked_prediction_episode_id=open_episode["prediction_episode_id"],
                 outcome_request_id=(
@@ -379,7 +388,6 @@ class FormSessionService:
                     if existing_instance is None
                     else existing_instance["recommendation_instance_id"]
                 ),
-                emergency_notice_es=EMERGENCY_NOTICE_ES,
             )
 
         view = self._create_episode(
@@ -398,7 +406,7 @@ class FormSessionService:
             resource_id=str(view.prediction_episode_id),
             subject_id=session["subject_id"],
             decision="allowed",
-            reason_code=PredictionStatus.EPISODE_CREATED.value,
+            reason_code=SubmitStatus.EPISODE_CREATED.value,
             occurred_at=now,
             request_id=actor.request_id,
         )
@@ -416,8 +424,10 @@ class FormSessionService:
     ) -> SubmitFormSessionView:
         """Todo lo del episodio ocurre en la transacción abierta por la ruta."""
         as_of = parse_timestamp(now)
-        target_end_at = format_timestamp(as_of + timedelta(hours=TARGET_HORIZON_HOURS))
-        capture_deadline_at = format_timestamp(as_of + timedelta(hours=OUTCOME_CAPTURE_LIMIT_HOURS))
+        target_end_at = canonical_timestamp(as_of + timedelta(hours=TARGET_HORIZON_HOURS))
+        capture_deadline_at = canonical_timestamp(
+            as_of + timedelta(hours=OUTCOME_CAPTURE_LIMIT_HOURS)
+        )
         origin = _origin_for(subject["cohort_kind"])
         profile = identity.active_profile(
             connection,
@@ -430,7 +440,7 @@ class FormSessionService:
             connection,
             form_session_id=session["form_session_id"],
             submitted_at=now,
-            prediction_status=PredictionStatus.EPISODE_CREATED.value,
+            prediction_status=SubmitStatus.EPISODE_CREATED.value,
             prediction_episode_id=None,
             linked_prediction_episode_id=None,
         )
@@ -534,12 +544,11 @@ class FormSessionService:
         )
         return SubmitFormSessionView(
             form_session_id=session["form_session_id"],
-            status=PredictionStatus.EPISODE_CREATED.value,
+            status=SubmitStatus.EPISODE_CREATED.value,
             submitted_at=now,
             prediction_episode_id=prediction_episode_id,
             outcome_request_id=outcome_request_id,
             recommendation_instance_id=recommendation_instance_id,
-            emergency_notice_es=EMERGENCY_NOTICE_ES,
         )
 
     def _create_recommendation_instance(
@@ -710,7 +719,6 @@ class FormSessionService:
             answered_field_codes=list(
                 sessions_store.answered_field_codes(connection, form_session_id)
             ),
-            emergency_notice_es=EMERGENCY_NOTICE_ES,
         )
 
     def _pending_outcome(
@@ -729,20 +737,20 @@ class FormSessionService:
         if row is None:
             return None
         resolution = outcomes.active_resolution(connection, row["prediction_episode_id"])
-        if resolution is None or resolution["status"] != ResolutionStatus.PENDING.value:
+        if resolution is None or resolution["status"] != OutcomeResolutionStatus.PENDING.value:
             return None
         if not any(actor.has_role(role) for role in outcomes.eligible_reporter_roles(row)):
             return None
         target_row = identity.target_definition(connection, row["target_definition_version"])
         if target_row is None:
             return None
-        status = outcomes.derive_request_status(
+        state = outcomes.derive_request_status(
             resolution_status=resolution["status"],
             capture_deadline_at=row["capture_deadline_at"],
             now=now,
         )
         return form_plan.outcome_block(
-            connection, request_row=row, target_row=target_row, status=status.value
+            connection, request_row=row, target_row=target_row, state=state.value
         )
 
     def _session(

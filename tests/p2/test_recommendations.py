@@ -120,10 +120,8 @@ def test_human_plan_replaces_the_strategy_without_rag_citations(caregiver, profe
         {
             "strategy_version_id": strategy_version_id,
             "decision": "human_plan_substituted",
-            "human_plan": {
-                "action_text_es": "Acordamos con la familia un plan propio para hoy.",
-                "allowed_executor_roles": ["caregiver"],
-            },
+            "human_plan_action_text_es": "Acordamos con la familia un plan propio para hoy.",
+            "human_plan_allowed_executor_roles": ["caregiver"],
         },
         if_match=instance["revision"],
     )
@@ -144,10 +142,8 @@ def test_human_plan_cannot_widen_executor_roles(caregiver, professional) -> None
         {
             "strategy_version_id": instance["pending_strategy_version_ids"][0],
             "decision": "human_plan_substituted",
-            "human_plan": {
-                "action_text_es": "Plan propio.",
-                "allowed_executor_roles": ["caregiver", "tenant_admin"],
-            },
+            "human_plan_action_text_es": "Plan propio.",
+            "human_plan_allowed_executor_roles": ["caregiver", "tenant_admin"],
         },
         if_match=instance["revision"],
     )

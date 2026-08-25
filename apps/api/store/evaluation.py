@@ -8,7 +8,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from apps.api.store.json_columns import load_dict, load_list
+from apps.api.store.json_columns import load_list
 
 
 def published_report(
@@ -26,5 +26,5 @@ def published_report(
         return None
     return dict(row) | {
         "metrics": load_list(row["metrics"]),
-        "abstention_by_reason": load_dict(row["abstention_by_reason"]),
+        "abstentions": load_list(row["abstentions"]),
     }
