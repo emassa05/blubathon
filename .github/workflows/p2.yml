@@ -1,5 +1,7 @@
-# Gate de P2 (TAREAS 11). Corre solo lo que P2 posee: API, store, seguridad,
-# integración y frontend. El gate de P1 y el gate conjunto viven aparte.
+# Gate del repositorio integrado. Desde que P1 y P2 viven en la misma rama, el
+# gate corre las dos zonas y las tres comprobaciones que las unen: que el
+# contrato generado no se editó a mano, que las capas siguen en pie, y que el
+# camino real de los adaptadores existe.
 name: p2
 
 on:
@@ -27,16 +29,29 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
-      # El gate de P2 se limita a su zona (CONVENTIONS 5). El gate conjunto,
-      # que corre ruff y lint-imports sobre todo el repositorio, lo ejecutan
-      # ambas personas antes del release.
-      - name: Formato y lint de la zona P2
+      # `generated/` y `examples/` se regeneran desde los modelos: si el diff no
+      # sale vacío, alguien los editó a mano.
+      - name: El contrato publicado no se tocó a mano
         run: |
-          ruff check apps tools/seed tests/p2 tests/integration
-          ruff format --check apps tools/seed tests/p2 tests/integration
+          python -m tools.contracts.generate
+          python -m tools.contracts.examples
+          git diff --exit-code packages/shared/generated packages/shared/examples
 
-      - name: Tests de P2 e integración
-        run: pytest tests/p2 tests/integration -q
+      - name: Formato y lint
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Contratos de import
+        run: lint-imports
+
+      - name: Tests
+        run: pytest tests -q
+
+      - name: El camino real de los adaptadores existe
+        env:
+          FARO_P1_ADAPTERS: real
+        run: pytest tests/integration -q
 
       - name: Siembra reproducible de la demo
         env:
