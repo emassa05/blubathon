@@ -1,0 +1,11 @@
+{
+  "schema_version": "scenario-1",
+  "field_values": {
+    "eating_status": "4"
+  },
+  "context_tags": [
+    "therapy"
+  ],
+  "profile_tags": [],
+  "contraindication_tags": []
+}

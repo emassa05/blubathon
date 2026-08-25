@@ -1,0 +1,8 @@
+{
+  "answer": {
+    "field_code": "food_changes",
+    "interaction": "edit_default",
+    "value": true,
+    "default_presentation_id": "1aca92c3-e8e3-4cd5-8ff3-833e4482aaf2"
+  }
+}

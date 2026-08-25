@@ -1,0 +1,10 @@
+{
+  "status": "abstained",
+  "recommendation_instance_id": "20abb530-cc5b-4235-8511-f7268e74ee00",
+  "catalog_version": null,
+  "corpus_version": null,
+  "items": [],
+  "reasons": [
+    "corpus_not_ready"
+  ]
+}

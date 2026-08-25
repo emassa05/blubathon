@@ -1,0 +1,29 @@
+{
+  "form_session_id": "2d28e07d-72e9-419a-9a1a-87a8a1a3eedc",
+  "subject_id": "f64b2806-24ea-441c-9dc3-93f76d252bd6",
+  "source": "home",
+  "session_kind": "caregiver_daily",
+  "opened_at": "2026-08-25T19:55:00.000Z",
+  "audit_mode": true,
+  "form_policy_version": "form-0.3.0",
+  "voi_status": "unavailable_model",
+  "highlighted": [
+    {
+      "field_code": "sleep_quality",
+      "reason": "staleness",
+      "voi_nats": null
+    },
+    {
+      "field_code": "food_changes",
+      "reason": "canonical_order",
+      "voi_nats": null
+    }
+  ],
+  "tail": [
+    {
+      "field_code": "notes",
+      "reason": "tail",
+      "voi_nats": null
+    }
+  ]
+}

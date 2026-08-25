@@ -1,0 +1,20 @@
+{
+  "prediction_episode_id": "f26081f2-9dfe-47e7-ad1b-c2005526e2c3",
+  "tenant_id": "3a6fadbd-ad44-402d-81c5-5e2de2365242",
+  "subject_id": "f64b2806-24ea-441c-9dc3-93f76d252bd6",
+  "form_session_id": "2d28e07d-72e9-419a-9a1a-87a8a1a3eedc",
+  "role": "primary",
+  "status": "completed",
+  "as_of_at": "2026-08-25T19:55:00.000Z",
+  "prediction_at": "2026-08-25T19:55:00.000Z",
+  "target_start_at": "2026-08-25T19:55:00.000Z",
+  "target_end_at": "2026-08-26T18:55:00.000Z",
+  "capture_deadline_at": "2026-08-27T19:55:00.000Z",
+  "target_definition_version": "target-demo-1",
+  "care_mode": "standard_support",
+  "profile_version": "profile-1",
+  "cohort_kind": "demo_fixture",
+  "input_data_origin": "synthetic",
+  "feature_snapshot_id": null,
+  "created_at": "2026-08-25T19:55:00.000Z"
+}

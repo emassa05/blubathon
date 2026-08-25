@@ -1,0 +1,28 @@
+{
+  "prediction_episode_id": "f26081f2-9dfe-47e7-ad1b-c2005526e2c3",
+  "subject_id": "f64b2806-24ea-441c-9dc3-93f76d252bd6",
+  "as_of_at": "2026-08-25T19:55:00.000Z",
+  "target_start_at": "2026-08-25T19:55:00.000Z",
+  "target_end_at": "2026-08-26T19:55:00.000Z",
+  "capture_deadline_at": "2026-08-27T19:55:00.000Z",
+  "target_definition_version": "target-demo-1",
+  "decision_policy_version": null,
+  "risk_band": null,
+  "outputs": [
+    {
+      "track_id": "real_personal_baseline_v1",
+      "intended_use": "operational_support",
+      "status": "abstained",
+      "estimate_kind": "personal_observed_episode_rate",
+      "probability": null,
+      "simulation_score": null,
+      "interval": null,
+      "interval_method": null,
+      "abstention_reasons": [
+        "insufficient_verified_outcomes"
+      ],
+      "model_version": "real-personal-baseline-0.3.0",
+      "input_data_origin": "real"
+    }
+  ]
+}

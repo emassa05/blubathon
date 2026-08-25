@@ -15,6 +15,9 @@ dependencies = [
     # serialisation is subtle enough that a validated implementation beats a
     # hand-written one (CONVENTIONS 20).
     "rfc8785>=0.1.4,<1",
+    # `America/Santiago` has to resolve identically on every machine, and
+    # Windows ships no IANA database (SPEC 5.1 / C03).
+    "tzdata>=2024.1",
     # Statistics. Beta/Dirichlet quantiles and L-BFGS-B come from SciPy, never
     # from a hand-rolled approximation (CONVENTIONS 9.2).
     "numpy>=2.1,<3",
