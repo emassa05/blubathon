@@ -11,8 +11,10 @@ from pathlib import Path
 
 from tests.p1 import rag_factories as rf
 from tools.rag_authoring.cli import (
+    BUILD_MANIFEST_PATH,
     CORPUS_CANDIDATES,
     MODEL_CANDIDATES,
+    build_status_manifest,
     main,
     resolved_retrieval_mode,
     status_report,
@@ -107,3 +109,48 @@ class TestBuild:
         corpus_dir.mkdir()
         assert main(["build", "--corpus-dir", str(corpus_dir), "--out", str(tmp_path / "out")]) == 1
         assert json.loads(capsys.readouterr().out)["reason"] == "corpus_not_ready"
+
+
+class TestHandoffManifest:
+    def test_the_committed_manifest_matches_what_the_code_produces(self) -> None:
+        corpus, models = _manifests()
+        expected = build_status_manifest(corpus, models)
+        committed = json.loads(BUILD_MANIFEST_PATH.read_text(encoding="utf-8"))
+        assert committed == expected
+
+    def test_the_manifest_carries_every_version_that_fixes_a_result(self) -> None:
+        corpus, models = _manifests()
+        pipeline = build_status_manifest(corpus, models)["pipeline"]
+        assert set(pipeline) == {
+            "extractor_version",
+            "ocr_version",
+            "normalization_version",
+            "chunker_version",
+            "chunk_size",
+            "chunk_overlap",
+            "tokenizer_version",
+            "bm25_version",
+            "bm25_parameters",
+            "lexical_top_k",
+            "dense_top_k",
+            "rrf_k",
+            "final_chunk_count",
+            "prompt_version",
+            "prompt_sha256",
+        }
+        assert len(pipeline["prompt_sha256"]) == 64
+
+    def test_the_manifest_declares_the_blocked_corpus_rather_than_a_catalogue(self) -> None:
+        corpus, models = _manifests()
+        manifest = build_status_manifest(corpus, models)
+        assert manifest["catalog_status"] == "blocked_corpus"
+        assert manifest["catalog_readiness"] == "corpus_not_ready"
+        assert manifest["corpus_versions"] == []
+        assert manifest["catalog_versions"] == []
+        assert manifest["runtime"]["llm_calls"] == 0
+
+    def test_the_command_rewrites_the_manifest(self, tmp_path: Path, capsys) -> None:
+        target = tmp_path / "rag-build.manifest.json"
+        assert main(["manifest", "--out", str(target)]) == 0
+        capsys.readouterr()
+        assert json.loads(target.read_text(encoding="utf-8"))["manifest_kind"] == "rag_build"

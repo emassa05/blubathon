@@ -12,6 +12,14 @@
       "model": "ErrorResponse"
     },
     {
+      "file": "valid/evaluation.real_not_estimable.json",
+      "model": "EvaluationResponse"
+    },
+    {
+      "file": "valid/evaluation.simulation_only.json",
+      "model": "EvaluationResponse"
+    },
+    {
       "file": "valid/form_answer.accept_default.json",
       "model": "FormAnswerRequest"
     },
@@ -68,6 +76,10 @@
       "model": "RecommendationResponse"
     },
     {
+      "file": "valid/recommendation.clinical_review_unavailable.json",
+      "model": "RecommendationResponse"
+    },
+    {
       "file": "valid/recommendation.match.json",
       "model": "RecommendationResponse"
     }
@@ -77,6 +89,11 @@
       "file": "invalid/episode.shifted_window.invalid.json",
       "model": "PredictionEpisode",
       "violates": "SPEC 4.1: the target window is exactly 24 hours after prediction_at"
+    },
+    {
+      "file": "invalid/evaluation.synthetic_without_simulation_only.invalid.json",
+      "model": "EvaluationResponse",
+      "violates": "SPEC 14.3 / INV-34: synthetic metrics are labelled simulation_only"
     },
     {
       "file": "invalid/form_answer.accept_default_without_presentation.invalid.json",

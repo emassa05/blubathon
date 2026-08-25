@@ -504,6 +504,17 @@ class EvaluationResponse(FaroModel):
     abstentions: tuple[AbstentionBreakdown, ...] = ()
     limitations_es: tuple[str, ...] = Field(min_length=1)
 
+    @model_validator(mode="after")
+    def _synthetic_metrics_say_simulation_only(self) -> Self:
+        """INV-34: a synthetic report is labelled where a reader can see it."""
+
+        if (
+            self.data_origin is DataOrigin.SYNTHETIC
+            and self.intended_use is not IntendedUse.SIMULATION_ONLY
+        ):
+            raise ValueError("a synthetic report is simulation_only and says so")
+        return self
+
 
 class IdempotencyScope(FaroModel):
     """`(tenant, actor, method, concrete path, key)` (SPEC 11.2).

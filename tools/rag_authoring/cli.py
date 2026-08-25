@@ -1,6 +1,6 @@
 """Local authoring CLI (TAREAS P1.6, H4).
 
-Authoring is offline work with a CLI, not a public endpoint (SPEC 11.1). Two
+Authoring is offline work with a CLI, not a public endpoint (SPEC 11.1). Three
 commands:
 
 ``status``
@@ -13,6 +13,10 @@ commands:
     Builds chunks, a lexical index, a corpus version and a build manifest from a
     directory of rights-cleared documents, and writes only manifests and hashes.
     Document bodies, extracted text and indices never enter Git.
+``manifest``
+    Writes `data/rag-build.manifest.json`, the M4 handoff: every version and
+    hash that fixes a retrieval result, plus the declared corpus and catalogue
+    status. It is generated, not typed, so it cannot drift from the code.
 """
 
 from __future__ import annotations
@@ -25,11 +29,25 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
 
+from packages.shared.constants import (
+    MAX_RUNTIME_STRATEGIES,
+    RAG_DENSE_TOP_K,
+    RAG_FINAL_CHUNKS,
+    RAG_LEXICAL_TOP_K,
+    RAG_RRF_K,
+    RUNTIME_LLM_CALLS,
+    SPEC_VERSION,
+    STRATEGY_REQUIRED_DISTINCT_REVIEWERS,
+)
 from packages.shared.domain.rag import resolve_catalog_readiness
 from packages.shared.enums import CatalogReadiness, RetrievalMode
+from rag.authoring.bm25 import BM25_B, BM25_K1, BM25_VERSION, TOKENIZER_VERSION
 from rag.authoring.build import DEFAULT_CHUNK_PLAN, build_authoring_corpus
+from rag.authoring.drafting import load_prompt
 from rag.authoring.retrieval import RetrievalPlan
-from rag.domain.documents import RightsNotDeclaredError, SourceDocument
+from rag.domain.documents import EXTRACTOR_VERSION, RightsNotDeclaredError, SourceDocument
+from rag.domain.hashing import RAG_SCHEMA_VERSION
+from rag.domain.normalization import NORMALIZATION_VERSION
 
 REPOSITORY_ROOT: Final = Path(__file__).resolve().parents[2]
 DATA_DIR: Final = REPOSITORY_ROOT / "data"
@@ -96,6 +114,65 @@ def status_report(
         ),
         "catalog_status": "blocked_corpus" if not documents else "not_ready",
         "consequences": corpus_manifest.get("consequences", []),
+    }
+
+
+BUILD_MANIFEST_PATH: Final = DATA_DIR / "rag-build.manifest.json"
+
+
+def build_status_manifest(
+    corpus_manifest: dict[str, Any], model_manifest: dict[str, Any]
+) -> dict[str, Any]:
+    """The M4 handoff (TAREAS H4): versions, hashes and declared status.
+
+    Everything that could change a retrieval result is named here, so P2 can
+    cite the exact pipeline without holding any corpus body, index or model.
+    """
+
+    status = status_report(corpus_manifest, model_manifest)
+    prompt = load_prompt()
+    return {
+        "manifest_kind": "rag_build",
+        "manifest_version": "1",
+        "spec_version": SPEC_VERSION,
+        "schema_version": RAG_SCHEMA_VERSION,
+        "purpose": (
+            "TAREAS M4/H4 - the authoring pipeline this repository would run today, with the "
+            "versions and hashes that fix its result. No corpus body, index or model is tracked."
+        ),
+        "retrieval_mode": status["retrieval_mode"],
+        "retrieval_mode_reason": status["retrieval_mode_reason"],
+        "pipeline": {
+            "extractor_version": EXTRACTOR_VERSION,
+            "ocr_version": None,
+            "normalization_version": NORMALIZATION_VERSION,
+            "chunker_version": DEFAULT_CHUNK_PLAN.chunker_version,
+            "chunk_size": DEFAULT_CHUNK_PLAN.chunk_size,
+            "chunk_overlap": DEFAULT_CHUNK_PLAN.chunk_overlap,
+            "tokenizer_version": TOKENIZER_VERSION,
+            "bm25_version": BM25_VERSION,
+            "bm25_parameters": {"k1": BM25_K1, "b": BM25_B},
+            "lexical_top_k": RAG_LEXICAL_TOP_K,
+            "dense_top_k": RAG_DENSE_TOP_K,
+            "rrf_k": RAG_RRF_K,
+            "final_chunk_count": RAG_FINAL_CHUNKS,
+            "prompt_version": prompt.prompt_version,
+            "prompt_sha256": prompt.prompt_sha256,
+        },
+        "runtime": {
+            "llm_calls": RUNTIME_LLM_CALLS,
+            "max_strategies": MAX_RUNTIME_STRATEGIES,
+            "required_distinct_reviewers": STRATEGY_REQUIRED_DISTINCT_REVIEWERS,
+        },
+        "corpus_status": status["corpus_status"],
+        "cleared_document_count": status["cleared_document_count"],
+        "corpus_versions": [],
+        "catalog_versions": [],
+        "catalog_readiness": status["catalog_readiness"],
+        "catalog_status": (
+            "blocked_corpus" if status["cleared_document_count"] == 0 else "not_ready"
+        ),
+        "consequences": status["consequences"],
     }
 
 
@@ -204,6 +281,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tools.rag_authoring", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="report corpus, model and catalogue readiness")
+    manifest = commands.add_parser("manifest", help="write the H4 build manifest")
+    manifest.add_argument("--out", type=Path, default=BUILD_MANIFEST_PATH)
 
     build = commands.add_parser("build", help="build chunks, index, corpus and manifest")
     build.add_argument("--corpus-dir", type=Path, required=True)
@@ -214,6 +293,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "status":
         report = status_report(_read_json(CORPUS_CANDIDATES), _read_json(MODEL_CANDIDATES))
         print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "manifest":
+        payload = build_status_manifest(_read_json(CORPUS_CANDIDATES), _read_json(MODEL_CANDIDATES))
+        args.out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"wrote {args.out}")
         return 0
     return run_build(args.corpus_dir, args.out, corpus_version=args.corpus_version)
 

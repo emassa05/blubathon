@@ -17,6 +17,7 @@
   "definition_count": 143,
   "examples": [
     "invalid/episode.shifted_window.invalid.json",
+    "invalid/evaluation.synthetic_without_simulation_only.invalid.json",
     "invalid/form_answer.accept_default_without_presentation.invalid.json",
     "invalid/form_answer.unknown_with_value.invalid.json",
     "invalid/form_session.audited_with_default.invalid.json",
@@ -34,6 +35,8 @@
     "invalid/submit.target_unavailable_with_episode.invalid.json",
     "valid/error.cross_tenant.json",
     "valid/error.idempotency_conflict.json",
+    "valid/evaluation.real_not_estimable.json",
+    "valid/evaluation.simulation_only.json",
     "valid/form_answer.accept_default.json",
     "valid/form_answer.edit_default.json",
     "valid/form_answer.manual.json",
@@ -48,6 +51,7 @@
     "valid/prediction.personal_abstained.json",
     "valid/prediction.synthetic_score.json",
     "valid/recommendation.abstained.json",
+    "valid/recommendation.clinical_review_unavailable.json",
     "valid/recommendation.match.json"
   ],
   "generated_by": "python -m tools.contracts.generate",

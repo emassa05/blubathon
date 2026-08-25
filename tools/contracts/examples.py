@@ -347,6 +347,126 @@ def valid_examples() -> dict[str, tuple[str, dict[str, Any]]]:
                 qualifying=False,
             ),
         ),
+        "recommendation.clinical_review_unavailable.json": (
+            "RecommendationResponse",
+            {
+                "status": "abstained",
+                "recommendation_instance_id": ident("recommendation-clinical-review"),
+                "catalog_version": None,
+                "corpus_version": None,
+                "items": [],
+                "reasons": ["clinical_review_unavailable"],
+            },
+        ),
+        "evaluation.real_not_estimable.json": (
+            "EvaluationResponse",
+            {
+                "model_version": "real-logit-challenger-0.3.0",
+                "track_id": "real_logit_challenger_v1",
+                "status": "draft",
+                "data_origin": "real",
+                "intended_use": "shadow_evaluation",
+                "dataset_sha256": "0" * 64,
+                "target_definition_version": "target-demo-1",
+                "protocol_version": "eval-protocol-0.3.0",
+                "metrics": [
+                    {
+                        "name": "brier_score",
+                        "status": "not_estimable",
+                        "value": None,
+                        "interval": None,
+                        "not_estimable_reason": "no_out_of_fold_predictions",
+                        "denominator": 0,
+                    },
+                    {
+                        "name": "auc_roc",
+                        "status": "not_estimable",
+                        "value": None,
+                        "interval": None,
+                        "not_estimable_reason": "single_class",
+                        "denominator": 0,
+                    },
+                    {
+                        "name": "alert_budget_recall",
+                        "status": "not_estimable",
+                        "value": None,
+                        "interval": None,
+                        "not_estimable_reason": "no_decision_policy_version",
+                        "denominator": None,
+                    },
+                ],
+                "group_metrics": [],
+                "source_metrics": [],
+                "decision_coverage": {
+                    "name": "decision_coverage",
+                    "status": "estimated",
+                    "value": 0.0,
+                    "interval": None,
+                    "not_estimable_reason": None,
+                    "denominator": 6,
+                },
+                "abstentions": [
+                    {"reason": "insufficient_verified_outcomes", "count": 6, "rate": 1.0}
+                ],
+                "limitations_es": [
+                    "Las tasas se estiman por oportunidad de formulario observada, no como "
+                    "incidencia diaria poblacional: completar el formulario puede seleccionar "
+                    "los días registrados.",
+                    "Resultados de desarrollo fuera de fold. No habilitan el estado "
+                    "shadow_evaluated, que exige un periodo prospectivo preregistrado.",
+                ],
+            },
+        ),
+        "evaluation.simulation_only.json": (
+            "EvaluationResponse",
+            {
+                "model_version": "synthetic-reference-0.2.1",
+                "track_id": "synthetic_reference_v021",
+                "status": "published",
+                "data_origin": "synthetic",
+                "intended_use": "simulation_only",
+                "dataset_sha256": "1" * 64,
+                "target_definition_version": "target-demo-1",
+                "protocol_version": "eval-protocol-0.3.0",
+                "metrics": [
+                    {
+                        "name": "brier_score",
+                        "status": "estimated",
+                        "value": 0.0812,
+                        "interval": {"lower": 0.0614, "upper": 0.1033},
+                        "not_estimable_reason": None,
+                        "denominator": 420,
+                    }
+                ],
+                "group_metrics": [
+                    {
+                        "group_kind": "care_mode",
+                        "group_value": "standard_support",
+                        "subject_count": 0,
+                        "positive_count": 0,
+                        "negative_count": 0,
+                        "suppressed": True,
+                        "metrics": [],
+                    }
+                ],
+                "source_metrics": [],
+                "decision_coverage": {
+                    "name": "decision_coverage",
+                    "status": "estimated",
+                    "value": 0.87,
+                    "interval": None,
+                    "not_estimable_reason": None,
+                    "denominator": 483,
+                },
+                "abstentions": [
+                    {"reason": "model_artifact_unavailable", "count": 63, "rate": 0.1304}
+                ],
+                "limitations_es": [
+                    "Estas métricas provienen de datos sintéticos (simulation_only). No describen "
+                    "el rendimiento con personas reales."
+                ],
+            },
+        ),
         "error.idempotency_conflict.json": (
             "ErrorResponse",
             {
@@ -435,7 +555,15 @@ def invalid_examples() -> dict[str, tuple[str, str, dict[str, Any]]]:
     unknown_with_value = json.loads(json.dumps(valid["form_answer.manual.json"][1]))
     unknown_with_value["answer"]["interaction"] = "unknown"
 
+    synthetic_without_label = json.loads(json.dumps(valid["evaluation.simulation_only.json"][1]))
+    synthetic_without_label["intended_use"] = "operational_support"
+
     return {
+        "evaluation.synthetic_without_simulation_only.invalid.json": (
+            "EvaluationResponse",
+            "SPEC 14.3 / INV-34: synthetic metrics are labelled simulation_only",
+            synthetic_without_label,
+        ),
         "form_session.audited_with_default.invalid.json": (
             "FormSessionResponse",
             "SPEC 6.6 / INV-04: an audited session returns no defaults",
