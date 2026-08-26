@@ -19,8 +19,16 @@ export const BASE_API = `${ORIGEN_API}${PREFIJO_API}`;
  * Niño que abre la pantalla. Sin valor, la app pregunta a `GET /v1/children` y
  * toma el primero: la demo no tiene selector y no queremos un UUID escrito a
  * mano en el código.
+ *
+ * `?child_id=` gana sobre la variable de entorno: la demo es mono-tenant y no
+ * tiene selector, así que la URL es la forma de mirar a otro niño sin reiniciar
+ * el servidor de desarrollo. Un id que no esté en la lista se ignora y se toma
+ * el primero, igual que si no se hubiera pedido ninguno.
  */
-export const ID_NINO = import.meta.env.VITE_FARO_CHILD_ID ?? "";
+export const ID_NINO =
+  new URLSearchParams(window.location.search).get("child_id") ??
+  import.meta.env.VITE_FARO_CHILD_ID ??
+  "";
 
 /** Corte de cada petición, en milisegundos. Sin esto una red caída cuelga la pantalla. */
 export const TIMEOUT_MS = Number(import.meta.env.VITE_FARO_API_TIMEOUT_MS ?? 10_000);

@@ -455,8 +455,8 @@ automática no ve un fallo de contraste, hay que mirarlo a mano.
 - **Navegación de los formularios.** Cada fila ya es un botón y emite
   `abrirRegistro(id)` con la fecha ISO del día, pero `SaludView` no tiene adónde
   llevarla.
-- **Selector de niño.** Sin `VITE_FARO_CHILD_ID` se toma el primero de
-  `GET /v1/children`. Con más de uno, hace falta elegir.
+- **Selector de niño.** Sin `?child_id=` ni `VITE_FARO_CHILD_ID` se toma el
+  primero de `GET /v1/children`. Con más de uno, hace falta elegir.
 - **Verificación con lectores de pantalla reales** (VoiceOver / TalkBack) y en
   dispositivo, no solo axe en jsdom.
 - **CI.** El gate del repositorio (`.github/workflows/p2.yml`) todavía solo
