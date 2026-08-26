@@ -214,3 +214,54 @@
   --faro-rec-insignia: oklch(0.89 0.06 25);
   --faro-rec-sobretitulo: oklch(0.41 0.1 25);
 }
+
+/* Piezas que llegaron después: el historial de cuestionarios y el diálogo.
+ *
+ * Todo lo de aquí es añadido: ni un valor de arriba cambia. Los colores no son
+ * nuevos, son nombres semánticos sobre la paleta que ya existía, para que una
+ * variable crítica y una prioridad de factor no se pinten con dos criterios
+ * distintos.
+ *
+ * El punto de corte de escritorio es 900px. No puede vivir en una variable
+ * —`@media` no lee `var()`—, así que se escribe igual en todos los componentes
+ * y se anota aquí, que es donde se busca.
+ */
+
+:root {
+  /* Medidas de las pantallas anchas. La columna de 480 sigue mandando en móvil. */
+  --faro-ancho-amplio: 1040px;
+  --faro-ancho-dialogo: 560px;
+  --faro-rail-ancho: 372px;
+
+  --faro-esp-32: 32px;
+  --faro-esp-40: 40px;
+
+  --faro-radio-14: 14px;
+  --faro-radio-32: 32px;
+
+  /* Calendario semanal: la celda del día en las dos densidades. */
+  --faro-celda-alto: 62px;
+  --faro-celda-alto-amplio: 96px;
+
+  /*
+   * El velo del diálogo. Frío y bastante transparente: el contexto de debajo
+   * tiene que seguir reconociéndose, que es justo lo que distingue un diálogo
+   * de un cambio de pantalla.
+   */
+  --faro-velo: oklch(0.32 0.03 235 / 0.44);
+
+  /*
+   * La sombra del diálogo no es un tercer nivel de la página: la página tiene
+   * dos y siguen siendo dos. Un diálogo no flota sobre el contenido, flota
+   * sobre el velo, fuera de esa pila.
+   */
+  --faro-elev-dialogo:
+    0 4px 10px oklch(0.35 0.02 250 / 0.1), 0 32px 60px -20px oklch(0.35 0.02 250 / 0.4);
+
+  /* Severidad de una variable crítica. Los mismos dos pares que ya usaban la
+     pastilla de prioridad y el aviso pendiente. */
+  --faro-critica-alta-fondo: var(--faro-alerta-fondo);
+  --faro-critica-alta-texto: var(--faro-alerta-texto);
+  --faro-critica-media-fondo: var(--faro-aviso-fondo);
+  --faro-critica-media-texto: var(--faro-aviso-etiqueta);
+}

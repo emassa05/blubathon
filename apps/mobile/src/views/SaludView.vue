@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
@@ -9,7 +9,9 @@ import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
 import { useDiaSeleccionado } from "@/composables/useDiaSeleccionado";
-import { RESUMEN_SALUD_MOCK } from "@/data/saludMock";
+import { useResumenSalud } from "@/composables/useResumenSalud";
+import { hoyIso } from "@/dominio/semana";
+import { useNino } from "@/estado/nino";
 import {
   CLASE_BANDA,
   ETIQUETA_BANDA,
@@ -18,19 +20,35 @@ import {
   bandaSiguiente,
 } from "@/theme/riesgo";
 
-// Único punto de la pantalla donde entran los datos. Cambiar el mock por la
-// llamada a la API (o por un store) no toca ningún componente.
-const resumen = RESUMEN_SALUD_MOCK;
+const emitir = defineEmits<{
+  verHistorial: [];
+  abrirCuestionario: [fecha: string];
+}>();
 
-const { etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado(
-  resumen.fecha,
-);
+const { ninoId, cargar: cargarNino } = useNino();
 
-// TODO(spec): control de prueba. Mientras no haya datos reales, permite ver las
-// tres bandas sin tocar el mock. Se va junto con `RIESGO_DE_PRUEBA`.
+// La pantalla abre en el día de hoy y los chevrones mueven la fecha; el resumen
+// se recalcula con ella.
+const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } =
+  useDiaSeleccionado(hoyIso());
+
+/*
+ * Único punto de la pantalla donde entran los datos, igual que antes: lo que
+ * cambia es que `useResumenSalud` los trae de la API y solo cae al mock en lo
+ * que la API todavía no publica. Ningún componente de abajo se entera.
+ */
+const { resumen, cargar } = useResumenSalud(ninoId, fechaIso);
+
+onMounted(async () => {
+  await cargarNino();
+  await cargar();
+});
+
+// TODO(spec): control de prueba. Mientras el riesgo no venga de la API, permite
+// ver las tres bandas sin tocar el mock. Se va junto con `RIESGO_DE_PRUEBA`.
 const riesgoDePrueba = ref<number | null>(null);
 
-const riesgo = computed(() => riesgoDePrueba.value ?? resumen.riesgo);
+const riesgo = computed(() => riesgoDePrueba.value ?? resumen.value.riesgo);
 const banda = computed(() => bandaRiesgo(riesgo.value));
 
 function probarBandaSiguiente(): void {
@@ -38,19 +56,8 @@ function probarBandaSiguiente(): void {
 }
 
 function masInfo(): void {
-  // TODO(spec): abrir el popup que explica el riesgo de desregulación.
-}
-
-function abrirFormulario(): void {
-  // TODO(spec): abrir el formulario del día. Fuera del alcance de esta pantalla.
-}
-
-function verMas(): void {
-  // TODO(spec): abrir el listado completo de formularios.
-}
-
-function abrirRegistro(_id: string): void {
-  // TODO(spec): abrir el formulario de ese día. El id es el que trae el mock.
+  // TODO(spec): abrir el popup que explica el riesgo de desregulación. Sigue
+  // fuera de alcance: el disparador existe y el contenido no está definido.
 }
 </script>
 
@@ -81,15 +88,17 @@ function abrirRegistro(_id: string): void {
       <div class="pantalla__contenido">
         <TarjetaRecomendacion :recomendacion="resumen.recomendacion" />
         <TarjetaFactores :factores="resumen.factores" />
+        <!-- "ver más" abre el calendario semanal; cada fila abre el
+             cuestionario de su día. El id de la fila es su fecha ISO. -->
         <TarjetaFormularios
           :registros="resumen.formularios"
-          @ver-mas="verMas"
-          @abrir-registro="abrirRegistro"
+          @ver-mas="emitir('verHistorial')"
+          @abrir-registro="(id) => emitir('abrirCuestionario', id)"
         />
         <AvisoPendiente
           v-if="resumen.formularioPendiente"
           :dia="etiquetaAccesible"
-          @abrir-formulario="abrirFormulario"
+          @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
         />
       </div>
 

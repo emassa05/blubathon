@@ -46,18 +46,28 @@ describe("SaludView", () => {
     expect(wrapper.text()).toContain(`${RIESGO_DE_PRUEBA.bajo}%`);
   });
 
-  it("abre en el día del resumen y navega a los adyacentes", async () => {
+  it("abre en el día de hoy y navega a los adyacentes", async () => {
+    // La pantalla abre en hoy desde que los datos vienen de la API: el día es el
+    // que decide qué historial y qué variables críticas se miran.
+    const formato = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric" });
+    const etiquetaDe = (dias: number): string => {
+      const fecha = new Date();
+      fecha.setDate(fecha.getDate() + dias);
+      const texto = formato.format(fecha);
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    };
+
     const wrapper = mount(SaludView);
     const etiqueta = () => wrapper.get(".fecha__etiqueta").text();
 
-    expect(etiqueta()).toBe("Martes 25");
+    expect(etiqueta()).toBe(etiquetaDe(0));
 
     await wrapper.get('[aria-label="Día anterior"]').trigger("click");
-    expect(etiqueta()).toBe("Lunes 24");
+    expect(etiqueta()).toBe(etiquetaDe(-1));
 
     await wrapper.get('[aria-label="Día siguiente"]').trigger("click");
     await wrapper.get('[aria-label="Día siguiente"]').trigger("click");
-    expect(etiqueta()).toBe("Miércoles 26");
+    expect(etiqueta()).toBe(etiquetaDe(1));
   });
 
   it("tiene un único h1 y un h2 por sección", () => {
@@ -69,5 +79,31 @@ describe("SaludView", () => {
       "Lo más importante hoy",
       "Últimos formularios",
     ]);
+  });
+
+  it("el 'ver más' de los formularios lleva al historial", async () => {
+    const wrapper = mount(SaludView);
+
+    await wrapper.get('[aria-label="Ver todos los formularios"]').trigger("click");
+    expect(wrapper.emitted("verHistorial")).toHaveLength(1);
+  });
+
+  it("el aviso pendiente abre el cuestionario del día que se está mirando", async () => {
+    const wrapper = mount(SaludView);
+    const hoy = new Date();
+    const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+    const iso = `${hoy.getFullYear()}-${mes}-${String(hoy.getDate()).padStart(2, "0")}`;
+
+    await wrapper.get(".aviso").trigger("click");
+    expect(wrapper.emitted("abrirCuestionario")).toEqual([[iso]]);
+  });
+
+  it("cada fila de formulario abre el cuestionario de su día", async () => {
+    const wrapper = mount(SaludView);
+
+    const fila = wrapper.findAll(".formulario__fila")[0];
+    await fila?.trigger("click");
+    // Sin API la tarjeta sigue enseñando el mock, cuyo id ya es la fecha ISO.
+    expect(wrapper.emitted("abrirCuestionario")).toEqual([["2026-08-24"]]);
   });
 });

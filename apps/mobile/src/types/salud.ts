@@ -3,11 +3,15 @@
 export type IconoFactor = "luna" | "rombo";
 
 /**
- * El diseño solo especifica la etiqueta "Alta prioridad". El tipo queda abierto
- * a más niveles sin tocar la UI: basta añadir la clave aquí y en
- * `ETIQUETA_PRIORIDAD`.
+ * El diseño solo especificaba "Alta prioridad", y el tipo quedó abierto a más
+ * niveles: basta añadir la clave aquí y en `ETIQUETA_PRIORIDAD`.
+ *
+ * `media` es el segundo nivel que pedían las variables críticas: una respuesta
+ * fuera de lo habitual no es lo mismo que una en nivel alto, y pintar las dos
+ * igual haría que ninguna se leyera. La pastilla usa el mismo par de colores
+ * del aviso pendiente, así que no entra ningún color nuevo.
  */
-export type PrioridadFactor = "alta";
+export type PrioridadFactor = "alta" | "media";
 
 export interface FactorRiesgo {
   readonly id: string;
@@ -48,6 +52,7 @@ export interface ResumenSalud {
 
 export const ETIQUETA_PRIORIDAD: Record<PrioridadFactor, string> = {
   alta: "Alta prioridad",
+  media: "Atención",
 };
 
 export const ETIQUETA_ESTADO_FORMULARIO: Record<EstadoFormulario, string> = {

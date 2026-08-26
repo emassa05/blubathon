@@ -31,7 +31,7 @@ const ICONOS: Record<IconoFactor, Component> = {
           <span class="factor__detalle">{{ factor.detalle }}</span>
         </span>
 
-        <span class="factor__prioridad">
+        <span class="factor__prioridad" :class="`factor__prioridad--${factor.prioridad}`">
           <span class="factor__punto" aria-hidden="true"></span>
           {{ ETIQUETA_PRIORIDAD[factor.prioridad] }}
         </span>
@@ -124,6 +124,9 @@ const ICONOS: Record<IconoFactor, Component> = {
  * La prioridad es una señal de severidad, no del día: por eso su color no entra
  * en las bandas y es siempre el mismo. El punto la hace reconocible de un
  * vistazo sin subir el peso del texto.
+ *
+ * Los dos niveles usan los dos pares que ya existían —el de la alerta y el del
+ * aviso pendiente—, así que "alta" se ve exactamente igual que antes.
  */
 .factor__prioridad {
   display: flex;
@@ -133,9 +136,14 @@ const ICONOS: Record<IconoFactor, Component> = {
   padding: var(--faro-esp-4) var(--faro-esp-9);
   font-size: var(--faro-fs-11);
   font-weight: 700;
-  color: var(--faro-alerta-texto);
-  background: var(--faro-alerta-fondo);
+  color: var(--faro-critica-alta-texto);
+  background: var(--faro-critica-alta-fondo);
   border-radius: var(--faro-radio-pastilla);
+}
+
+.factor__prioridad--media {
+  color: var(--faro-critica-media-texto);
+  background: var(--faro-critica-media-fondo);
 }
 
 .factor__punto {

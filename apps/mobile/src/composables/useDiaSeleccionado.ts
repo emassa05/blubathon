@@ -25,6 +25,12 @@ export function useDiaSeleccionado(fechaInicial: string) {
   const etiqueta = computed(() => conMayuscula(FORMATO_DIA.format(dia.value)));
   const etiquetaAccesible = computed(() => FORMATO_DIA.format(dia.value));
 
+  /** El mismo día en ISO local (`YYYY-MM-DD`): así lo nombra la API. */
+  const fechaIso = computed(() => {
+    const mes = String(dia.value.getMonth() + 1).padStart(2, "0");
+    return `${dia.value.getFullYear()}-${mes}-${String(dia.value.getDate()).padStart(2, "0")}`;
+  });
+
   function desplazar(dias: number): void {
     const siguiente = new Date(dia.value);
     siguiente.setDate(siguiente.getDate() + dias);
@@ -33,6 +39,7 @@ export function useDiaSeleccionado(fechaInicial: string) {
 
   return {
     dia,
+    fechaIso,
     etiqueta,
     etiquetaAccesible,
     diaAnterior: () => desplazar(-1),
