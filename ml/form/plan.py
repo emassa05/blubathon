@@ -5,9 +5,10 @@ one exploration slot, VoI, canonical order to fill the remaining slots, and then
 the full queue.
 
 Two rules matter more than the ordering itself. Every applicable field stays
-reachable, so highlighting is about attention, not access (INV-10). And "asked"
-means a highlighted `QuestionPresentation` existed in a session whose source
-allowed the field: sitting in the tail does not reset the clock.
+reachable, so highlighting is about attention, not access (INV-10). And a field
+stops being overdue when it was either highlighted in a session whose source
+allowed it, or actually answered there: sitting in the tail does not reset the
+clock, but an answer does.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ from ml.spec_constants import (
     STALENESS_CEILING_DAYS,
 )
 from packages.shared.canonical import in_window, inclusive_window, stable_bucket
-from packages.shared.domain.observation import QuestionPresentation
+from packages.shared.domain.observation import FieldObservation, QuestionPresentation
 from packages.shared.domain.prediction import VoiEstimate
 from packages.shared.enums import FieldCode, QuestionReason, Source, VoiStatus
 from packages.shared.field_catalog import (
@@ -102,6 +103,28 @@ def last_highlighted_dates(
     latest: dict[FieldCode, date] = {}
     for row in project_as_of(presentations, cutoff).leaves:
         if not row.highlighted:
+            continue
+        if not FIELD_CATALOG[row.field_code].allows(row.source):
+            continue
+        current = latest.get(row.field_code)
+        if current is None or row.local_date > current:
+            latest[row.field_code] = row.local_date
+    return latest
+
+
+def last_answered_dates(
+    observations: Iterable[FieldObservation], *, cutoff: datetime
+) -> dict[FieldCode, date]:
+    """Most recent day each field actually carried an answer.
+
+    A presentation says the question was put; an observation says it was
+    answered. Answering is the stronger signal of the two, and it is the one a
+    caregiver means by "ya lo registré", so it resets the same clock.
+    """
+
+    latest: dict[FieldCode, date] = {}
+    for row in project_as_of(observations, cutoff).leaves:
+        if row.value is None:
             continue
         if not FIELD_CATALOG[row.field_code].allows(row.source):
             continue
@@ -189,6 +212,7 @@ def build_form_plan(
     coverage: float,
     outcome_pending: bool,
     presentations: Iterable[QuestionPresentation] = (),
+    observations: Iterable[FieldObservation] = (),
     answered_fields: frozenset[FieldCode] = frozenset(),
     voi: Mapping[FieldCode, VoiEstimate] | None = None,
     exploration_secret: bytes = b"",
@@ -213,6 +237,10 @@ def build_form_plan(
     base_slots = base_slots_for(coverage)
 
     last_seen = last_highlighted_dates(presentation_rows, cutoff=cutoff)
+    for field_code, answered_on in last_answered_dates(observations, cutoff=cutoff).items():
+        current = last_seen.get(field_code)
+        if current is None or answered_on > current:
+            last_seen[field_code] = answered_on
     monitored = [field_code for field_code in MONITORED_FIELDS if field_code in available]
     ordered_monitored = _staleness_order(monitored, last_seen=last_seen, today=today)
 

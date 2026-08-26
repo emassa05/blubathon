@@ -10,6 +10,7 @@ Lo que este stub **no** hace, porque es dominio de P1 (TAREAS P1.4):
 Lo que sí garantiza, porque es contrato y no estadística:
 
 - `highlighted + tail` conserva todos los campos aplicables (INV-10).
+- El motivo declarado es el real: sin datos de antigüedad, `canonical_order`.
 - El outcome pendiente es un bloque aparte y no consume cupos.
 - Una pregunta ya respondida o ya presentada no se vuelve a destacar.
 """
@@ -62,11 +63,11 @@ class MockForm:
             PlannedQuestion(
                 field_code=code,
                 highlighted=True,
-                reason=(
-                    QuestionReason.STALENESS.value
-                    if code in MONITORED_FIELD_PRIORITY
-                    else QuestionReason.CANONICAL_ORDER.value
-                ),
+                # Sin presentaciones ni observaciones no hay antigüedad que
+                # medir, y decir `staleness` aquí era afirmar "sin registrar
+                # hace 7 días" de un campo respondido hoy. El stub destaca por
+                # prioridad declarada, así que ese es el motivo que declara.
+                reason=QuestionReason.CANONICAL_ORDER.value,
                 voi_nats=None,
             )
             for code in highlighted

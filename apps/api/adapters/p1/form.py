@@ -66,8 +66,11 @@ class P1Form:
             today=local_date(cutoff),
             cutoff=cutoff,
             coverage=quality.coverage,
-            outcome_pending=False,
+            outcome_pending=self._outcome_pending(
+                tenant_id=tenant_id, subject_id=subject_id, now=as_of_at
+            ),
             presentations=presentations,
+            observations=observations,
             answered_fields=frozenset(FieldCode(code) for code in answered_fields),
             exploration_secret=self._secret,
             tenant_id=UUID(tenant_id),
@@ -117,3 +120,28 @@ class P1Form:
             outcome_pending=plan.outcome_pending,
             plan_source=PLAN_SOURCE,
         )
+
+    def _outcome_pending(self, *, tenant_id: str, subject_id: str, now: str) -> bool:
+        """Â¿Queda algÃºn resultado por reportar dentro de plazo?
+
+        Es la misma condición que publica `GET /v1/outcome-requests`: solicitud
+        no vencida y resolución todavía en `pending`. Se calcula, no se asume:
+        estaba cableada a `False` y por eso el bloque nunca se pedía.
+        """
+
+        row = self._database.connection.execute(
+            # `outcome_resolutions` es append-only y versionada: unir por
+            # episodio a secas encontrarÃ­a la versiÃ³n `pending` original aunque
+            # ya estÃ© resuelta. Solo cuenta la Ãºltima.
+            "SELECT 1 FROM outcome_requests AS r"
+            " LEFT JOIN outcome_resolutions AS o"
+            "   ON o.prediction_episode_id = r.prediction_episode_id"
+            "  AND o.resolution_version = ("
+            "        SELECT MAX(v.resolution_version) FROM outcome_resolutions AS v"
+            "         WHERE v.prediction_episode_id = r.prediction_episode_id)"
+            " WHERE r.tenant_id = ? AND r.subject_id = ? AND r.capture_deadline_at >= ?"
+            "   AND (o.status IS NULL OR o.status = 'pending')"
+            " LIMIT 1",
+            (tenant_id, subject_id, now),
+        ).fetchone()
+        return row is not None
