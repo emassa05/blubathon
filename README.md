@@ -1,253 +1,551 @@
-# Faro - backend v0.3.0
+# Blubathon — backend v0.4.0
 
-Faro organiza registros diarios, calcula estadísticas personales, presenta
-estimaciones experimentales y ofrece apoyos previamente curados para revisión
-profesional.
+Blubathon acompaña el seguimiento diario de un niño o niña: registra
+observaciones (formulario inteligente), estima con qué probabilidad ocurre un
+evento objetivo en la ventana siguiente (modelo predictivo) y, cuando el
+riesgo lo amerita, redacta una recomendación breve apoyada en literatura
+indexada (sistema RAG).
 
-Faro **no** diagnostica, **no** prescribe, **no** reemplaza el criterio
-profesional y **no** ejecuta intervenciones de forma autónoma. Tampoco
-monitorea emergencias (`SPEC 2.27`).
+Blubathon **no** diagnostica, **no** prescribe y **no** reemplaza el criterio
+profesional. Es una demo mono-tenant: no hay autenticación, autorización,
+sesiones de usuario ni auditoría — todo corre bajo un único tenant fijo.
 
-Los documentos normativos son `SPEC.md`, `CONVENTIONS.md`, `TAREAS.md` y
-`FUNDAMENTOS.md`. Ante contradicción manda `SPEC.md`. Este README documenta
-solo el backend (`apps/api`, `ml`, `rag`, `packages/shared`, `tools`); el
-frontend (`apps/web`, y la interfaz visual en `apps/mobile`) tiene su propia
-documentación.
+Este documento describe el backend (`apps/api`, `ml`, `rag`,
+`packages/shared`, `tools`). La interfaz visual vive en `apps/mobile` y tiene
+su propia documentación.
 
 ---
 
-## 1. Las piezas y quién manda sobre quién
+## 1. Las piezas
 
 ```text
-packages/shared/   el contrato: modelos, enums, constantes, catálogo de
-                    campos, textos y bytes canónicos. No importa a nadie.
-ml/                 dominio puro: defaults, formulario, predicción, evaluación.
-                    Funciones sobre filas ya cargadas; no abre la base, no lee
-                    el reloj.
-rag/                autoría del corpus (offline) y runtime determinista de
-                    recomendación (online, sin LLM).
-apps/api/           FastAPI: rutas, servicios de aplicación, store (SQLite) y
+packages/shared/   el contrato: modelos Pydantic, enums, catálogo de campos,
+                    textos en español y utilidades canónicas. No importa a
+                    nadie.
+ml/                 dominio puro: ml/prediction (modelo), ml/form y
+                    ml/defaults (formulario inteligente). Funciones sobre
+                    filas ya cargadas; no abren la base ni leen el reloj.
+rag/                rag/authoring: BM25, fusión, recuperación, redacción y
+                    verificación de citas. rag/domain: documentos, chunking,
+                    normalización, guardas de texto.
+apps/api/           FastAPI: rutas (apps/api/routes/v1.py), servicios de
+                    aplicación (apps/api/services), store SQLite y
                     migraciones. Es quien carga filas y llama al dominio.
-tools/              contracts (genera el contrato), seed (datos ficticios),
-                    train (entrena y evalúa ml/prediction).
+tools/               contracts (genera el contrato publicado), seed (datos
+                    ficticios), rag_authoring (construye el índice del
+                    corpus offline).
 ```
 
 `lint-imports` hace cumplir la capa: `apps` puede depender de `ml` y `rag`,
-nadie depende de `apps`, y **el store no calcula** — cuando un servicio
-necesita un número se lo pide a un puerto, nunca lo deriva él mismo.
+nadie depende de `apps`, el store no calcula, y solo
+`apps/api/services/recommendations.py` puede alcanzar `rag.authoring` (el
+único lugar del sistema con acceso al LLM).
 
-`apps/api/ports/` declara cuatro protocolos (`defaults`, `form`, `prediction`,
-`rag`) que solo describen la forma del resultado. `FARO_P1_ADAPTERS` elige
-quién los implementa:
+`apps/api/ports/` declara tres protocolos (`defaults`, `form`, `prediction`)
+que solo describen la forma del resultado. `FARO_P1_ADAPTERS` elige quién los
+implementa (el nombre de la variable es una herencia de nombre interno, no
+afecta al producto):
 
 | Adaptador | Cuándo | Qué hace |
 |---|---|---|
-| `apps/api/adapters/p1` (`FARO_P1_ADAPTERS=real`) | dominio real | llama a `ml/**` y `rag/runtime` sobre filas de la base |
-| `apps/api/adapters/mock` (por defecto) | tests de P2 y demo | responde con fixtures fijas, sin fórmulas del SPEC |
+| `apps/api/adapters/p1` (`FARO_P1_ADAPTERS=real`) | dominio real | llama a `ml/**` sobre filas de la base |
+| `apps/api/adapters/mock` (por defecto) | tests y demo rápida | responde con fixtures fijas |
+
+Todo el sistema corre para un solo tenant fijo (`RequestContext`,
+`apps/api/context.py`); no hay `Authorization`, `Idempotency-Key` ni `ETag` en
+ningún endpoint.
 
 ---
 
-## 2. Cómo se resuelve cada caso
+## 2. El modelo predictivo (`ml/prediction/`)
 
-Once rutas de producto (`SPEC 11.1`). Esto es qué calcula cada una y con qué
-regla, no solo qué devuelve.
+Dos tracks, y nunca comparten significado:
 
-### Abrir sesión — `POST /form-sessions`
+### `real_personal_baseline_v1` — el único track visible
 
-1. **`audit_mode`** se fija una sola vez, con
-   `HMAC_SHA256(secret, tenant_id | subject_id | local_date | policy_version) mod 1000 < 100`.
-   Es decir: ~10% de las sesiones no ve sugerencias, de forma estable e
-   impredecible desde el cliente. Nunca se recalcula (`INV-05`).
-2. **El plan** (`ml/form/plan.py::build_form_plan`) ordena los campos así:
-   outcome pendiente → vencidos por antigüedad (≥7 días sin preguntarse) →
-   cuota de exploración (día ISO elegido también por HMAC semanal) → mayor VoI
-   disponible → orden canónico para llenar cupos → el resto en cola. Todos los
-   campos quedan accesibles siempre; "destacado" es solo prioridad de
-   atención (`INV-10`).
-3. Si `audit_mode=false`, cada campo de la allowlist recibe una sugerencia de
-   default si `compute_default_decision` (`ml/defaults/estimator.py`) supera
-   el umbral — ver §3.
-
-### Responder — `POST /form-sessions/{id}/answers`
-
-El cliente manda una **interacción** (`manual | accept_default | edit_default
-| unknown`); el servidor deriva el **`entry_mode`** real, con esta
-precedencia fija (nunca por "lo que dijo el cliente"):
-
-1. Canal de importación con mapping aprobado → `imported_observed`.
-2. Sesión de observación profesional → `professional_observed`.
-3. Interacción `unknown` → `explicit_unknown`, **sin valor** (no es `0`, no es
-   `false`, no es vacío).
-4. Sesión auditada, respuesta manual → `audit_manual`.
-5. `accept_default` sobre una sugerencia vigente, con el valor aceptado
-   igual al presentado → `default_accepted`.
-6. Cualquier valor manual sobre un campo con sugerencia vigente, aunque el
-   cliente diga `manual` → `default_edited`. No se puede pisar una sugerencia
-   sin que quede registrado.
-7. Si el campo nunca tuvo sugerencia → `manual_no_default`.
-
-Una sugerencia que nadie toca no crea observación (`INV-01`).
-
-### Cerrar — `POST /form-sessions/{id}/submit`
-
-Serializado por `(tenant_id, subject_id)` (evita dos episodios a la vez sobre
-el mismo sujeto). La regla es fail-closed:
+Estima la tasa observada del objetivo entre los episodios primarios previos
+del **mismo** sujeto, bajo el mismo `care_mode` y la misma definición de
+objetivo. No es incidencia diaria, no es riesgo poblacional y no depende de
+las respuestas de hoy.
 
 ```text
-si no hay TargetDefinitionVersion activa y única para el instante:
-    cerrar con target_definition_unavailable (o _ambiguous si hay > 1)
-    no se crea episodio ni outcome request
-si hay definición y no hay episodio primario abierto:
-    crear PredictionEpisode + OutcomeRequest inmutable
-    snapshot = IDs de observaciones proyectadas al cutoff (no una copia de
-    valores: una corrección después no cambia lo que el episodio vio)
-si hay definición y ya hay un episodio primario abierto:
-    enlazar la sesión a ese episodio, no crear otro
+p | D ~ Beta(1 + e, 1 + n - e)
+p_mean = (1 + e) / (2 + n)
+intervalo = [BetaPPF(0.05), BetaPPF(0.95)]
 ```
 
-### Ver estimaciones — `GET /prediction-episodes/{id}`
+- `e` = resultados positivos verificados, `n` = resultados verificados totales,
+  sobre una ventana móvil de **60 días** (`BASELINE_WINDOW_DAYS`).
+- Se abstiene (`status=abstained`) si hay **menos de 5** resultados
+  verificados (`BASELINE_MIN_OUTCOMES`), si hay un conflicto sin resolver en
+  la ventana, o si falta el historial de `care_mode`.
+- Código: `ml/prediction/baseline.py::build_personal_baseline`.
 
-Tres tracks que nunca comparten significado (`SPEC 8.1`), y cada uno se
-abstiene por su propia regla:
-
-| Track | Cómo se calcula | Se abstiene si |
-|---|---|---|
-| `synthetic_reference_v021` | LightGBM sobre datos sintéticos, solo cohorte `demo_fixture` | falta el artefacto del modelo (`model_artifact_unavailable`) |
-| `real_personal_baseline_v1` | `Beta(1+e, 1+n-e)` sobre outcomes reales previos del mismo sujeto/`care_mode`/target, ventana 60 días; `p_mean=(1+e)/(2+n)`, intervalo `[BetaPPF(0.05), BetaPPF(0.95)]` | `verified_outcomes < 5`, conflicto sin resolver, o falta historial de `care_mode` |
-| `real_logit_challenger_v1` | regresión logística preentrenada con offset del baseline + desviaciones de sueño y regulación | siempre en sombra: nunca se expone, el modelo del contrato lo rechaza si se intenta |
-
-Sin política de decisión validada, no hay bandas verde/ámbar/rojo
-(`decision_policy_version`, `risk_band` quedan `null`, `SPEC 8.6`).
-
-### Recomendación — `GET .../recommendations`
-
-`rag/runtime/decide.py::decide(RuntimeInputs)` es puro y determinista: cero
-llamadas a LLM en runtime. Recibe el escenario mínimo (campos con valor real,
-sin identidad ni notas) y el catálogo activo, evalúa el *predicate* del set y
-el de cada estrategia por separado, fail-closed, y devuelve como máximo tres
-estrategias ya revisadas con sus citas exactas. `medication_adherence` no
-entra al escenario si se respondió `unknown`: un `unknown` no asigna valor.
-
-Mientras las estrategias siguen sin revisar, la familia ve
-`{"status": "awaiting_professional_review", "items": []}`. El filtro por
-actor y grants se aplica en el servidor, nunca solo en el cliente.
-
-### Revisión profesional — `POST .../reviews`
-
-Decisiones posibles: `approved`, `rejected`, `human_plan_substituted`,
-`not_applicable`, `deferred`. Usa concurrencia optimista con `If-Match`: sin
-cabecera → 428; revisión vigente → 201; revisión obsoleta → 409. Una
-sustitución crea un plan del equipo que **no hereda citas** del original
-(`INV-29`) y no puede ampliar los roles de ejecución de la estrategia
-sustituida.
-
-### Ejecución — `POST .../executions`
-
-Registra que alguien aplicó una estrategia o un plan. `exposure_eligible` es
-`false` si la aplicación llegó después del cierre de la ventana target o
-antes de la revisión que la autorizó — se conserva el registro, pero no
-cuenta como exposición válida (`SPEC 10.3`).
-
-### Resultado — `POST .../outcome-reports`
-
-El servidor deriva actor, rol, tenant e instante del contexto autorizado, y
-resuelve así (`OutcomeService`, sobre la proyección al cutoff):
+### `real_logit_challenger_v1` — siempre en sombra
 
 ```text
-1. yes elegible: timing_status in {early, on_time} y occurred_at en la ventana.
-2. no elegible: solo timing_status = on_time.
-3. hay yes y no elegibles a la vez -> conflicted, ever_conflicted=true.
-4. solo yes -> yes; solo no -> no.
-5. sin reporte concluyente antes del deadline -> pending; al vencer -> unknown.
+logit(p_t) = logit(p_base_t) + b0 + b1·sleep_deviation_t + b2·regulation_deviation_t
 ```
 
-Ni `no` ni `unknown` cierran la ventana antes de tiempo (`INV-14`). Una
-resolución que alguna vez fue `conflicted` nunca vuelve a presentarse limpia:
-`ever_conflicted` es monotónico.
+Regresión logística preentrenada, con el baseline como offset de coeficiente
+fijo 1, dos predictores preregistrados (desviación de calidad de sueño y de
+regulación diaria sobre los últimos 30 días) y `lambda` elegido por
+`LeaveOneGroupOut(subject_id)` con Brier fuera de muestra
+(`ml/prediction/challenger.py`). **Nunca se expone**: `exposed=False` está
+fijo en el adaptador, sin condición, así que ninguna corrida de
+entrenamiento cambia ese hecho. Con los datos actuales, además, no hay ambas
+clases en las salidas (`not_trainable_single_class`).
 
----
+### De la probabilidad a la respuesta
 
-## 3. Las fórmulas detrás de "sugerir" y "priorizar"
-
-- **Default binario**: `k` ocurrencias en `N` observaciones elegibles (ventana
-  limpia de 60 días, mismo tenant/sujeto/fuente/campo) →
-  `Beta(1+k, 1+N-k)`, se sugiere si `BetaPPF(0.05) > 0.70` y el campo está en
-  la allowlist (`food_changes`, `activity_participation`,
-  `social_interactions`, `eating_status`, `attendance_status`).
-- **Default categórico/ordinal**: Dirichlet con `alpha_j = 1+n_j`; candidato es
-  el `argmax`; sin sugerencia si hay empate.
-- **VoI**: información mutua aproximada entre la respuesta y el outcome,
-  `VoI(X) = h(p_bar) - sum(q_j * h(p_j))` en nats; `null` (nunca `0`) si no
-  hay modelo condicional.
-- **Anomalía / cola completa**: se abre si `relevant_event_flag=true`,
-  `medication_adherence=missed`, `daily_regulation_state=frequent_dysregulation`,
-  `alertness` extremo, probabilidad categórica personal `< 0.05`, o
-  `|robust_z| >= 2.0` sobre los últimos 30 días (mediana + MAD).
-
-Ninguna de estas fórmulas vive en `apps/api`: el store solo lee filas y el
-adaptador solo las pasa; el cálculo entero está en `ml/`.
-
----
-
-## 4. Autorización
-
-Todo acceso a datos clínicos exige tenant + rol + **grant activo sobre el
-sujeto**, no solo rol (`SPEC 2.26`). Comprobado en la demo:
+`risk_band` (usado por el formulario y por RAG, no por el track en sí):
 
 ```text
-cuidadora  -> GET /evaluation              403 role_not_allowed
-cuidador B -> GET /prediction-episodes/…   404 not_found   (no 403: no revela existencia)
-profesional sin acreditación -> GET inbox  403 accreditation_required
+probability is None       → "unknown"
+probability >= 0.5        → "high"
+0.2 <= probability < 0.5  → "medium"
+probability < 0.2         → "low"
 ```
-
-Cross-tenant siempre es 404, nunca 403: un 403 confirmaría que el recurso
-existe. Cada negativa queda en auditoría append-only, sin payload clínico.
 
 ---
 
-## 5. Cómo correr el backend
+## 3. El formulario inteligente (`ml/form/`, `ml/defaults/`)
+
+19 campos de observación diaria (`packages/shared/enums.py::FieldCode`):
+sueño, despertares nocturnos, apoyo matutino, estado gastrointestinal,
+adherencia a medicación, cambios de alimentación/rutina, alerta, eventos de
+desregulación, participación en actividades, interacciones sociales,
+asistencia, notas libres, etc.
+
+### El orden de las preguntas (`ml/form/plan.py::build_form_plan`)
+
+Seis bloques, en este orden exacto:
+
+1. **Vencidas por antigüedad** — todo campo monitoreado sin presentarse hace
+   ≥7 días (`STALENESS_CEILING_DAYS`), o nunca presentado.
+2. **Cupo de exploración** — un día ISO por semana, elegido de forma estable
+   por `HMAC(secreto, tenant, sujeto, semana, versión_política) mod 7`; toma
+   el campo aplicable menos presentado en los últimos 60 días.
+3. **VoI** — mayor información de valor disponible, descendente (ver abajo).
+4. **Orden canónico** — llena los cupos que falten con el orden fijo del
+   catálogo.
+5. **Cola** — el resto de los campos aplicables, sin destacar. Ningún campo
+   queda inaccesible: "destacado" es solo prioridad de atención.
+
+El número de cupos destacados es 3 si la cobertura de datos del sujeto está
+por debajo de 0.5 (`LOW_COVERAGE_THRESHOLD`), si no 2
+(`FORM_HIGHLIGHTED_DEFAULT`/`FORM_HIGHLIGHTED_LOW_COVERAGE`).
+
+**VoI está definido pero no conectado**: `ml/form/voi.py` implementa
+información mutua aproximada, pero `POST /v1/children/{id}/form-plan`
+siempre responde `voi_status: "unavailable_model"` y `voi_nats: null` — no
+existe todavía un modelo condicional de outcome que lo alimente. El motivo de
+pregunta `"voi"` nunca aparece en la respuesta pública; se usa
+`"canonical_order"` en su lugar.
+
+### Los defaults sugeridos (`ml/defaults/estimator.py`)
+
+Solo 5 campos pueden sugerir un valor (`DEFAULT_ALLOWLIST_V1`):
+`food_changes`, `activity_participation`, `social_interactions`,
+`eating_status`, `attendance_status`.
+
+- **Binario**: `Beta(1+k, 1+N-k)` sobre `N` observaciones elegibles en 60
+  días del mismo tenant/sujeto/fuente/campo.
+- **Categórico/ordinal**: `Dirichlet(1 + n_j)` sobre el soporte cerrado; el
+  candidato es el `argmax`; un empate no sugiere nada.
+- Se sugiere solo si el **límite inferior** del 5% del posterior supera
+  **0.70** (`DEFAULT_LOWER_THRESHOLD`) — se muestra el límite conservador, no
+  la media, porque dos historiales con la misma media pueden tener evidencia
+  muy distinta.
+
+### Enviar el formulario (`POST /v1/children/{id}/forms`)
+
+Una respuesta con `interaction: "unknown"` nunca genera una observación (no
+es `null`, no es `false`, no cuenta). Al guardarse: crea o enlaza un episodio
+de predicción, dispara la predicción del baseline, abre un `outcome_request`
+y deja una recomendación en `status="pending"` — el RAG corre después, en
+segundo plano.
+
+---
+
+## 4. El sistema RAG (`rag/`, `apps/api/services/recommendations.py`)
+
+Dos mitades con roles distintos.
+
+### Autoría (offline, `rag/authoring/`, `tools/rag_authoring/cli.py`)
+
+Construye el índice a partir de documentos versionados en texto plano
+(`.txt`/`.md`, sin extracción de PDF): los divide en chunks
+(`rag/domain/chunking.py`), normaliza el texto, calcula hashes y arma un
+manifiesto reproducible (`rag-build.manifest.json`). Este paso corre por CLI,
+nunca por HTTP.
+
+### Runtime (online, disparado tras cada envío del formulario)
+
+1. **`query_es`** (`apps/api/services/recommendation_query.py::query_for`) —
+   arma una consulta en español a partir de las respuestas (excluyendo texto
+   libre), con el `risk_band` como prefijo:
+   `"Riesgo alto. Calidad del sueño : Interrumpido. ..."`.
+2. **Recuperación** — BM25 léxico puro (`Bm25Index` +
+   `rag/authoring/retrieval.py::retrieve`, modo `lexical_only` en este
+   despliegue: no hay recuperador denso configurado). Sin coincidencias →
+   `status="abstained"`, `abstention_reason="no_indexed_match"`.
+3. **Redacción** (`rag/authoring/drafting.py::request_draft`) — el único
+   punto del sistema donde puede intervenir un LLM, y solo recibe los chunks
+   recuperados: nunca identidad, notas ni texto libre del cuidador. Sin un
+   `draft_transport` configurado (el caso por defecto en esta demo, ver §6),
+   → `abstention_reason="draft_unavailable"`.
+4. **Verificación de citas** (`rag/domain/citations.py::verify_citation`) —
+   cada cita del borrador debe ser una cita **literal** de un chunk
+   recuperado. Si alguna no lo es → `abstention_reason="draft_not_grounded"`.
+   Ninguna fila `status="matched"` existe con una cita no verificada.
+5. Con todo verificado: `status="matched"`, se persisten `action_text_es`,
+   `purpose_es` y las citas.
+
+**Retroalimentación** (`POST /v1/recommendations/{id}/feedback` con
+`rating: "bad"`) dispara una regeneración en segundo plano que excluye los
+chunks ya usados e incrementa `attempt`.
+
+Todo evento (`recommendation.ready`, `recommendation.redrafted`,
+`feedback.recorded`) se publica por `WS /v1/ws` después de que la transacción
+que lo originó hizo commit.
+
+---
+
+## 5. API
+
+Prefijo `/v1`. Sin autenticación. Los ejemplos son literales, generados por
+`tools.contracts.examples` a partir del contrato publicado
+(`packages/shared/examples/valid/`).
+
+### `GET /v1/children`
+
+```json
+{
+  "children": [
+    {"child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91", "display_label": "Niño demo"}
+  ]
+}
+```
+
+### `GET /v1/children/{child_id}`
+
+```json
+{
+  "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+  "display_label": "Niño demo",
+  "care_mode": "home",
+  "profile_version": "1.0.0",
+  "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3"
+}
+```
+
+### `GET /v1/children/{child_id}/history?limit=30`
+
+```json
+{
+  "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+  "days": [
+    {
+      "local_date": "2026-08-25",
+      "submission_id": "c8d87770-b0c0-51a6-bdd5-f31fad4af9d5",
+      "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+      "prediction": {"status": "ok", "probability": 0.34, "interval": [0.12, 0.61]},
+      "recommendation": {
+        "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+        "status": "matched",
+        "rating": "good"
+      },
+      "outcome": {"status": "yes", "reported_at": "2026-08-26T09:00:00Z"}
+    }
+  ]
+}
+```
+
+### `POST /v1/children/{child_id}/form-plan` — sin escritura
+
+Entrada:
+
+```json
+{"source": "caregiver_daily", "answers": {"sleep_quality": "interrupted"}}
+```
+
+Salida:
+
+```json
+{
+  "questions": [
+    {"field_code": "routine_changes", "highlighted": true, "reason": "staleness", "voi_nats": null}
+  ],
+  "defaults": [],
+  "voi_status": "unavailable_model",
+  "coverage": 0.62
+}
+```
+
+### `POST /v1/children/{child_id}/forms`
+
+Entrada:
+
+```json
+{
+  "source": "caregiver_daily",
+  "local_date": "2026-08-25",
+  "answers": [
+    {"field_code": "sleep_quality", "value": "interrupted", "interaction": "manual"}
+  ]
+}
+```
+
+Salida (`201`) — `recommendation_instance_id` referencia una fila `pending`
+en el instante de la respuesta; el RAG corre después, en segundo plano:
+
+```json
+{
+  "submission_id": "c8d87770-b0c0-51a6-bdd5-f31fad4af9d5",
+  "status": "episode_created",
+  "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+  "outcome_request_id": "81ac1cb1-093d-5aa4-a301-1b573ee7e7f5"
+}
+```
+
+`status` también puede ser `episode_linked` (ya había un episodio primario
+abierto ese día) o `target_definition_unavailable` (fail-closed: no hay una
+única definición de objetivo activa).
+
+### `GET /v1/children/{child_id}/recommendations/today`
+
+```json
+{
+  "status": "matched",
+  "risk_band": "high",
+  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+  "action_text_es": "Anticipa la siguiente actividad con una señal breve.",
+  "purpose_es": "Facilitar una transición predecible.",
+  "citations": [
+    {
+      "document_title_es": "Guía ficticia de apoyo",
+      "locator": "p. 4",
+      "quote_es": "Mantener una rutina predecible puede facilitar las transiciones."
+    }
+  ],
+  "rating": null
+}
+```
+
+Sin envío hoy → `{"status": "no_submission_today"}`.
+
+### `GET /v1/recommendations?status=matched&child_id=...&limit=50`
+
+Cada `item` tiene la forma completa de una recomendación; dos ejemplos, uno
+resuelto y uno abstenido:
+
+```json
+{
+  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+  "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+  "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+  "created_at": "2026-08-25T19:55:00.000Z",
+  "risk_band": "high",
+  "query_es": "Riesgo alto. Calidad del sueño : Interrumpido",
+  "status": "matched",
+  "action_text_es": "Anticipa la siguiente actividad con una señal breve.",
+  "purpose_es": "Facilitar una transición predecible.",
+  "citations": [
+    {
+      "document_title_es": "Guía ficticia de apoyo",
+      "locator": "p. 4",
+      "quote_es": "Mantener una rutina predecible puede facilitar las transiciones."
+    }
+  ],
+  "attempt": 1
+}
+```
+
+```json
+{
+  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+  "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+  "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+  "created_at": "2026-08-25T19:55:00.000Z",
+  "risk_band": "unknown",
+  "query_es": "Calidad del sueño : Interrumpido",
+  "status": "abstained",
+  "citations": [],
+  "abstention_reason": "no_indexed_match",
+  "attempt": 1
+}
+```
+
+`abstention_reason` toma `no_indexed_match`, `draft_unavailable` o
+`draft_not_grounded` — ver §4.
+
+### `POST /v1/recommendations/{recommendation_instance_id}/feedback`
+
+Entrada:
+
+```json
+{"rating": "good", "note_es": null}
+```
+
+Salida (`201`) — `rating: "bad"` dispara una regeneración en segundo plano;
+`attempt` es el valor antes de que esa regeneración termine:
+
+```json
+{"feedback_id": "8f1e2b7a-2b8e-5c3f-9e1a-4d6f8a2b1c3d", "rating": "good", "attempt": 1}
+```
+
+### `GET /v1/prediction-episodes/{prediction_episode_id}`
+
+```json
+{
+  "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+  "subject_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+  "as_of_at": "2026-08-25T19:55:00.000Z",
+  "prediction_at": "2026-08-25T19:55:00.000Z",
+  "target_start_at": "2026-08-25T19:55:00.000Z",
+  "target_end_at": "2026-08-26T19:55:00.000Z",
+  "capture_deadline_at": "2026-08-27T19:55:00.000Z",
+  "target_definition_version": "1.0.0",
+  "outputs": [
+    {
+      "track_id": "real_personal_baseline_v1",
+      "intended_use": "operational_support",
+      "status": "ok",
+      "estimate_kind": "personal_observed_episode_rate",
+      "probability": 0.34,
+      "interval": {"lower": 0.12, "upper": 0.61},
+      "interval_method": "beta_posterior_quantile",
+      "abstention_reasons": [],
+      "model_version": "real-personal-baseline-0.3.0",
+      "input_data_origin": "real"
+    }
+  ],
+  "decision_policy_version": null,
+  "risk_band": null
+}
+```
+
+### `POST /v1/prediction-episodes/{prediction_episode_id}/outcome-reports`
+
+Entrada (un reporte afirmativo declara cuándo ocurrió; cualquier otro valor,
+nunca):
+
+```json
+{"value": "yes", "occurred_at": "2026-08-26T09:00:00Z"}
+```
+
+Salida (`201`):
+
+```json
+{
+  "report": {
+    "outcome_report_id": "b3f0e6d1-4a2c-5f8e-9b1a-2c3d4e5f6a7b",
+    "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+    "value": "yes",
+    "occurred_at": "2026-08-26T09:00:00Z",
+    "reported_at": "2026-08-26T09:00:05Z",
+    "timing_status": "on_time",
+    "reporter_role": "caregiver",
+    "intake_channel": "form",
+    "target_definition_version": "1.0.0"
+  },
+  "resolution": {
+    "status": "yes",
+    "resolved_at": "2026-08-26T09:00:05Z",
+    "qualifying_report_id": "b3f0e6d1-4a2c-5f8e-9b1a-2c3d4e5f6a7b",
+    "ever_conflicted": false,
+    "resolution_version": 1
+  },
+  "request_state": "reported"
+}
+```
+
+### `GET /v1/outcome-requests`
+
+```json
+{
+  "items": [
+    {
+      "outcome_request_id": "81ac1cb1-093d-5aa4-a301-1b573ee7e7f5",
+      "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+      "subject_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+      "target_definition_version": "1.0.0",
+      "question_es": "¿Ocurrió el evento objetivo en la ventana declarada?",
+      "target_start_at": "2026-08-25T19:55:00.000Z",
+      "target_end_at": "2026-08-26T19:55:00.000Z",
+      "capture_deadline_at": "2026-08-27T19:55:00.000Z",
+      "state": "open",
+      "resolution_status": "pending"
+    }
+  ]
+}
+```
+
+### `WS /v1/ws`
+
+Sin autenticación ni filtro por `child_id`. Eventos:
+
+```json
+{"type": "recommendation.ready", "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+ "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+ "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771", "status": "abstained",
+ "abstention_reason": "draft_unavailable", "at": "2026-08-25T19:55:03.000Z"}
+```
+
+```json
+{"type": "recommendation.redrafted",
+ "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+ "attempt": 2, "status": "matched", "at": "2026-08-25T20:10:00.000Z"}
+```
+
+```json
+{"type": "feedback.recorded",
+ "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+ "rating": "bad", "at": "2026-08-25T20:09:00.000Z"}
+```
+
+---
+
+## 6. Cómo correr el backend
 
 ```bash
 # 1. Sembrar la base local (datos completamente ficticios).
-python -m tools.seed --catalog blocked          # estado honesto de release
-python -m tools.seed --catalog fixture-active   # para recorrer el flujo profesional
+python -m tools.seed
 
 # 2. Levantar la API.
 uvicorn "apps.api.main:create_app" --factory --host 127.0.0.1 --port 8000
 
-#    Contra el dominio real de P1 en vez de los mocks:
+#    Contra el dominio real de ml/ y rag/ en vez de los mocks:
 FARO_P1_ADAPTERS=real uvicorn "apps.api.main:create_app" --factory --port 8000
 ```
 
 `GET /health` dice contra qué está corriendo:
-`{"status": "ok", "spec_version": "0.3.0", "mode": "demo", "adapters": "p1"}`.
-La documentación OpenAPI vive en `/docs` y se deshabilita sola en modo
-piloto (`FARO_MODE=pilot`).
+`{"status": "ok", "spec_version": "0.4.0", "mode": "demo", "adapters": "p1"}`.
+La documentación OpenAPI vive en `/docs` y se deshabilita sola en modo piloto
+(`FARO_MODE=pilot`).
+
+Por defecto no hay ningún `draft_transport` conectado, así que toda
+recomendación con chunks indexados abstiene con `draft_unavailable` — el LLM
+de redacción se conecta pasando un `DraftTransport`
+(`rag/authoring/drafting.py`) a `create_app(..., draft_transport=...)`.
 
 ### Variables de entorno
+
+Conservan el prefijo interno `FARO_` (no es el nombre del producto, es un
+identificador de configuración heredado):
 
 | Variable | Por defecto | Para qué |
 |---|---|---|
 | `FARO_MODE` | `demo` | `pilot` exige PostgreSQL y bloquea el arranque sobre SQLite |
 | `FARO_DB_PATH` | `data/faro.db` | Base SQLite local |
 | `FARO_CORS_ORIGINS` | `http://127.0.0.1:3000,http://localhost:3000` | Allowlist explícita |
-| `FARO_AUDIT_SECRET` | valor de demo | Secreto HMAC de asignación de auditoría |
-| `FARO_SCENARIO_SECRET` | valor de demo | Clave del escenario mínimo cifrado |
-| `FARO_P1_ADAPTERS` | `mock` | `real` corre contra `ml/**` y `rag/runtime` |
-
-### Cuentas de demostración
-
-| Token | Persona ficticia | Rol |
-|---|---|---|
-| `demo-cuidadora-ana` | Ana Ríos | `caregiver` |
-| `demo-profesional-a` | Pilar Soto | `professional` acreditada |
-| `demo-evaluador-a` | Evaluador Demo A | `model_evaluator` |
-| `demo-profesional-sin-acreditacion` | — | `professional` sin acreditación vigente (para 403) |
-| `demo-cuidador-b` | — | `caregiver` de otra organización (para 404 cross-tenant) |
+| `FARO_P1_ADAPTERS` | `mock` | `real` corre contra `ml/**` y `rag/authoring` |
 
 ---
 
-## 6. Verificación
+## 7. Verificación
 
 ```bash
 # Contrato: nada de generated/ ni examples/ se edita a mano.
@@ -264,27 +562,6 @@ pytest tests -q
 FARO_P1_ADAPTERS=real pytest tests/integration -q
 ```
 
-`tests/p2/test_openapi.py` compara el OpenAPI publicado contra `SPEC 11.1`.
-`tests/p2/test_invariants.py` cubre los invariantes que le tocan a P2
-(INV-01, 05, 08, 11-15, 27, 29-31); los algorítmicos y de contrato viven en
-`tests/p1`. `lint-imports` verifica que las capas no se rompieron.
-
----
-
-## 7. Estado real del release
-
-Cuatro estados independientes, y ninguno implica al otro:
-
-| Estado | Valor | Por qué |
-|---|---|---|
-| `implementation_status` | `p2_integrated_against_p1` | el backend corre sobre el dominio real; `mock` sigue como camino de test/demo |
-| `corpus_status` | `fixture_only` | no hay corpus clínico legalmente utilizable |
-| `target_definition_status` | `demo_fixture_only` | no hay target real aprobado |
-| `catalog_status` | `blocked_clinical_review` | no hay revisor clínico autorizado; ninguna estrategia llega a `active` |
-
-Con la demo sembrada, el dominio real no inventa nada: el estimador de
-defaults no sugiere sobre la cohorte sintética `demo_fixture` (`SPEC 6.2`), el
-baseline personal se abstiene por falta de outcomes verificados, el track
-sintético responde `unavailable` porque el binario v0.2 no está en Git, y el
-catálogo de recomendaciones responde `clinical_review_unavailable`. Eso es lo
-correcto de ver con estos datos, no una falla.
+`lint-imports` verifica, entre otras cosas, que solo
+`apps/api/services/recommendations.py` alcanza `rag.authoring` — es la única
+puerta al LLM del sistema.
