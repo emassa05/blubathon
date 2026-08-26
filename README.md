@@ -112,15 +112,16 @@ background).
 
 ## 4. Sistema RAG — `rag/`, `apps/api/services/recommendations.py`
 
-**Autoría** (offline, `tools/rag_authoring/cli.py`): documentos versionados
-en texto plano (sin PDF) → chunking → normalización → hash → manifiesto
-reproducible. Solo CLI, nunca HTTP.
+**Autoría** (offline, `tools/rag_authoring/cli.py`): documentos versionados →
+chunking → normalización → hash → manifiesto reproducible. Solo CLI, nunca
+HTTP. Ese comando **no escribe en la base**; para cargar un documento al
+índice que consulta el runtime, usá `tools.rag_authoring.load_local` (§6).
 
 **Runtime** (online, tras cada envío de formulario):
 
 1. `query_for()` construye consulta ES desde las respuestas (sin texto libre), prefijo = `risk_band`: `"Riesgo alto. Calidad del sueño : Interrumpido. ..."`.
 2. Recuperación: BM25 puro, modo `lexical_only` (sin recuperador denso configurado). Sin match → `abstained` / `no_indexed_match`.
-3. Redacción (`request_draft`): único punto con acceso a LLM, solo recibe chunks recuperados (sin identidad/notas/texto libre). Sin `draft_transport` configurado (default de esta demo) → `abstained` / `draft_unavailable`.
+3. Redacción (`request_draft`): único punto con acceso a LLM, solo recibe chunks recuperados (sin identidad/notas/texto libre). Sin `draft_transport` configurado → `abstained` / `draft_unavailable`. `rag/authoring/transports.py` da dos: `anthropic` (`claude-opus-5`) y `ollama` (local, cualquier modelo servido por Ollama) — ambos con el `output_schema` del prompt versionado forzando la forma de salida.
 4. Verificación de citas (`verify_citation`): cada cita debe ser literal de un chunk recuperado. Si no → `abstained` / `draft_not_grounded`. Ninguna fila `matched` tiene cita no verificada.
 5. Todo verificado → `matched`, se persiste `action_text_es`, `purpose_es`, citas.
 
@@ -413,18 +414,34 @@ Sin auth ni filtro por `child_id`.
 python -m tools.seed
 uvicorn "apps.api.main:create_app" --factory --host 127.0.0.1 --port 8000
 
-# contra el dominio real en vez de mocks:
-BLUBATHON_P1_ADAPTERS=real uvicorn "apps.api.main:create_app" --factory --port 8000
+# dominio real + RAG con redacción vía API de Claude:
+export ANTHROPIC_API_KEY=sk-ant-...
+BLUBATHON_P1_ADAPTERS=real BLUBATHON_DRAFT_LLM=anthropic \
+  uvicorn "apps.api.main:create_app" --factory --port 8000
+
+# o local, con Ollama corriendo (ollama pull qwen2.5:7b-instruct):
+BLUBATHON_P1_ADAPTERS=real BLUBATHON_DRAFT_LLM=ollama \
+  uvicorn "apps.api.main:create_app" --factory --port 8000
 ```
 
 `GET /health` → `{"status": "ok", "spec_version": "0.4.0", "mode": "demo",
 "adapters": "p1"}`. OpenAPI en `/docs`, deshabilitado en modo piloto
 (`BLUBATHON_MODE=pilot`).
 
-Sin `draft_transport` conectado (default), toda recomendación con chunks
-indexados abstiene con `draft_unavailable`. Se conecta pasando un
-`DraftTransport` (`rag/authoring/drafting.py`) a
-`create_app(..., draft_transport=...)`.
+### Cargar documentos al corpus
+
+`tools.rag_authoring build` escribe manifiestos offline, no toca la base. Para
+que el runtime pueda recuperar de un documento, cargalo con:
+
+```bash
+python -m tools.rag_authoring.load_local --db data/blubathon.db \
+    --title "Guía de apoyos" --file guia.pdf
+```
+
+Acepta PDF (vía `pypdf`), `.txt` y `.md`. Un PDF escaneado sin capa de texto
+falla explícito en vez de cargar un documento vacío — eso necesita OCR, que no
+está en el repo. El chunking es el real (`rag/domain/chunking.py`), así que lo
+cargado es indistinguible de lo que produciría el pipeline de autoría.
 
 | Variable | Default | Efecto |
 |---|---|---|
@@ -432,6 +449,9 @@ indexados abstiene con `draft_unavailable`. Se conecta pasando un
 | `BLUBATHON_DB_PATH` | `data/blubathon.db` | Ruta SQLite |
 | `BLUBATHON_CORS_ORIGINS` | `http://127.0.0.1:3000,http://localhost:3000` | Allowlist CORS |
 | `BLUBATHON_P1_ADAPTERS` | `mock` | `real` → `ml/**` + `rag/authoring` |
+| `BLUBATHON_DRAFT_LLM` | — | `anthropic` (necesita `ANTHROPIC_API_KEY`) o `ollama` (local) |
+| `BLUBATHON_OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Modelo servido por Ollama |
+| `BLUBATHON_OLLAMA_URL` | `http://127.0.0.1:11434` | Daemon de Ollama |
 
 ---
 
