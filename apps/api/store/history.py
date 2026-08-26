@@ -86,13 +86,25 @@ def previous_primary_episodes(
 
     La resolución activa es la hoja de la cadena `supersedes_id`; se devuelven
     todas las filas y el adaptador proyecta al cutoff.
+
+    `cohort_kind` y `feature_snapshot_id` no viven en `prediction_episodes`,
+    pero el episodio del dominio los declara: se unen aquí para que
+    `rows.prediction_episode` pueda traducir la fila. Un `SELECT *` a secas
+    traduce bien mientras el sujeto no tenga episodios previos y revienta con
+    `IndexError` en cuanto tiene uno, que es justo cuando el baseline empieza a
+    servir para algo.
     """
     return list(
         connection.execute(
-            "SELECT * FROM prediction_episodes"
-            " WHERE tenant_id = ? AND subject_id = ? AND role = 'primary'"
-            " AND target_end_at <= ?"
-            " ORDER BY target_start_at, prediction_episode_id",
+            "SELECT episode.*, subject.cohort_kind AS cohort_kind,"
+            " snapshot.feature_snapshot_id AS feature_snapshot_id"
+            " FROM prediction_episodes AS episode"
+            " JOIN subjects AS subject ON subject.subject_id = episode.subject_id"
+            " LEFT JOIN feature_snapshots AS snapshot"
+            "   ON snapshot.prediction_episode_id = episode.prediction_episode_id"
+            " WHERE episode.tenant_id = ? AND episode.subject_id = ?"
+            " AND episode.role = 'primary' AND episode.target_end_at <= ?"
+            " ORDER BY episode.target_start_at, episode.prediction_episode_id",
             (tenant_id, subject_id, before_at),
         ).fetchall()
     )
