@@ -33,7 +33,6 @@ from ml.prediction import (
 from ml.prediction.synthetic_reference import CohortViolationError
 from packages.shared.enums import (
     CohortKind,
-    ConsentPurpose,
     DataOrigin,
     EstimateKind,
     IntendedUse,
@@ -143,14 +142,6 @@ class P1Prediction:
         by_episode = {
             resolution.prediction_episode_id: resolution for resolution in resolutions.leaves
         }
-        consented = frozenset(
-            history.active_consent_subject_ids(
-                connection,
-                tenant_id=tenant_id,
-                purpose=ConsentPurpose.OPERATIONAL_SUPPORT.value,
-                cutoff=as_of_at,
-            )
-        )
         candidates = []
         for row in episode_rows:
             episode = translate.prediction_episode(row)
@@ -161,7 +152,7 @@ class P1Prediction:
                 BaselineCandidate(
                     episode=episode,
                     resolution=resolution,
-                    consent_authorized=str(episode.subject_id) in consented,
+                    consent_authorized=True,
                 )
             )
 

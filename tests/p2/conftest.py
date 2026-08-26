@@ -1,15 +1,11 @@
-"""Fixtures de P2: base sembrada, reloj congelado y cliente HTTP.
-
-Los datos son ficticios (`tools/seed`); ningún test versionado usa un export
-real (CONVENTIONS 15).
-"""
+"""Seeded v0.4 API fixtures."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,10 +13,47 @@ from fastapi.testclient import TestClient
 from apps.api.clock import FrozenClock
 from apps.api.main import create_app
 from apps.api.settings import Settings
-from tools.seed import ids
+from tools.seed import data, ids
 from tools.seed.seeder import seed
 
 START = datetime(2026, 8, 25, 12, 0, 0, tzinfo=UTC)
+
+
+class GroundedDraftTransport:
+    model_id = "fixture-draft"
+    model_sha256 = "fixture-draft-sha256"
+
+    def complete(self, prompt: str) -> str:
+        candidates = (
+            data.FIXTURE_CHUNKS[0]["text"],
+            data.FIXTURE_CHUNKS[1]["text"],
+        )
+        quote = next(text for text in candidates if text in prompt)
+        return json.dumps(
+            {
+                "purpose_es": "Ofrecer un apoyo cotidiano basado en la guía ficticia.",
+                "action_text_es": "Prueben el apoyo descrito y observen cómo resulta.",
+                "claims": [{"start": 0, "end": 10, "claim_text_es": "Apoyo", "quoted_text": quote}],
+            }
+        )
+
+
+class UngroundedDraftTransport(GroundedDraftTransport):
+    def complete(self, prompt: str) -> str:
+        return json.dumps(
+            {
+                "purpose_es": "Texto no sustentado.",
+                "action_text_es": "Texto no sustentado.",
+                "claims": [
+                    {
+                        "start": 0,
+                        "end": 10,
+                        "claim_text_es": "Invención",
+                        "quoted_text": "Esta cita no aparece en ningún fragmento.",
+                    }
+                ],
+            }
+        )
 
 
 @pytest.fixture
@@ -38,17 +71,13 @@ def settings(tmp_path: Path) -> Settings:
 
 
 @pytest.fixture
-def catalog_profile() -> Literal["blocked", "fixture-active"]:
-    """Por defecto el estado honesto: sin revisor clínico autorizado."""
-    return "blocked"
-
-
-@pytest.fixture
-def app(settings: Settings, clock: FrozenClock, catalog_profile: str):
-    application = create_app(settings=settings, clock=clock)
+def app(settings: Settings, clock: FrozenClock):
+    application = create_app(
+        settings=settings, clock=clock, draft_transport=GroundedDraftTransport()
+    )
     registry = application.state.registry
     with registry.core.database.write() as connection:
-        seed(connection, catalog_profile=catalog_profile)  # type: ignore[arg-type]
+        seed(connection)
     yield application
     registry.core.database.close()
 
@@ -64,69 +93,34 @@ def db(app):
     return app.state.registry.core.database
 
 
-class Caller:
-    """Cliente tipado por actor: añade el token demo y la clave idempotente."""
-
-    def __init__(self, client: TestClient, token: str) -> None:
-        self._client = client
-        self._token = token
-        self._counter = 0
-
-    def _headers(self, key: str | None, if_match: str | None) -> dict[str, str]:
-        headers = {"Authorization": f"Bearer {self._token}"}
-        if key is not None:
-            headers["Idempotency-Key"] = key
-        if if_match is not None:
-            headers["If-Match"] = if_match
-        return headers
-
-    def next_key(self) -> str:
-        self._counter += 1
-        return f"key-{self._token}-{self._counter}"
-
-    def get(self, path: str, **params: Any):
-        return self._client.get(path, headers=self._headers(None, None), params=params)
-
-    def post(
-        self,
-        path: str,
-        json: Any = None,
-        *,
-        key: str | None = None,
-        if_match: str | None = None,
-    ):
-        return self._client.post(
-            path,
-            json=json,
-            headers=self._headers(key or self.next_key(), if_match),
-        )
-
-    def post_raw(self, path: str, json: Any = None, *, headers: dict[str, str] | None = None):
-        merged = {"Authorization": f"Bearer {self._token}"}
-        merged.update(headers or {})
-        return self._client.post(path, json=json, headers=merged)
-
-
 @pytest.fixture
-def caregiver(client: TestClient) -> Caller:
-    return Caller(client, ids.TOKENS[ids.CAREGIVER_A])
+def caregiver(client: TestClient) -> TestClient:
+    return client
 
 
-@pytest.fixture
-def professional(client: TestClient) -> Caller:
-    return Caller(client, ids.TOKENS[ids.PROFESSIONAL_A])
-
-
-@pytest.fixture
-def other_tenant_caregiver(client: TestClient) -> Caller:
-    return Caller(client, ids.TOKENS[ids.CAREGIVER_B])
-
-
-@pytest.fixture
-def evaluator(client: TestClient) -> Caller:
-    return Caller(client, ids.TOKENS[ids.MODEL_EVALUATOR_A])
-
-
-@pytest.fixture
-def unaccredited_professional(client: TestClient) -> Caller:
-    return Caller(client, ids.TOKENS[ids.UNACCREDITED_PROFESSIONAL_A])
+def submit_form(
+    client: TestClient,
+    child_id: str = str(ids.SUBJECT_ANA),
+    *,
+    answers: list[dict] | None = None,
+):
+    return client.post(
+        f"/v1/children/{child_id}/forms",
+        json={
+            "source": "caregiver_daily",
+            "local_date": "2026-08-25",
+            "answers": answers
+            or [
+                {
+                    "field_code": "sleep_quality",
+                    "value": "interrupted",
+                    "interaction": "manual",
+                },
+                {
+                    "field_code": "routine_changes",
+                    "value": True,
+                    "interaction": "manual",
+                },
+            ],
+        },
+    )

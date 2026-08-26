@@ -21,10 +21,6 @@ data/*
 !data/manifest.json
 !data/*.manifest.json
 
-# Bluba's anonymised client export. Kept out of git on purpose: the repository
-# is meant to be public, and that is a decision for the team and for Bluba, not
-# a default. `data/source-evidence.manifest.json` records its schema, hashes and
-# counts without a single clinical row.
 Datos base/
 *.joblib
 *.pkl

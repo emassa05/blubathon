@@ -1,10 +1,12 @@
 {
+  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+  "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
+  "prediction_episode_id": "f26081f2-9dfe-57e7-ad1b-c2005526e2c3",
+  "created_at": "2026-08-25T19:55:00.000Z",
+  "risk_band": "unknown",
+  "query_es": "Calidad del sueño : Interrumpido",
   "status": "abstained",
-  "recommendation_instance_id": "20abb530-cc5b-4235-8511-f7268e74ee00",
-  "catalog_version": null,
-  "corpus_version": null,
-  "items": [],
-  "reasons": [
-    "corpus_not_ready"
-  ]
+  "citations": [],
+  "abstention_reason": "no_indexed_match",
+  "attempt": 1
 }

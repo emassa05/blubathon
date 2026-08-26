@@ -1,8 +1,0 @@
-{
-  "answer": {
-    "field_code": "food_changes",
-    "interaction": "accept_default",
-    "value": false,
-    "default_presentation_id": null
-  }
-}

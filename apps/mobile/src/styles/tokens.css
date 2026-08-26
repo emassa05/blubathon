@@ -1,0 +1,267 @@
+/* Tokens de Faro.
+ *
+ * En `:root` va todo lo que no depende del riesgo: la paleta de las tarjetas
+ * blancas, la elevación, la escala tipográfica en rem, el espaciado, los radios
+ * y las medidas de las piezas.
+ *
+ * Lo que sí depende del riesgo —el gradiente del panel, sus ondas, la tinta de
+ * los textos y el acento de la recomendación— vive al final, en una clase por
+ * banda. `SaludView` pone una de las tres en la columna y el resto se hereda.
+ * Ningún componente conoce las bandas: todos consumen los mismos `var(--faro-*)`.
+ */
+
+:root {
+  --faro-fuente: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Paleta de las tarjetas blancas */
+  --faro-verde-profundo: oklch(0.32 0.03 168);
+  --faro-verde-titulo: oklch(0.34 0.02 168);
+  --faro-verde-texto: oklch(0.4 0.02 168);
+  /* 4.8:1 sobre blanco. El 0.58 de antes se quedaba en 4.26:1 y era el único
+     par de la pantalla que no llegaba a AA. */
+  --faro-gris-texto: oklch(0.55 0.015 168);
+  --faro-verde-accion: oklch(0.52 0.08 168);
+  --faro-verde-icono: oklch(0.48 0.08 168);
+  --faro-verde-icono-fondo: oklch(0.94 0.035 162);
+  --faro-punto-activo: oklch(0.68 0.1 162);
+  --faro-punto-inactivo: oklch(0.86 0.02 168);
+  --faro-alerta-fondo: oklch(0.945 0.04 40);
+  --faro-alerta-texto: oklch(0.47 0.12 34);
+  --faro-superficie: #fff;
+
+  /* Filete entre filas. Separa sin dibujar una caja dentro de otra caja. */
+  --faro-linea: oklch(0.92 0.008 200);
+  --faro-fila-activa: oklch(0.95 0.008 200);
+
+  /*
+   * El aviso del formulario pendiente. No entra en las bandas a propósito: es
+   * el mismo naranja pase lo que pase, porque no habla del riesgo del día sino
+   * de algo que le falta por hacer al usuario. Si cambiara con la banda,
+   * parecería parte del estado.
+   */
+  --faro-aviso-fondo: oklch(0.965 0.03 62);
+  --faro-aviso-etiqueta: oklch(0.52 0.135 46);
+  --faro-aviso-titulo: oklch(0.38 0.1 46);
+  --faro-aviso-insignia: oklch(0.62 0.16 48);
+  --faro-aviso-chevron: oklch(0.55 0.09 48);
+
+  /* Color de la página, por debajo y alrededor del panel. */
+  --faro-fondo-final: oklch(0.985 0.004 220);
+
+  /* Superficie translúcida: la pastilla de confianza y la insignia de la
+     recomendación. Es el mismo recurso en los dos sitios a propósito. */
+  --faro-vidrio: rgb(255 255 255 / 0.72);
+  --faro-vidrio-borde: rgb(255 255 255 / 0.9);
+
+  /* Elevación.
+   *
+   * Dos niveles y no más. Cada uno son dos capas: un contacto corto y pegado,
+   * que asienta la pieza, y una difusa y muy abierta, que da la altura. Una
+   * sola capa grande siempre acaba pareciendo una mancha.
+   *
+   * El tono es frío y neutro, no verde: una sombra teñida delata el color de la
+   * tarjeta que había debajo cuando se eligió, y aquí el fondo cambia con la
+   * banda.
+   *
+   * Nivel 0 (sin sombra) es el panel: es la superficie, no flota sobre nada.
+   * Nivel 1 son las tarjetas, todas por igual. Nivel 2 es solo el aviso
+   * pendiente: es la única acción de la pantalla y está un peldaño por encima
+   * del contenido que se limita a informar.
+   */
+  --faro-elev-1: 0 1px 2px oklch(0.35 0.02 250 / 0.05), 0 8px 18px -10px oklch(0.35 0.02 250 / 0.2);
+  --faro-elev-2:
+    0 2px 4px oklch(0.35 0.02 250 / 0.07), 0 16px 28px -12px oklch(0.35 0.02 250 / 0.24);
+
+  /* Nombre que ya usaban los componentes, apuntando a la escala. */
+  --faro-sombra-tarjeta: var(--faro-elev-1);
+
+  /* Foco visible. Valor interpretado: el diseño no define el anillo. */
+  --faro-foco-grosor: 2px;
+  --faro-foco-offset: 2px;
+  --faro-foco-panel: var(--faro-tinta);
+  --faro-foco-oscuro: var(--faro-verde-accion);
+
+  /* Escala tipográfica en rem sobre una raíz de 16px, para que el zoom de
+     texto del navegador siga funcionando. El nombre conserva el valor en px
+     del diseño. */
+  --faro-fs-11: 0.6875rem;
+  --faro-fs-12: 0.75rem;
+  --faro-fs-125: 0.78125rem;
+  --faro-fs-13: 0.8125rem;
+  --faro-fs-135: 0.84375rem;
+  --faro-fs-15: 0.9375rem;
+  --faro-fs-155: 0.96875rem;
+  --faro-fs-17: 1.0625rem;
+  --faro-fs-20: 1.25rem;
+  --faro-fs-26: 1.625rem;
+  --faro-fs-104: 6.5rem;
+
+  /* Interletrado */
+  --faro-track-cifra: -0.03em;
+  --faro-track-012: 0.12em;
+  --faro-track-014: 0.14em;
+
+  /* Espaciado fijo en px: los paddings del diseño no escalan con el zoom. */
+  --faro-esp-4: 4px;
+  --faro-esp-6: 6px;
+  --faro-esp-8: 8px;
+  --faro-esp-9: 9px;
+  --faro-esp-10: 10px;
+  --faro-esp-12: 12px;
+  --faro-esp-14: 14px;
+  --faro-esp-16: 16px;
+  --faro-esp-18: 18px;
+  --faro-esp-20: 20px;
+  --faro-esp-22: 22px;
+  --faro-esp-24: 24px;
+  --faro-esp-26: 26px;
+
+  --faro-radio-10: 10px;
+  --faro-radio-18: 18px;
+  --faro-radio-24: 24px;
+  --faro-radio-26: 26px;
+  --faro-radio-pastilla: 999px;
+
+  /* Área táctil mínima (WCAG 2.5.5 / 2.5.8). */
+  --faro-toque: 44px;
+
+  /* Medidas de la página y de las piezas del diseño. */
+  --faro-ancho-max: 480px;
+  --faro-alto-referencia: 844px;
+  /*
+   * El alto tiene que contar con la cúpula: el contenido sube 44px sobre el
+   * panel y le tapa el centro. Con 272 la pastilla de confianza quedaba
+   * pegada a la curva y parecía que se salía de la tarjeta.
+   */
+  --faro-panel-alto: 296px;
+  /* Flecha de la cúpula con la que el contenido entra en el panel. */
+  --faro-cupula: 44px;
+  --faro-ondas-alto: 168px;
+  --faro-recomendacion-alto: 118px;
+  --faro-caja-icono: 30px;
+  --faro-insignia: 34px;
+  --faro-icono-12: 12px;
+  --faro-icono-14: 14px;
+  --faro-icono-16: 16px;
+  --faro-icono-26: 26px;
+  --faro-punto: 9px;
+
+  /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
+     sobrescribe en línea con la prop `duracion`. */
+  --faro-dur: 5s;
+}
+
+/* Las tres bandas.
+ *
+ * Todas siguen el mismo patrón, para que los tres estados se vean de una pieza:
+ *
+ * - `panel-cima` → `panel`: el gradiente. Casi blanco arriba y con el color de
+ *   la banda abajo. El texto cae en la parte clara, que es donde más contraste
+ *   hay; el color, en la de abajo, que es donde se ve la cúpula.
+ * - `onda-1/2/3`: el horizonte, cada capa un paso más profunda.
+ * - `tinta`: el oscuro del tono. Texto y anillo de foco.
+ * - `rec-*`: el acento de la recomendación, que es una tarjeta blanca con un
+ *   lavado de color, no un bloque de color.
+ */
+
+.faro-banda--bajo {
+  --faro-panel-cima: oklch(0.972 0.012 235);
+  --faro-panel: oklch(0.895 0.05 235);
+  --faro-brillo: oklch(1 0 0 / 0.55);
+  --faro-onda-1: oklch(0.855 0.065 235);
+  --faro-onda-2: oklch(0.805 0.08 235);
+  --faro-onda-3: oklch(0.755 0.095 235);
+
+  --faro-tinta: oklch(0.31 0.06 235);
+  --faro-texto-fuerte: oklch(0.31 0.06 235);
+  --faro-texto-suave: oklch(0.42 0.055 235);
+
+  --faro-rec-tinte: oklch(0.905 0.06 235 / 0.9);
+  --faro-rec-insignia: oklch(0.88 0.06 235);
+  --faro-rec-sobretitulo: oklch(0.42 0.06 235);
+}
+
+.faro-banda--medio {
+  --faro-panel-cima: oklch(0.975 0.018 92);
+  --faro-panel: oklch(0.92 0.07 92);
+  --faro-brillo: oklch(1 0 0 / 0.55);
+  --faro-onda-1: oklch(0.88 0.095 92);
+  --faro-onda-2: oklch(0.835 0.11 90);
+  --faro-onda-3: oklch(0.79 0.125 88);
+
+  --faro-tinta: oklch(0.335 0.075 70);
+  --faro-texto-fuerte: oklch(0.335 0.075 70);
+  --faro-texto-suave: oklch(0.44 0.075 70);
+
+  --faro-rec-tinte: oklch(0.925 0.085 92 / 0.9);
+  --faro-rec-insignia: oklch(0.9 0.08 92);
+  --faro-rec-sobretitulo: oklch(0.44 0.075 70);
+}
+
+.faro-banda--alto {
+  --faro-panel-cima: oklch(0.968 0.015 25);
+  --faro-panel: oklch(0.88 0.06 22);
+  --faro-brillo: oklch(1 0 0 / 0.55);
+  --faro-onda-1: oklch(0.84 0.085 22);
+  --faro-onda-2: oklch(0.795 0.105 22);
+  --faro-onda-3: oklch(0.745 0.125 22);
+
+  --faro-tinta: oklch(0.3 0.1 25);
+  --faro-texto-fuerte: oklch(0.3 0.1 25);
+  --faro-texto-suave: oklch(0.41 0.1 25);
+
+  --faro-rec-tinte: oklch(0.905 0.065 25 / 0.9);
+  --faro-rec-insignia: oklch(0.89 0.06 25);
+  --faro-rec-sobretitulo: oklch(0.41 0.1 25);
+}
+
+/* Piezas que llegaron después: el historial de cuestionarios y el diálogo.
+ *
+ * Todo lo de aquí es añadido: ni un valor de arriba cambia. Los colores no son
+ * nuevos, son nombres semánticos sobre la paleta que ya existía, para que una
+ * variable crítica y una prioridad de factor no se pinten con dos criterios
+ * distintos.
+ *
+ * El punto de corte de escritorio es 900px. No puede vivir en una variable
+ * —`@media` no lee `var()`—, así que se escribe igual en todos los componentes
+ * y se anota aquí, que es donde se busca.
+ */
+
+:root {
+  /* Medidas de las pantallas anchas. La columna de 480 sigue mandando en móvil. */
+  --faro-ancho-amplio: 1040px;
+  --faro-ancho-dialogo: 560px;
+  --faro-rail-ancho: 372px;
+
+  --faro-esp-32: 32px;
+  --faro-esp-40: 40px;
+
+  --faro-radio-14: 14px;
+  --faro-radio-32: 32px;
+
+  /* Calendario semanal: la celda del día en las dos densidades. */
+  --faro-celda-alto: 62px;
+  --faro-celda-alto-amplio: 96px;
+
+  /*
+   * El velo del diálogo. Frío y bastante transparente: el contexto de debajo
+   * tiene que seguir reconociéndose, que es justo lo que distingue un diálogo
+   * de un cambio de pantalla.
+   */
+  --faro-velo: oklch(0.32 0.03 235 / 0.44);
+
+  /*
+   * La sombra del diálogo no es un tercer nivel de la página: la página tiene
+   * dos y siguen siendo dos. Un diálogo no flota sobre el contenido, flota
+   * sobre el velo, fuera de esa pila.
+   */
+  --faro-elev-dialogo:
+    0 4px 10px oklch(0.35 0.02 250 / 0.1), 0 32px 60px -20px oklch(0.35 0.02 250 / 0.4);
+
+  /* Severidad de una variable crítica. Los mismos dos pares que ya usaban la
+     pastilla de prioridad y el aviso pendiente. */
+  --faro-critica-alta-fondo: var(--faro-alerta-fondo);
+  --faro-critica-alta-texto: var(--faro-alerta-texto);
+  --faro-critica-media-fondo: var(--faro-aviso-fondo);
+  --faro-critica-media-texto: var(--faro-aviso-etiqueta);
+}

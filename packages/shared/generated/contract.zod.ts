@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-// contract_version: faro-contract-0.3.0
+// contract_version: faro-contract-0.4.0
 
 export const AbstentionBreakdownSchema = z.object({
   "reason": z.string(),
@@ -10,13 +10,9 @@ export const AbstentionBreakdownSchema = z.object({
   "rate": z.number().gte(0.0).lte(1.0),
 }).strict();
 
-export const AccreditationCapabilitySchema = z.enum(["subject_care", "target_review", "strategy_review", "evidence_review", "privacy_review", "catalog_activation", "model_evaluation"]);
-
 export const AnswerInteractionSchema = z.enum(["manual", "accept_default", "edit_default", "unknown"]);
 
 export const ApprovalStatusSchema = z.enum(["draft", "active", "retired"]);
-
-export const AuthoringBasisTypeSchema = z.enum(["consent", "institutional_legal_basis"]);
 
 export const AuthoringRequestStatusSchema = z.enum(["open", "exported", "closed"]);
 
@@ -25,24 +21,6 @@ export const AuthoringReviewDecisionSchema = z.enum(["approved", "changes_reques
 export const AuthoringReviewKindSchema = z.enum(["evidence", "clinical", "privacy", "catalog_activation"]);
 
 export const AuthoringReviewObjectTypeSchema = z.enum(["target_definition", "document", "strategy", "recommendation_set", "catalog"]);
-
-export const AuthoringScopeSchema = z.literal("generalize_query_only");
-
-export const AuthorizationStatusSchema = z.enum(["active", "revoked", "expired"]);
-
-export const CatalogStatusSchema = z.enum(["draft", "reviewed", "active", "suspended", "retired"]);
-
-export const CatalogVersionSchema = z.object({
-  "catalog_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "tenant_id": z.string().uuid(),
-  "corpus_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "recommendation_set_version_ids": z.array(z.string().uuid()).min(1),
-  "catalog_activation_review_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "status": z.lazy(() => CatalogStatusSchema),
-  "effective_from": z.string().datetime({ offset: true }),
-  "suspended_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
-}).strict();
 
 export const ChallengerTrainingProtocolVersionSchema = z.object({
   "protocol_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
@@ -55,28 +33,44 @@ export const ChallengerTrainingProtocolVersionSchema = z.object({
   "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
 }).strict();
 
-export const CitationViewSchema = z.object({
-  "citation_id": z.string().uuid(),
-  "claim_id": z.string().uuid(),
-  "locator": z.string().min(1),
-  "quoted_text": z.string().min(1),
-  "canonical_url": z.string().url().min(1),
+export const ChildHistoryOutcomeSchema = z.object({
+  "status": z.enum(["yes", "no", "unknown", "conflicted", "pending"]),
+  "reported_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
+}).strict();
+
+export const ChildHistoryPredictionSchema = z.object({
+  "status": z.enum(["ok", "abstained"]),
+  "probability": z.union([z.number().gte(0.0).lte(1.0), z.null()]).optional(),
+  "interval": z.union([z.array(z.unknown()).min(2).max(2), z.null()]).optional(),
+}).strict();
+
+export const ChildHistoryRecommendationSchema = z.object({
+  "recommendation_instance_id": z.string().uuid(),
+  "status": z.enum(["pending", "matched", "abstained"]),
+  "rating": z.union([z.enum(["good", "bad"]), z.null()]).optional(),
+}).strict();
+
+export const ChildListItemSchema = z.object({
+  "child_id": z.string().uuid(),
+  "display_label": z.string().min(1),
+}).strict();
+
+export const ChildListResponseSchema = z.object({
+  "children": z.array(z.lazy(() => ChildListItemSchema)).optional(),
+}).strict();
+
+export const ChildViewSchema = z.object({
+  "child_id": z.string().uuid(),
+  "display_label": z.string().min(1),
+  "sensory_profile_tags": z.array(z.string()).optional(),
+  "communication_support_tags": z.array(z.string()).optional(),
+  "contraindication_tags": z.array(z.string()).optional(),
+  "care_mode": z.union([z.string(), z.null()]).optional(),
+  "profile_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
+  "prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
 }).strict();
 
 export const CohortKindSchema = z.enum(["real_subject", "demo_fixture"]);
-
-export const ConsentPurposeSchema = z.enum(["operational_support", "secondary_model_use", "authoring_generalization"]);
-
-export const ConsentRevocationImpactSchema = z.object({
-  "subject_id": z.string().uuid(),
-  "revoked_at": z.string().datetime({ offset: true }),
-  "purpose": z.lazy(() => ConsentPurposeSchema),
-  "blocks_new_runs": z.boolean().optional(),
-  "keeps_existing_snapshots_immutable": z.boolean().optional(),
-  "suspends_dependent_real_artifacts": z.boolean().optional(),
-  "affects_synthetic_artifacts": z.boolean().optional(),
-  "detail": z.record(z.string(), z.unknown()).optional(),
-}).strict();
 
 export const CorpusVersionSchema = z.object({
   "corpus_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
@@ -104,18 +98,6 @@ export const DatasetSnapshotSchema = z.object({
   "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
   "created_at": z.string().datetime({ offset: true }),
 }).strict();
-
-export const DefaultSuggestionSchema = z.object({
-  "presentation_id": z.string().uuid(),
-  "value": z.union([z.boolean(), z.number().int(), z.number(), z.string(), z.array(z.string())]),
-  "candidate_count": z.number().int().gte(0),
-  "posterior_mean": z.number().gte(0.0).lte(1.0),
-  "lower_bound": z.number().gte(0.0).lte(1.0),
-  "n_observations": z.number().int().gte(0),
-  "estimator_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-}).strict();
-
-export const DeploymentModeSchema = z.enum(["demo", "pilot"]);
 
 export const DocumentChunkSchema = z.object({
   "document_chunk_id": z.string().uuid(),
@@ -181,8 +163,6 @@ export const EvaluationProtocolVersionSchema = z.object({
 
 export const EvaluationReportStatusSchema = z.enum(["draft", "published", "suspended_for_consent_review", "retired"]);
 
-export const ExecutionStatusSchema = z.enum(["applied", "not_applied", "unknown"]);
-
 export const FeatureSnapshotSchema = z.object({
   "feature_snapshot_id": z.string().uuid(),
   "tenant_id": z.string().uuid(),
@@ -198,28 +178,34 @@ export const FeatureSnapshotSchema = z.object({
   "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
 }).strict();
 
+export const FeedbackRequestSchema = z.object({
+  "rating": z.enum(["good", "bad"]),
+  "note_es": z.union([z.string().min(1), z.null()]).optional(),
+}).strict();
+
+export const FeedbackResponseSchema = z.object({
+  "feedback_id": z.string().uuid(),
+  "rating": z.enum(["good", "bad"]),
+  "attempt": z.number().int().gte(1),
+}).strict();
+
 export const FieldCodeSchema = z.enum(["sleep_hours", "sleep_quality", "night_awakenings", "wake_state", "morning_support_need", "gi_status", "medication_adherence", "food_changes", "routine_changes", "alertness", "dysregulation_event_count", "daily_regulation_state", "activity_participation", "social_interactions", "eating_status", "attendance_status", "relevant_event_flag", "behavior_tags", "notes"]);
+
+export const FormPlanRequestSchema = z.object({
+  "source": z.literal("caregiver_daily"),
+  "answers": z.record(z.string(), z.union([z.boolean(), z.number().int(), z.number(), z.string(), z.array(z.string())])).optional(),
+}).strict();
+
+export const FormQuestionSchema = z.object({
+  "field_code": z.lazy(() => FieldCodeSchema),
+  "highlighted": z.boolean(),
+  "reason": z.enum(["staleness", "exploration", "canonical_order"]),
+  "voi_nats": z.union([z.number().gte(0.0), z.null()]).optional(),
+}).strict();
 
 export const FormSessionKindSchema = z.enum(["caregiver_daily", "professional_observation"]);
 
 export const FormSessionStatusSchema = z.enum(["draft", "submitted", "abandoned", "expired"]);
-
-export const GrantCapabilitySchema = z.enum(["subject_read", "daily_observation_write", "form_submit", "outcome_report", "recommendation_review", "execution_record", "evaluation_read"]);
-
-export const HumanPlanItemSchema = z.object({
-  "item_type": z.literal("human_plan").optional(),
-  "human_plan_version_id": z.string().uuid(),
-  "action_text_es": z.string().min(1),
-  "citations": z.array(z.lazy(() => CitationViewSchema)).optional(),
-}).strict();
-
-export const IdempotencyScopeSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "actor_id": z.string().uuid(),
-  "method": z.string(),
-  "normalized_concrete_path": z.string(),
-  "idempotency_key": z.string().min(1),
-}).strict();
 
 export const IntakeChannelSchema = z.enum(["form", "import"]);
 
@@ -245,9 +231,19 @@ export const MetricValueSchema = z.object({
 
 export const ModelStateSchema = z.enum(["candidate", "validated_offline", "shadow", "shadow_evaluated", "rejected", "suspended_for_consent_review", "retired"]);
 
-export const NonActionableReasonSchema = z.literal("dependency_suspended");
-
 export const NotTrainableReasonSchema = z.enum(["not_trainable_single_class", "not_trainable_insufficient_sample_plan", "not_trainable_convergence_failure", "not_trainable_consent_not_reauthorized"]);
+
+export const NotificationEventSchema = z.object({
+  "type": z.enum(["recommendation.ready", "recommendation.redrafted", "feedback.recorded"]),
+  "child_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "recommendation_instance_id": z.string().uuid(),
+  "attempt": z.union([z.number().int().gte(1), z.null()]).optional(),
+  "status": z.union([z.enum(["matched", "abstained"]), z.null()]).optional(),
+  "abstention_reason": z.union([z.enum(["no_indexed_match", "draft_unavailable", "draft_not_grounded"]), z.null()]).optional(),
+  "rating": z.union([z.enum(["good", "bad"]), z.null()]).optional(),
+  "at": z.string().datetime({ offset: true }),
+}).strict();
 
 export const OutcomeReportValueSchema = z.enum(["yes", "no", "unknown"]);
 
@@ -280,26 +276,37 @@ export const PredictionEpisodeStatusSchema = z.enum(["pending", "completed", "fa
 
 export const PredictionStatusSchema = z.enum(["ok", "abstained", "unavailable"]);
 
-export const ProfessionalAccreditationSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "valid_from": z.string().datetime({ offset: true }),
-  "valid_until": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "revoked_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "status": z.lazy(() => AuthorizationStatusSchema),
-  "accreditation_id": z.string().uuid(),
-  "actor_id": z.string().uuid(),
-  "capabilities": z.array(z.lazy(() => AccreditationCapabilitySchema)),
-  "credential_policy_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "issuer_actor_id": z.string().uuid(),
-}).strict();
-
 export const QuestionReasonSchema = z.enum(["outcome_pending", "staleness", "exploration", "voi", "canonical_order", "tail"]);
 
 export const RecommendationAbstentionReasonSchema = z.enum(["corpus_not_ready", "clinical_review_unavailable", "catalog_suspended", "catalog_ambiguous", "catalog_not_ready", "no_approved_match", "scenario_unavailable_conflict"]);
 
-export const RecommendationResponseStatusSchema = z.enum(["matched", "abstained", "awaiting_professional_review"]);
+export const RecommendationCitationSchema = z.object({
+  "document_title_es": z.string().min(1),
+  "locator": z.string().min(1),
+  "quote_es": z.string().min(1),
+}).strict();
+
+export const RecommendationInstanceViewSchema = z.object({
+  "recommendation_instance_id": z.string().uuid(),
+  "child_id": z.string().uuid(),
+  "child_label": z.union([z.string().min(1), z.null()]).optional(),
+  "prediction_episode_id": z.string().uuid(),
+  "local_date": z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.null()]).optional(),
+  "created_at": z.string().datetime({ offset: true }),
+  "risk_band": z.enum(["low", "medium", "high", "unknown"]),
+  "query_es": z.string(),
+  "status": z.enum(["pending", "matched", "abstained"]),
+  "action_text_es": z.union([z.string().min(1), z.null()]).optional(),
+  "purpose_es": z.union([z.string().min(1), z.null()]).optional(),
+  "citations": z.array(z.lazy(() => RecommendationCitationSchema)).optional(),
+  "abstention_reason": z.union([z.enum(["no_indexed_match", "draft_unavailable", "draft_not_grounded"]), z.null()]).optional(),
+  "attempt": z.number().int().gte(1),
+  "rating": z.union([z.enum(["good", "bad"]), z.null()]).optional(),
+}).strict();
+
+export const RecommendationListResponseSchema = z.object({
+  "items": z.array(z.lazy(() => RecommendationInstanceViewSchema)).optional(),
+}).strict();
 
 export const ReleaseManifestSchema = z.object({
   "spec_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
@@ -314,22 +321,9 @@ export const ReleaseManifestSchema = z.object({
 
 export const RetrievalModeSchema = z.enum(["hybrid", "lexical_only"]);
 
-export const ReviewDecisionSchema = z.enum(["approved", "rejected", "human_plan_substituted", "not_applicable", "deferred"]);
-
-export const ReviewStatusSchema = z.enum(["pending", "approved", "rejected", "human_plan_substituted", "not_applicable", "deferred"]);
-
 export const RoleSchema = z.enum(["caregiver", "professional", "clinical_reviewer", "evidence_reviewer", "privacy_reviewer", "model_evaluator", "tenant_admin", "auditor"]);
 
 export const RuntimeStatusSchema = z.enum(["matched", "abstained"]);
-
-export const ScenarioPredicateSchema = z.object({
-  "required_field_values": z.record(z.string(), z.array(z.string())).optional(),
-  "excluded_field_values": z.record(z.string(), z.array(z.string())).optional(),
-  "required_context_tags": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9_]*$")).max(64)).optional(),
-  "excluded_context_tags": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9_]*$")).max(64)).optional(),
-  "required_profile_tags": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$")).max(96)).optional(),
-  "contraindication_tags": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9_]*$")).max(64)).optional(),
-}).strict();
 
 export const ScenarioV1Schema = z.object({
   "schema_version": z.string().optional(),
@@ -374,84 +368,10 @@ export const StrategyClaimSchema = z.object({
   "citation_ids": z.array(z.string().uuid()).min(1),
 }).strict();
 
-export const StrategyExecutionSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "strategy_execution_id": z.string().uuid(),
-  "recommendation_instance_id": z.string().uuid(),
-  "strategy_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "human_plan_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "status": z.lazy(() => ExecutionStatusSchema),
-  "actor_id": z.string().uuid(),
-  "actor_role": z.lazy(() => RoleSchema),
-  "recorded_at": z.string().datetime({ offset: true }),
-  "applied_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-}).strict();
-
-export const StrategyExecutionRequestSchema = z.object({
-  "strategy_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "human_plan_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "status": z.lazy(() => ExecutionStatusSchema),
-  "applied_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-}).strict();
-
-export const StrategyExecutionResponseSchema = z.object({
-  "strategy_execution_id": z.string().uuid(),
-  "recommendation_instance_id": z.string().uuid(),
-  "status": z.lazy(() => ExecutionStatusSchema),
-  "recorded_at": z.string().datetime({ offset: true }),
-  "applied_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-}).strict();
-
-export const StrategyItemSchema = z.object({
-  "item_type": z.literal("strategy").optional(),
-  "strategy_version_id": z.string().uuid(),
-  "review_status": z.lazy(() => ReviewStatusSchema),
-  "action_text_es": z.string().min(1),
-  "citations": z.array(z.lazy(() => CitationViewSchema)).optional(),
-}).strict();
-
-export const StrategyStatusSchema = z.enum(["draft", "evidence_reviewed", "clinical_reviewed", "active", "suspended", "retired"]);
-
-export const StrategyVersionSchema = z.object({
-  "strategy_id": z.string().uuid(),
-  "strategy_version_id": z.string().uuid(),
-  "purpose_es": z.string().min(1),
-  "action_text_es": z.string().min(1),
-  "claims": z.array(z.lazy(() => StrategyClaimSchema)).min(1),
-  "citations": z.array(z.lazy(() => StrategyCitationSchema)).min(1),
-  "applicability_predicate": z.lazy(() => ScenarioPredicateSchema),
-  "required_approver_role": z.lazy(() => RoleSchema),
-  "allowed_executor_roles": z.array(z.lazy(() => RoleSchema)),
-  "corpus_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "evidence_review_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "clinical_review_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "effective_from": z.string().datetime({ offset: true }),
-  "supersedes_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "status": z.lazy(() => StrategyStatusSchema),
-  "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
-}).strict();
-
 export const SubjectSchema = z.object({
   "subject_id": z.string().uuid(),
   "tenant_id": z.string().uuid(),
   "cohort_kind": z.lazy(() => CohortKindSchema),
-}).strict();
-
-export const SubjectAccessGrantSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "valid_from": z.string().datetime({ offset: true }),
-  "valid_until": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "revoked_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "status": z.lazy(() => AuthorizationStatusSchema),
-  "subject_access_grant_id": z.string().uuid(),
-  "subject_id": z.string().uuid(),
-  "actor_id": z.string().uuid(),
-  "capabilities": z.array(z.lazy(() => GrantCapabilitySchema)),
-  "issuer_actor_id": z.string().uuid(),
 }).strict();
 
 export const SubjectProfileSchema = z.object({
@@ -482,11 +402,28 @@ export const TargetSelectionSchema = z.object({
 
 export const TimingStatusSchema = z.enum(["early", "on_time", "late", "missing"]);
 
+export const TodayRecommendationResponseSchema = z.object({
+  "status": z.enum(["no_submission_today", "pending", "matched", "abstained"]),
+  "risk_band": z.union([z.enum(["low", "medium", "high", "unknown"]), z.null()]).optional(),
+  "recommendation_instance_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "action_text_es": z.union([z.string().min(1), z.null()]).optional(),
+  "purpose_es": z.union([z.string().min(1), z.null()]).optional(),
+  "citations": z.array(z.lazy(() => RecommendationCitationSchema)).optional(),
+  "abstention_reason": z.union([z.enum(["no_indexed_match", "draft_unavailable", "draft_not_grounded"]), z.null()]).optional(),
+  "rating": z.union([z.enum(["good", "bad"]), z.null()]).optional(),
+}).strict();
+
 export const TrackIdSchema = z.enum(["synthetic_reference_v021", "real_personal_baseline_v1", "real_logit_challenger_v1"]);
 
 export const TrainingRunStatusSchema = z.enum(["created", "running", "completed", "not_trainable", "failed"]);
 
 export const VoiStatusSchema = z.enum(["available", "unavailable_model", "unavailable_field_type", "unavailable_prediction"]);
+
+export const AnswerItemSchema = z.object({
+  "field_code": z.lazy(() => FieldCodeSchema),
+  "value": z.union([z.boolean(), z.number().int(), z.number(), z.string(), z.array(z.string()), z.null()]).optional(),
+  "interaction": z.enum(["manual", "accept_default", "edit_default", "unknown"]),
+}).strict();
 
 export const AnswerSubmissionSchema = z.object({
   "field_code": z.lazy(() => FieldCodeSchema),
@@ -558,50 +495,18 @@ export const AuthoringReviewSchema = z.object({
   "reviewed_at": z.string().datetime({ offset: true }),
 }).strict();
 
-export const AuthoringUseAuthorizationSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "valid_from": z.string().datetime({ offset: true }),
-  "valid_until": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "revoked_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "status": z.lazy(() => AuthorizationStatusSchema),
-  "authorization_id": z.string().uuid(),
-  "subject_id": z.string().uuid(),
-  "authoring_request_id": z.string().uuid(),
-  "basis_type": z.lazy(() => AuthoringBasisTypeSchema),
-  "consent_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "legal_basis_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "scope": z.lazy(() => AuthoringScopeSchema).optional(),
-  "approved_by_privacy_reviewer": z.string().uuid(),
-  "approved_at": z.string().datetime({ offset: true }),
+export const ChildHistoryDaySchema = z.object({
+  "local_date": z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  "submission_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "prediction": z.union([z.lazy(() => ChildHistoryPredictionSchema), z.null()]).optional(),
+  "recommendation": z.union([z.lazy(() => ChildHistoryRecommendationSchema), z.null()]).optional(),
+  "outcome": z.union([z.lazy(() => ChildHistoryOutcomeSchema), z.null()]).optional(),
 }).strict();
 
-export const AuthorizationContextSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "actor_id": z.string().uuid(),
-  "roles": z.array(z.lazy(() => RoleSchema)),
-  "accreditation_capabilities": z.array(z.lazy(() => AccreditationCapabilitySchema)).optional(),
-  "grant_capabilities": z.array(z.lazy(() => GrantCapabilitySchema)).optional(),
-  "subject_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "deployment_mode": z.lazy(() => DeploymentModeSchema),
-  "evaluated_at": z.string().datetime({ offset: true }),
-}).strict();
-
-export const ConsentSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "valid_from": z.string().datetime({ offset: true }),
-  "valid_until": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "revoked_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "status": z.lazy(() => AuthorizationStatusSchema),
-  "consent_id": z.string().uuid(),
-  "subject_id": z.string().uuid(),
-  "grantor_actor_id": z.string().uuid(),
-  "purpose": z.lazy(() => ConsentPurposeSchema),
-  "policy_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "granted_at": z.string().datetime({ offset: true }),
+export const ChildHistoryResponseSchema = z.object({
+  "child_id": z.string().uuid(),
+  "days": z.array(z.lazy(() => ChildHistoryDaySchema)).optional(),
 }).strict();
 
 export const DataQualitySchema = z.object({
@@ -626,6 +531,14 @@ export const DefaultPresentationSchema = z.object({
   "presented_at": z.string().datetime({ offset: true }),
 }).strict();
 
+export const DefaultSuggestionSchema = z.object({
+  "field_code": z.lazy(() => FieldCodeSchema),
+  "value": z.union([z.boolean(), z.number().int(), z.number(), z.string(), z.array(z.string())]),
+  "basis": z.literal("personal_median").optional(),
+  "window_days": z.number().int().gte(1),
+  "sample_size": z.number().int().gte(0),
+}).strict();
+
 export const FieldObservationSchema = z.object({
   "tenant_id": z.string().uuid(),
   "ingested_at": z.string().datetime({ offset: true }),
@@ -646,15 +559,11 @@ export const FieldObservationSchema = z.object({
   "raw_value": z.union([z.string(), z.null()]).optional(),
 }).strict();
 
-export const FormAnswerRequestSchema = z.object({
-  "answer": z.lazy(() => AnswerSubmissionSchema),
-}).strict();
-
-export const FormQuestionSchema = z.object({
-  "field_code": z.lazy(() => FieldCodeSchema),
-  "reason": z.lazy(() => QuestionReasonSchema),
-  "voi_nats": z.union([z.number().gte(0.0), z.null()]).optional(),
-  "default": z.union([z.lazy(() => DefaultSuggestionSchema), z.null()]).optional(),
+export const FormPlanResponseSchema = z.object({
+  "questions": z.array(z.lazy(() => FormQuestionSchema)).optional(),
+  "defaults": z.array(z.lazy(() => DefaultSuggestionSchema)).optional(),
+  "voi_status": z.literal("unavailable_model").optional(),
+  "coverage": z.number().gte(0.0).lte(1.0),
 }).strict();
 
 export const FormSessionSchema = z.object({
@@ -673,32 +582,18 @@ export const FormSessionSchema = z.object({
   "prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
 }).strict();
 
-export const FormSessionCreateRequestSchema = z.object({
-  "subject_id": z.string().uuid(),
-  "source": z.lazy(() => SourceSchema),
-  "session_kind": z.lazy(() => FormSessionKindSchema),
+export const FormSubmissionRequestSchema = z.object({
+  "source": z.literal("caregiver_daily"),
+  "local_date": z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  "answers": z.array(z.lazy(() => AnswerItemSchema)).optional(),
 }).strict();
 
-export const FormSessionResponseSchema = z.object({
-  "form_session_id": z.string().uuid(),
-  "subject_id": z.string().uuid(),
-  "source": z.lazy(() => SourceSchema),
-  "session_kind": z.lazy(() => FormSessionKindSchema),
-  "opened_at": z.string().datetime({ offset: true }),
-  "audit_mode": z.boolean(),
-  "form_policy_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "voi_status": z.lazy(() => VoiStatusSchema),
-  "highlighted": z.array(z.lazy(() => FormQuestionSchema)).optional(),
-  "tail": z.array(z.lazy(() => FormQuestionSchema)).optional(),
-  "data_quality": z.union([z.lazy(() => DataQualitySchema), z.null()]).optional(),
-}).strict();
-
-export const FormSubmitResponseSchema = z.object({
-  "form_session_id": z.string().uuid(),
+export const FormSubmissionResponseSchema = z.object({
+  "submission_id": z.string().uuid(),
   "status": z.lazy(() => SubmitStatusSchema),
-  "submitted_at": z.string().datetime({ offset: true }),
   "prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "linked_prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "recommendation_instance_id": z.union([z.string().uuid(), z.null()]).optional(),
+  "outcome_request_id": z.union([z.string().uuid(), z.null()]).optional(),
 }).strict();
 
 export const GroupMetricSchema = z.object({
@@ -711,21 +606,6 @@ export const GroupMetricSchema = z.object({
   "metrics": z.array(z.lazy(() => MetricValueSchema)).optional(),
 }).strict();
 
-export const HumanPlanVersionSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "human_plan_version_id": z.string().uuid(),
-  "recommendation_instance_id": z.string().uuid(),
-  "substituted_strategy_version_id": z.string().uuid(),
-  "action_text_es": z.string().min(1),
-  "author_actor_id": z.string().uuid(),
-  "authored_at": z.string().datetime({ offset: true }),
-  "plan_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "allowed_executor_roles": z.array(z.lazy(() => RoleSchema)),
-  "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
-}).strict();
-
 export const ModelVersionSchema = z.object({
   "model_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
   "track_id": z.lazy(() => TrackIdSchema),
@@ -736,14 +616,6 @@ export const ModelVersionSchema = z.object({
   "artifact_sha256": z.union([z.string().regex(new RegExp("^[0-9a-f]{64}$")), z.null()]).optional(),
   "created_at": z.string().datetime({ offset: true }),
   "suspended_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-}).strict();
-
-export const OperationRequirementSchema = z.object({
-  "operation": z.string(),
-  "allowed_roles": z.array(z.lazy(() => RoleSchema)),
-  "grant_capability": z.lazy(() => GrantCapabilitySchema),
-  "accreditation_capability": z.union([z.lazy(() => AccreditationCapabilitySchema), z.null()]).optional(),
-  "note": z.union([z.string(), z.null()]).optional(),
 }).strict();
 
 export const OutcomeAdjudicationSchema = z.object({
@@ -907,85 +779,6 @@ export const QuestionPresentationSchema = z.object({
   "voi_status": z.lazy(() => VoiStatusSchema).optional(),
 }).strict();
 
-export const RecommendationInstanceSchema = z.object({
-  "recommendation_instance_id": z.string().uuid(),
-  "tenant_id": z.string().uuid(),
-  "subject_id": z.string().uuid(),
-  "prediction_episode_id": z.string().uuid(),
-  "scenario_hash": z.string().min(1),
-  "catalog_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "corpus_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "strategy_version_ids": z.array(z.string().uuid()).optional(),
-  "runtime_status": z.lazy(() => RuntimeStatusSchema),
-  "abstention_reasons": z.array(z.lazy(() => RecommendationAbstentionReasonSchema)).optional(),
-  "non_actionable": z.union([z.lazy(() => NonActionableReasonSchema), z.null()]).optional(),
-  "created_at": z.string().datetime({ offset: true }),
-}).strict();
-
-export const RecommendationInstanceViewSchema = z.object({
-  "recommendation_instance_id": z.string().uuid(),
-  "prediction_episode_id": z.string().uuid(),
-  "subject_id": z.string().uuid(),
-  "scenario_hash": z.string().min(1),
-  "catalog_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "corpus_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "strategy_version_ids": z.array(z.string().uuid()).optional(),
-  "review_status": z.lazy(() => ReviewStatusSchema),
-  "created_at": z.string().datetime({ offset: true }),
-}).strict();
-
-export const RecommendationResponseSchema = z.object({
-  "status": z.lazy(() => RecommendationResponseStatusSchema),
-  "recommendation_instance_id": z.string().uuid(),
-  "catalog_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "corpus_version": z.union([z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")), z.null()]).optional(),
-  "items": z.array(z.union([z.lazy(() => StrategyItemSchema), z.lazy(() => HumanPlanItemSchema)])).optional(),
-  "reasons": z.array(z.lazy(() => RecommendationAbstentionReasonSchema)).optional(),
-}).strict();
-
-export const RecommendationReviewSchema = z.object({
-  "tenant_id": z.string().uuid(),
-  "ingested_at": z.string().datetime({ offset: true }),
-  "supersedes_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "review_id": z.string().uuid(),
-  "recommendation_instance_id": z.string().uuid(),
-  "strategy_version_id": z.string().uuid(),
-  "decision": z.lazy(() => ReviewDecisionSchema),
-  "reviewed_by": z.string().uuid(),
-  "reviewer_role": z.lazy(() => RoleSchema),
-  "reviewed_at": z.string().datetime({ offset: true }),
-  "human_plan_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-}).strict();
-
-export const RecommendationReviewRequestSchema = z.object({
-  "strategy_version_id": z.string().uuid(),
-  "decision": z.lazy(() => ReviewDecisionSchema),
-  "human_plan_action_text_es": z.union([z.string().min(1), z.null()]).optional(),
-  "human_plan_allowed_executor_roles": z.union([z.array(z.lazy(() => RoleSchema)), z.null()]).optional(),
-}).strict();
-
-export const RecommendationReviewResponseSchema = z.object({
-  "review_id": z.string().uuid(),
-  "recommendation_instance_id": z.string().uuid(),
-  "strategy_version_id": z.string().uuid(),
-  "decision": z.lazy(() => ReviewDecisionSchema),
-  "reviewed_at": z.string().datetime({ offset: true }),
-  "human_plan_version_id": z.union([z.string().uuid(), z.null()]).optional(),
-}).strict();
-
-export const RecommendationSetVersionSchema = z.object({
-  "recommendation_set_id": z.string().uuid(),
-  "recommendation_set_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "applicability_predicate": z.lazy(() => ScenarioPredicateSchema),
-  "ordered_strategy_version_ids": z.array(z.string().uuid()).min(1),
-  "reviewed_priority": z.number().int().gte(0),
-  "clinical_review_id": z.union([z.string().uuid(), z.null()]).optional(),
-  "status": z.lazy(() => CatalogStatusSchema),
-  "effective_from": z.string().datetime({ offset: true }),
-  "suspended_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
-  "content_sha256": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
-}).strict();
-
 export const RuntimeStrategyMatchSchema = z.object({
   "strategy_version_id": z.string().uuid(),
   "recommendation_set_id": z.string().uuid(),
@@ -1071,23 +864,6 @@ export const EvaluationReportSchema = z.object({
   "detail": z.record(z.string(), z.unknown()).optional(),
 }).strict();
 
-export const EvaluationResponseSchema = z.object({
-  "model_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "track_id": z.lazy(() => TrackIdSchema),
-  "status": z.lazy(() => EvaluationReportStatusSchema),
-  "data_origin": z.lazy(() => DataOriginSchema),
-  "intended_use": z.lazy(() => IntendedUseSchema),
-  "dataset_sha256": z.string().min(1),
-  "target_definition_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "protocol_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
-  "metrics": z.array(z.lazy(() => MetricValueSchema)).optional(),
-  "group_metrics": z.array(z.lazy(() => GroupMetricSchema)).optional(),
-  "source_metrics": z.array(z.lazy(() => SourceMetricSchema)).optional(),
-  "decision_coverage": z.union([z.lazy(() => MetricValueSchema), z.null()]).optional(),
-  "abstentions": z.array(z.lazy(() => AbstentionBreakdownSchema)).optional(),
-  "limitations_es": z.array(z.string()).min(1),
-}).strict();
-
 export const OutcomeReportResponseSchema = z.object({
   "report": z.lazy(() => OutcomeReportViewSchema),
   "resolution": z.lazy(() => OutcomeResolutionViewSchema),
@@ -1109,10 +885,6 @@ export const PredictionEpisodeResponseSchema = z.object({
   "data_quality": z.union([z.lazy(() => DataQualitySchema), z.null()]).optional(),
   "decision_policy_version": z.null().optional(),
   "risk_band": z.null().optional(),
-}).strict();
-
-export const RecommendationInboxResponseSchema = z.object({
-  "items": z.array(z.lazy(() => RecommendationInstanceViewSchema)).optional(),
 }).strict();
 
 export const RuntimeDecisionSchema = z.object({

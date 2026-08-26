@@ -1,22 +1,17 @@
-"""Servicio de outcomes (SPEC 4.4, 4.5, 11.4).
-
-El servidor toma actor, rol, tenant, `reported_at`, target y definición desde el
-contexto autorizado. El cliente solo envía `value` y, para `yes`, `occurred_at`.
-"""
+"""Outcome inbox and reporting for the fixed tenant."""
 
 from __future__ import annotations
 
 import sqlite3
 
-from apps.api.auth.context import ActorContext
 from apps.api.canonical import canonical_timestamp
 from apps.api.contracts.enums import (
     CohortKind,
     DataOrigin,
-    GrantCapability,
     IntakeChannel,
     OutcomeReportValue,
     OutcomeResolutionStatus,
+    Role,
 )
 from apps.api.contracts.models import (
     OutcomeReportRequest,
@@ -26,50 +21,29 @@ from apps.api.contracts.models import (
     OutcomeRequestView,
     OutcomeResolutionView,
 )
-from apps.api.errors import AuditIntent, forbidden, invalid, not_found
+from apps.api.errors import invalid, not_found
 from apps.api.services.base import Services
-from apps.api.store import audit, episodes, identity
+from apps.api.store import episodes, identity
 from apps.api.store import outcomes as outcomes_store
 from apps.api.store.json_columns import load_list
+from tools.seed import ids
 
 
 class OutcomeService:
     def __init__(self, services: Services) -> None:
         self._services = services
 
-    # -- inbox -----------------------------------------------------------
-
     def list_requests(
-        self, connection: sqlite3.Connection, *, actor: ActorContext, now: str
+        self, connection: sqlite3.Connection, *, tenant_id: str, now: str
     ) -> OutcomeRequestListResponse:
-        """SPEC 4.4: resolución pending, deadline abierto, rol y grant activos.
-
-        El filtro por sujeto ocurre en SQL con los grants del actor; no se cargan
-        filas prohibidas para descartarlas después.
-        """
-        subject_ids = self._services.authorization.granted_subject_ids(
-            connection,
-            actor=actor,
-            capability=GrantCapability.OUTCOME_REPORT,
-            cutoff=now,
-        )
-        if not subject_ids:
-            return OutcomeRequestListResponse(items=[])
-        placeholders = ",".join("?" for _ in subject_ids)
         rows = connection.execute(
-            "SELECT r.*, s.display_label FROM outcome_requests AS r"
-            " JOIN subjects AS s ON s.subject_id = r.subject_id"
-            f" WHERE r.tenant_id = ? AND r.subject_id IN ({placeholders})"
-            " AND r.capture_deadline_at >= ?"
+            "SELECT r.* FROM outcome_requests AS r"
+            " WHERE r.tenant_id = ? AND r.capture_deadline_at >= ?"
             " ORDER BY r.capture_deadline_at",
-            (actor.tenant_id, *subject_ids, now),
+            (tenant_id, now),
         ).fetchall()
-
-        items: list[OutcomeRequestView] = []
+        items = []
         for row in rows:
-            roles = outcomes_store.eligible_reporter_roles(row)
-            if not any(actor.has_role(role) for role in roles):
-                continue
             resolution = self._refresh_resolution(connection, row=row, now=now)
             if resolution["status"] != OutcomeResolutionStatus.PENDING.value:
                 continue
@@ -88,9 +62,9 @@ class OutcomeService:
                     subject_id=row["subject_id"],
                     target_definition_version=row["target_definition_version"],
                     question_es=target_row["question_es"],
-                    severity_anchors_es=[
+                    severity_anchors_es=tuple(
                         str(item) for item in load_list(target_row["severity_anchors_es"])
-                    ],
+                    ),
                     target_start_at=row["target_start_at"],
                     target_end_at=row["target_end_at"],
                     capture_deadline_at=row["capture_deadline_at"],
@@ -100,79 +74,20 @@ class OutcomeService:
             )
         return OutcomeRequestListResponse(items=items)
 
-    # -- reautorización de replay -----------------------------------------
-
-    def authorize_report(
-        self,
-        connection: sqlite3.Connection,
-        *,
-        actor: ActorContext,
-        prediction_episode_id: str,
-        now: str,
-    ) -> None:
-        episode = episodes.episode(connection, prediction_episode_id)
-        if episode is None or episode["tenant_id"] != actor.tenant_id:
-            raise not_found()
-        self._services.authorization.authorize_subject(
-            connection,
-            actor=actor,
-            subject_id=episode["subject_id"],
-            capability=GrantCapability.OUTCOME_REPORT,
-            cutoff=now,
-            action="outcome_report_replay",
-        )
-        request_row = outcomes_store.outcome_request(connection, prediction_episode_id)
-        if request_row is None:
-            raise not_found()
-        if not any(
-            actor.has_role(role) for role in outcomes_store.eligible_reporter_roles(request_row)
-        ):
-            raise forbidden("role_not_allowed")
-
-    # -- reporte ---------------------------------------------------------
-
     def create_report(
         self,
         connection: sqlite3.Connection,
         *,
-        actor: ActorContext,
+        tenant_id: str,
         prediction_episode_id: str,
         request: OutcomeReportRequest,
         now: str,
     ) -> OutcomeReportResponseView:
         episode = episodes.episode(connection, prediction_episode_id)
-        if episode is None or episode["tenant_id"] != actor.tenant_id:
+        if episode is None or episode["tenant_id"] != tenant_id:
             raise not_found()
-        self._services.authorization.authorize_subject(
-            connection,
-            actor=actor,
-            subject_id=episode["subject_id"],
-            capability=GrantCapability.OUTCOME_REPORT,
-            cutoff=now,
-            action="outcome_report",
-        )
-        request_row = outcomes_store.outcome_request(connection, prediction_episode_id)
-        if request_row is None:
+        if outcomes_store.outcome_request(connection, prediction_episode_id) is None:
             raise not_found()
-
-        eligible_roles = outcomes_store.eligible_reporter_roles(request_row)
-        reporter_role = next((role for role in eligible_roles if actor.has_role(role)), None)
-        if reporter_role is None:
-            # SPEC 11.4: el rol debe estar permitido por la definición del target.
-            raise forbidden(
-                "role_not_allowed",
-                audit=AuditIntent(
-                    action="outcome_report",
-                    resource_type="outcome_request",
-                    decision="denied",
-                    reason_code="role_not_allowed",
-                    tenant_id=actor.tenant_id,
-                    actor_id=actor.actor_id,
-                    resource_id=request_row["outcome_request_id"],
-                    subject_id=episode["subject_id"],
-                    request_id=actor.request_id,
-                ),
-            )
 
         value = OutcomeReportValue(request.value)
         occurred_at = (
@@ -193,7 +108,7 @@ class OutcomeService:
             previous = connection.execute(
                 "SELECT outcome_report_id FROM outcome_reports WHERE outcome_report_id = ?"
                 " AND tenant_id = ? AND prediction_episode_id = ?",
-                (supersedes_id, actor.tenant_id, prediction_episode_id),
+                (supersedes_id, tenant_id, prediction_episode_id),
             ).fetchone()
             if previous is None:
                 raise invalid("validation_error", reason="supersedes_id_not_correctable")
@@ -213,11 +128,11 @@ class OutcomeService:
         outcome_report_id = outcomes_store.insert_report(
             connection,
             outcomes_store.NewReport(
-                tenant_id=actor.tenant_id,
+                tenant_id=tenant_id,
                 prediction_episode_id=prediction_episode_id,
                 target_definition_version=episode["target_definition_version"],
-                reporter_actor_id=actor.actor_id,
-                reporter_role=reporter_role,
+                reporter_actor_id=str(ids.CAREGIVER_A),
+                reporter_role=Role.CAREGIVER.value,
                 value=value.value,
                 occurred_at=occurred_at,
                 reported_at=now,
@@ -231,24 +146,12 @@ class OutcomeService:
         )
         resolution = outcomes_store.materialize_resolution(
             connection,
-            tenant_id=actor.tenant_id,
+            tenant_id=tenant_id,
             prediction_episode_id=prediction_episode_id,
             target_start_at=episode["target_start_at"],
             target_end_at=episode["target_end_at"],
             capture_deadline_at=episode["capture_deadline_at"],
             now=now,
-        )
-        audit.record(
-            connection,
-            actor=actor,
-            action="outcome_report",
-            resource_type="outcome_report",
-            resource_id=outcome_report_id,
-            subject_id=episode["subject_id"],
-            decision="allowed",
-            reason_code=timing_status.value,
-            occurred_at=now,
-            request_id=actor.request_id,
         )
         report_row = outcomes_store.report(connection, outcome_report_id)
         assert report_row is not None
@@ -263,12 +166,9 @@ class OutcomeService:
             request_state=state.value,
         )
 
-    # -- soporte ---------------------------------------------------------
-
     def _refresh_resolution(
         self, connection: sqlite3.Connection, *, row: sqlite3.Row, now: str
     ) -> sqlite3.Row:
-        """SPEC 4.4: al pasar el deadline se materializa `unknown` antes de derivar."""
         return outcomes_store.materialize_resolution(
             connection,
             tenant_id=row["tenant_id"],

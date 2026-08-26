@@ -13,7 +13,6 @@ from apps.api.adapters import Ports
 from apps.api.adapters.mock.defaults import MockDefaults
 from apps.api.adapters.mock.form import MockForm
 from apps.api.adapters.mock.prediction import MockPrediction
-from apps.api.adapters.mock.rag import MockRagRuntime
 
 MOCK_SOURCE = "mock"
 
@@ -23,6 +22,5 @@ def build_mock_ports(*, secret: bytes = b"faro-demo-audit-secret") -> Ports:
         defaults=MockDefaults(secret=secret),
         form=MockForm(),
         prediction=MockPrediction(),
-        rag=MockRagRuntime(),
         source=MOCK_SOURCE,
     )

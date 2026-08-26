@@ -1,6 +1,6 @@
 """Selección del conjunto de adaptadores hacia el dominio de P1.
 
-`FARO_P1_ADAPTERS=real` usa `ml/**` y `rag/runtime` a través de
+`FARO_P1_ADAPTERS=real` usa `ml/**` a través de
 `apps/api/adapters/p1`; por defecto se usa `mock`, que sigue siendo el camino
 seleccionable de test y demo y no calcula ninguna fórmula del SPEC.
 
@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from apps.api.ports import DefaultsPort, FormPort, PredictionPort, RagRuntimePort
+from apps.api.ports import DefaultsPort, FormPort, PredictionPort
 
 if TYPE_CHECKING:  # pragma: no cover - solo para tipos
     from apps.api.store.db import Database
@@ -24,7 +24,6 @@ class Ports:
     defaults: DefaultsPort
     form: FormPort
     prediction: PredictionPort
-    rag: RagRuntimePort
     source: str
 
 

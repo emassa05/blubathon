@@ -30,12 +30,12 @@ class NewSession:
     opened_at: str
 
 
-def open_session(connection: sqlite3.Connection, new: NewSession) -> str:
+def create_submission(connection: sqlite3.Connection, new: NewSession) -> str:
     form_session_id = str(uuid4())
     connection.execute(
         "INSERT INTO form_sessions(form_session_id, tenant_id, subject_id, actor_id,"
         " source, session_kind, status, audit_mode, audit_bucket, form_policy_version,"
-        " local_date, opened_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        " local_date, opened_at, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             form_session_id,
             new.tenant_id,
@@ -43,11 +43,12 @@ def open_session(connection: sqlite3.Connection, new: NewSession) -> str:
             new.actor_id,
             new.source,
             new.session_kind,
-            FormSessionStatus.DRAFT.value,
+            FormSessionStatus.SUBMITTED.value,
             int(new.audit_mode),
             new.audit_bucket,
             new.form_policy_version,
             new.local_date,
+            new.opened_at,
             new.opened_at,
         ),
     )
@@ -77,7 +78,7 @@ def open_primary_episode(
     ).fetchone()
 
 
-def close_session(
+def set_submission_result(
     connection: sqlite3.Connection,
     *,
     form_session_id: str,
@@ -90,7 +91,7 @@ def close_session(
     connection.execute(
         "UPDATE form_sessions SET status = ?, submitted_at = ?, prediction_status = ?,"
         " prediction_episode_id = ?, linked_prediction_episode_id = ?"
-        " WHERE form_session_id = ? AND status = ?",
+        " WHERE form_session_id = ?",
         (
             FormSessionStatus.SUBMITTED.value,
             submitted_at,
@@ -98,7 +99,6 @@ def close_session(
             prediction_episode_id,
             linked_prediction_episode_id,
             form_session_id,
-            FormSessionStatus.DRAFT.value,
         ),
     )
 
@@ -165,66 +165,6 @@ def session_default_presentations(
         " AND superseded_at IS NULL ORDER BY field_code",
         (form_session_id,),
     ).fetchall()
-
-
-def record_question_presentation(
-    connection: sqlite3.Connection,
-    *,
-    tenant_id: str,
-    subject_id: str,
-    form_session_id: str,
-    field_code: str,
-    highlighted: bool,
-    reason: str,
-    voi_nats: float | None,
-    position: int,
-    source: str,
-    local_date: str,
-    presented_at: str,
-) -> str | None:
-    """SPEC 6.9: la cola no cuenta como pregunta destacada.
-
-    Solo se registra `QuestionPresentation` para lo destacado, que es lo que
-    reinicia el reloj de antigüedad. Repetir el recálculo no vuelve a presentar
-    la misma pregunta en la sesión.
-    """
-    if not highlighted:
-        return None
-    existing = connection.execute(
-        "SELECT question_presentation_id FROM question_presentations"
-        " WHERE form_session_id = ? AND field_code = ?",
-        (form_session_id, field_code),
-    ).fetchone()
-    if existing is not None:
-        return existing["question_presentation_id"]
-    question_presentation_id = str(uuid4())
-    connection.execute(
-        "INSERT INTO question_presentations(question_presentation_id, tenant_id, subject_id,"
-        " form_session_id, field_code, highlighted, reason, voi_nats, position, source,"
-        " local_date, presented_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)",
-        (
-            question_presentation_id,
-            tenant_id,
-            subject_id,
-            form_session_id,
-            field_code,
-            reason,
-            voi_nats,
-            position,
-            source,
-            local_date,
-            presented_at,
-        ),
-    )
-    return question_presentation_id
-
-
-def presented_field_codes(connection: sqlite3.Connection, form_session_id: str) -> tuple[str, ...]:
-    rows = connection.execute(
-        "SELECT field_code FROM question_presentations WHERE form_session_id = ? ORDER BY position",
-        (form_session_id,),
-    ).fetchall()
-    return tuple(row["field_code"] for row in rows)
 
 
 # -- observaciones -------------------------------------------------------

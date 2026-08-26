@@ -1,4 +1,4 @@
-"""DQI, VoI, anomaly detection, the form plan and `build_scenario`.
+"""DQI, VoI, the form plan and `build_scenario`.
 
 The worked numbers come from FUNDAMENTOS 9, 10 and 11.
 """
@@ -18,19 +18,14 @@ from ml.form import (
     binary_entropy,
     build_form_plan,
     build_scenario,
-    compute_categorical_surprise,
     compute_dqi,
     compute_predictive_voi,
-    compute_robust_deviation,
-    detect_form_anomaly,
     estimate_voi,
     exploration_weekday,
 )
 from ml.spec_constants import (
     DQI_WINDOW_DAYS,
     LOW_COVERAGE_THRESHOLD,
-    MAD_TO_SIGMA,
-    ROBUST_Z_ANOMALY,
 )
 from packages.shared.canonical import local_date
 from packages.shared.domain.identity import SubjectProfile
@@ -39,7 +34,6 @@ from packages.shared.enums import (
     DataOrigin,
     EntryMode,
     FieldCode,
-    FormAnomalyTrigger,
     FormSessionKind,
     FormSessionStatus,
     QuestionReason,
@@ -354,150 +348,6 @@ def test_an_available_voi_records_its_versions_and_cutoff() -> None:
     assert estimate.voi_nats is not None and estimate.voi_nats >= 0.0
     assert estimate.conditional_model_version == "stub-conditional-0"
     assert estimate.cutoff_at == NOW
-
-
-# --- anomaly --------------------------------------------------------------
-
-
-def test_the_robust_deviation_worked_example() -> None:
-    """FUNDAMENTOS 11: history [1,2,2,3,4], current 5 gives z ~= 2.023."""
-
-    stratum = Stratum(
-        tenant_id=TENANT,
-        subject_id=SUBJECT,
-        source=Source.HOME,
-        field_code=FieldCode.NIGHT_AWAKENINGS,
-    )
-    rows = [
-        _daily(f"night-{index}", index + 1, field_code=FieldCode.NIGHT_AWAKENINGS, value=value)
-        for index, value in enumerate([1, 2, 2, 3, 4])
-    ]
-    deviation = compute_robust_deviation(rows, stratum=stratum, current_value=5, as_of_at=NOW)
-    assert deviation.median == 2
-    assert deviation.mad == 1
-    assert deviation.robust_z == pytest.approx(2.023, abs=1e-3)
-    assert abs(deviation.robust_z) >= ROBUST_Z_ANOMALY
-
-
-def test_the_mad_factor_is_derived_not_typed() -> None:
-    assert pytest.approx(1.4826, abs=1e-4) == MAD_TO_SIGMA
-
-
-def test_fewer_than_five_values_produce_no_z_score() -> None:
-    stratum = Stratum(
-        tenant_id=TENANT,
-        subject_id=SUBJECT,
-        source=Source.HOME,
-        field_code=FieldCode.NIGHT_AWAKENINGS,
-    )
-    rows = [
-        _daily(f"night-{index}", index + 1, field_code=FieldCode.NIGHT_AWAKENINGS, value=value)
-        for index, value in enumerate([1, 2, 2, 3])
-    ]
-    deviation = compute_robust_deviation(rows, stratum=stratum, current_value=5, as_of_at=NOW)
-    assert deviation.robust_z is None
-    assert deviation.reason == "insufficient_history"
-
-
-def test_a_zero_mad_produces_no_z_score() -> None:
-    stratum = Stratum(
-        tenant_id=TENANT,
-        subject_id=SUBJECT,
-        source=Source.HOME,
-        field_code=FieldCode.NIGHT_AWAKENINGS,
-    )
-    rows = [
-        _daily(f"night-{index}", index + 1, field_code=FieldCode.NIGHT_AWAKENINGS, value=2)
-        for index in range(6)
-    ]
-    deviation = compute_robust_deviation(rows, stratum=stratum, current_value=9, as_of_at=NOW)
-    assert deviation.robust_z is None
-    assert deviation.reason == "zero_mad"
-
-
-def test_the_personal_window_excludes_today() -> None:
-    stratum = Stratum(
-        tenant_id=TENANT,
-        subject_id=SUBJECT,
-        source=Source.HOME,
-        field_code=FieldCode.NIGHT_AWAKENINGS,
-    )
-    rows = [
-        _daily("today", 0, field_code=FieldCode.NIGHT_AWAKENINGS, value=9),
-        *[
-            _daily(f"past-{index}", index + 1, field_code=FieldCode.NIGHT_AWAKENINGS, value=value)
-            for index, value in enumerate([1, 2, 2, 3, 4])
-        ],
-    ]
-    deviation = compute_robust_deviation(rows, stratum=stratum, current_value=5, as_of_at=NOW)
-    assert deviation.n_observations == 5
-    assert deviation.median == 2
-
-
-def test_the_direct_triggers_open_the_queue() -> None:
-    for answers in (
-        {FieldCode.RELEVANT_EVENT_FLAG: True},
-        {FieldCode.MEDICATION_ADHERENCE: "missed"},
-        {FieldCode.DAILY_REGULATION_STATE: "frequent_dysregulation"},
-        {FieldCode.ALERTNESS: "low"},
-        {FieldCode.ALERTNESS: "high"},
-    ):
-        assert detect_form_anomaly(answers).opens_queue
-
-
-def test_answering_the_filter_no_does_not_open_the_queue_or_fill_a_field() -> None:
-    """INV-08."""
-
-    anomaly = detect_form_anomaly({FieldCode.RELEVANT_EVENT_FLAG: False})
-    assert not anomaly.opens_queue
-    assert anomaly.triggers == ()
-
-
-def test_a_calm_alertness_is_not_an_extreme() -> None:
-    assert not detect_form_anomaly({FieldCode.ALERTNESS: "calm"}).opens_queue
-    assert not detect_form_anomaly({FieldCode.ALERTNESS: "optimal"}).opens_queue
-
-
-def test_a_rare_category_opens_the_queue_but_other_never_does() -> None:
-    stratum = Stratum(
-        tenant_id=TENANT,
-        subject_id=SUBJECT,
-        source=Source.HOME,
-        field_code=FieldCode.SLEEP_QUALITY,
-    )
-    rows = [
-        _daily(f"sleep-{index}", index + 1, field_code=FieldCode.SLEEP_QUALITY, value="restorative")
-        for index in range(60)
-    ]
-    history = eligible_history(rows, stratum=stratum, cutoff=NOW)
-
-    rare = compute_categorical_surprise(history, current_value="other")
-    assert rare.probability is None
-    assert rare.reason == "other_category"
-
-    surprising = compute_categorical_surprise(history, current_value="interrupted")
-    assert surprising.probability is not None and surprising.probability < 0.05
-    assert detect_form_anomaly({}, surprises=[surprising]).triggers == (
-        FormAnomalyTrigger.CATEGORICAL_ANOMALY,
-    )
-
-
-def test_a_thin_history_leaves_the_categorical_rule_unavailable() -> None:
-    stratum = Stratum(
-        tenant_id=TENANT,
-        subject_id=SUBJECT,
-        source=Source.HOME,
-        field_code=FieldCode.SLEEP_QUALITY,
-    )
-    rows = [
-        _daily(f"sleep-{index}", index + 1, field_code=FieldCode.SLEEP_QUALITY, value="restorative")
-        for index in range(4)
-    ]
-    history = eligible_history(rows, stratum=stratum, cutoff=NOW)
-    surprise = compute_categorical_surprise(history, current_value="interrupted")
-    assert surprise.probability is None
-    assert surprise.reason == "insufficient_history"
-    assert not detect_form_anomaly({}, surprises=[surprise]).opens_queue
 
 
 # --- the plan -------------------------------------------------------------

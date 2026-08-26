@@ -16,10 +16,7 @@ Correspondencia con lo que P2 esperaba antes de la integración:
 - `ml.prediction.predict`: **no existe**. P1 publica el doble track separado, y
   el adaptador llama a `score_simulation`, `build_personal_baseline` y
   `assess_trainability` y arma la tupla de salidas.
-- `rag.runtime.recommend`: **no existe**. P1 publica `decide(RuntimeInputs)` con
-  `RuntimeCatalog`, y el adaptador arma esas entradas desde el store.
-
-Las dos últimas son las que el adaptador construye; el resto es traducción de
+- La última es la que el adaptador construye; el resto es traducción de
 nombres y de tipos.
 """
 
@@ -29,7 +26,6 @@ from apps.api.adapters import Ports
 from apps.api.adapters.p1.defaults import P1Defaults
 from apps.api.adapters.p1.form import P1Form
 from apps.api.adapters.p1.prediction import P1Prediction
-from apps.api.adapters.p1.rag import P1RagRuntime
 from apps.api.store.db import Database
 
 REAL_SOURCE = "p1"
@@ -57,6 +53,5 @@ def build_real_ports(
         defaults=P1Defaults(database=database, secret=secret),
         form=P1Form(database=database, secret=secret),
         prediction=P1Prediction(database=database),
-        rag=P1RagRuntime(database=database, secret=secret),
         source=REAL_SOURCE,
     )

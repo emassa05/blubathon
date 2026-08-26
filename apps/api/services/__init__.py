@@ -1,47 +1,48 @@
-"""Servicios de aplicación (CONVENTIONS 12.1)."""
+"""Application service registry."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import import_module
+from typing import Any
 
-from apps.api.services.base import CommandResult, IdempotentRequest, Services
+from apps.api.services.base import Services
+from apps.api.services.children import ChildService
 from apps.api.services.episodes import EpisodeService
-from apps.api.services.evaluation import EvaluationService
-from apps.api.services.form_sessions import FormSessionService
 from apps.api.services.outcomes import OutcomeService
-from apps.api.services.recommendations import RecommendationService
+from apps.api.services.submissions import SubmissionService
 
 
 @dataclass(frozen=True, slots=True)
 class ServiceRegistry:
     core: Services
-    form_sessions: FormSessionService
+    children: ChildService
+    submissions: SubmissionService
     episodes: EpisodeService
     outcomes: OutcomeService
-    recommendations: RecommendationService
-    evaluation: EvaluationService
+    recommendations: Any
 
 
 def build_registry(core: Services) -> ServiceRegistry:
+    recommendation_service = import_module(
+        "apps.api.services.recommendations"
+    ).RecommendationService
     return ServiceRegistry(
         core=core,
-        form_sessions=FormSessionService(core),
+        children=ChildService(core),
+        submissions=SubmissionService(core),
         episodes=EpisodeService(core),
         outcomes=OutcomeService(core),
-        recommendations=RecommendationService(core),
-        evaluation=EvaluationService(core),
+        recommendations=recommendation_service(core),
     )
 
 
 __all__ = [
-    "CommandResult",
+    "ChildService",
     "EpisodeService",
-    "EvaluationService",
-    "FormSessionService",
-    "IdempotentRequest",
     "OutcomeService",
-    "RecommendationService",
     "ServiceRegistry",
     "Services",
+    "SubmissionService",
     "build_registry",
 ]

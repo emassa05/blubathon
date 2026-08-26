@@ -1,16 +1,15 @@
-"""Lectura de episodios y salidas autorizadas (SPEC 8, 11.5)."""
+"""Prediction episode reads for the fixed tenant."""
 
 from __future__ import annotations
 
 import sqlite3
 
-from apps.api.auth.context import ActorContext
-from apps.api.contracts.enums import GrantCapability
-from apps.api.contracts.models import Interval, PredictionEpisodeView, PredictionOutputView
+from apps.api.contracts.models import PredictionEpisodeView, PredictionOutputView
 from apps.api.errors import not_found
 from apps.api.services.base import Services
 from apps.api.store import episodes as episodes_store
 from apps.api.store import outcomes as outcomes_store
+from packages.shared.domain.base import Interval
 
 
 class EpisodeService:
@@ -21,21 +20,13 @@ class EpisodeService:
         self,
         connection: sqlite3.Connection,
         *,
-        actor: ActorContext,
+        tenant_id: str,
         prediction_episode_id: str,
         now: str,
     ) -> PredictionEpisodeView:
         episode = episodes_store.episode(connection, prediction_episode_id)
-        if episode is None or episode["tenant_id"] != actor.tenant_id:
+        if episode is None or episode["tenant_id"] != tenant_id:
             raise not_found()
-        self._services.authorization.authorize_subject(
-            connection,
-            actor=actor,
-            subject_id=episode["subject_id"],
-            capability=GrantCapability.SUBJECT_READ,
-            cutoff=now,
-            action="prediction_episode_read",
-        )
 
         outputs = [
             PredictionOutputView(
@@ -62,11 +53,9 @@ class EpisodeService:
         outcome_state = None
         resolution_status = None
         if request_row is not None:
-            # SPEC 4.4: pending con el deadline vencido materializa primero la
-            # resolución `unknown` y solo después deriva `missing`.
             resolution = outcomes_store.materialize_resolution(
                 connection,
-                tenant_id=episode["tenant_id"],
+                tenant_id=tenant_id,
                 prediction_episode_id=prediction_episode_id,
                 target_start_at=episode["target_start_at"],
                 target_end_at=episode["target_end_at"],

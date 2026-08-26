@@ -1,232 +1,153 @@
-"""Las 11 rutas de producto de `SPEC 11.1`.
-
-Una ruta valida el request, autoriza al actor, llama un servicio de aplicación y
-serializa la respuesta. No contiene SQL ni fórmulas (CONVENTIONS 12.1).
-"""
+"""Faro v0.4 HTTP and WebSocket surface."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Literal
 
-from fastapi import APIRouter, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, BackgroundTasks, Query, WebSocket, WebSocketDisconnect
 
+from apps.api.canonical import parse_timestamp
 from apps.api.contracts.constants import API_PREFIX
-from apps.api.contracts.enums import GrantCapability
 from apps.api.contracts.models import (
-    AnswerAcceptedView,
-    AnswerRequest,
-    EvaluationReportView,
-    ExecutionView,
-    FormSessionCreateRequest,
-    FormSessionView,
+    AnswerItem,
+    ChildHistoryResponse,
+    ChildListResponse,
+    ChildView,
+    FeedbackRequest,
+    FeedbackResponse,
+    FormPlanRequest,
+    FormPlanResponse,
+    FormSubmissionRequest,
+    FormSubmissionResponse,
     OutcomeReportRequest,
     OutcomeReportResponseView,
     OutcomeRequestListResponse,
     PredictionEpisodeView,
-    RecommendationInboxView,
-    RecommendationReviewRequest,
-    RecommendationReviewResponse,
-    RecommendationsView,
-    SessionContextView,
-    StrategyExecutionRequest,
-    SubjectView,
-    SubmitFormSessionView,
+    RecommendationInstanceView,
+    RecommendationListResponse,
+    TodayRecommendationResponse,
 )
-from apps.api.errors import invalid
-from apps.api.routes.dependencies import Actor, IdempotencyKey, IfMatch, Registry
-from apps.api.services.base import IdempotentRequest
-from apps.api.store import identity
+from apps.api.events import EventBroker
+from apps.api.routes.dependencies import Broker, Context, Registry
+from apps.api.services import ServiceRegistry
 
 router = APIRouter(prefix=API_PREFIX)
 
 
-def _command(
-    request: Request,
-    *,
-    key: str,
-    path_params: dict[str, Any],
-    body: Any,
-) -> IdempotentRequest:
-    return IdempotentRequest(
-        key=key,
-        method=request.method,
-        concrete_path=request.url.path,
-        path_params=path_params,
-        query=dict(request.query_params),
-        body=body,
-    )
+@router.get("/children", response_model=ChildListResponse)
+def list_children(context: Context, services: Registry) -> ChildListResponse:
+    with services.core.database.read() as connection:
+        return services.children.list(connection, tenant_id=context.tenant_id)
 
 
-def _json(result: Any, status_code: int = 200) -> JSONResponse:
-    return JSONResponse(status_code=status_code, content=result)
-
-
-# -- contexto de sesión (soporte del frontend) ---------------------------
-
-
-@router.get("/session", response_model=SessionContextView)
-def session_context(actor: Actor, services: Registry) -> SessionContextView:
-    """Quién soy y sobre qué sujetos tengo grant. No devuelve datos clínicos."""
+@router.get("/children/{child_id}", response_model=ChildView)
+def read_child(child_id: str, context: Context, services: Registry) -> ChildView:
     now = services.core.now()
     with services.core.database.read() as connection:
-        subject_ids = services.core.authorization.granted_subject_ids(
-            connection, actor=actor, capability=GrantCapability.SUBJECT_READ, cutoff=now
-        )
-        rows = identity.subjects_for_actor(
-            connection, tenant_id=actor.tenant_id, subject_ids=subject_ids
-        )
-        return SessionContextView(
-            actor_id=actor.actor_id,
-            display_name=actor.display_name,
-            tenant_id=actor.tenant_id,
-            roles=sorted(actor.roles),
-            subjects=[
-                SubjectView(
-                    subject_id=row["subject_id"],
-                    display_label=row["display_label"],
-                    cohort_kind=row["cohort_kind"],
-                )
-                for row in rows
-            ],
-            deployment_mode=services.core.settings.deployment_mode.value,
-            adapters_source=services.core.ports.source,
+        return services.children.get(
+            connection, tenant_id=context.tenant_id, child_id=child_id, now=now
         )
 
 
-# -- formulario ----------------------------------------------------------
-
-
-@router.post("/form-sessions", status_code=201, response_model=FormSessionView)
-def open_form_session(
-    request: Request,
-    payload: FormSessionCreateRequest,
-    actor: Actor,
+@router.get("/children/{child_id}/history", response_model=ChildHistoryResponse)
+def child_history(
+    child_id: str,
+    context: Context,
     services: Registry,
-    key: IdempotencyKey,
-) -> Response:
-    body = payload.model_dump(mode="json")
-    result = services.core.execute_command(
-        actor=actor,
-        request=_command(request, key=key, path_params={}, body=body),
-        authorize_replay=lambda connection, now: services.form_sessions.authorize_open(
-            connection, actor=actor, subject_id=str(payload.subject_id), now=now
-        ),
-        execute=lambda connection, now: (
-            201,
-            services.form_sessions.open(
-                connection, actor=actor, request=payload, now=now
-            ).model_dump(mode="json"),
-        ),
+    limit: int = Query(default=30, ge=1, le=100),
+) -> ChildHistoryResponse:
+    with services.core.database.read() as connection:
+        return services.children.history(
+            connection, tenant_id=context.tenant_id, child_id=child_id, limit=limit
+        )
+
+
+@router.get(
+    "/children/{child_id}/recommendations/today",
+    response_model=TodayRecommendationResponse,
+)
+def today_recommendation(
+    child_id: str, context: Context, services: Registry
+) -> TodayRecommendationResponse:
+    now = services.core.now()
+    local_date = parse_timestamp(now).date().isoformat()
+    with services.core.database.read() as connection:
+        return services.recommendations.today(
+            connection,
+            tenant_id=context.tenant_id,
+            child_id=child_id,
+            local_date=local_date,
+        )
+
+
+@router.post("/children/{child_id}/form-plan", response_model=FormPlanResponse)
+def form_plan(
+    child_id: str,
+    payload: FormPlanRequest,
+    context: Context,
+    services: Registry,
+) -> FormPlanResponse:
+    return services.submissions.build_plan(
+        tenant_id=context.tenant_id,
+        subject_id=child_id,
+        source=payload.source,
+        answers=payload.answers,
+        now=services.core.now(),
     )
-    return _json(result.body, result.status_code)
 
 
-@router.get("/form-sessions/{form_session_id}", response_model=FormSessionView)
-def read_form_session(form_session_id: str, actor: Actor, services: Registry) -> FormSessionView:
+@router.post("/children/{child_id}/forms", status_code=201, response_model=FormSubmissionResponse)
+def submit_form(
+    child_id: str,
+    payload: FormSubmissionRequest,
+    background_tasks: BackgroundTasks,
+    context: Context,
+    services: Registry,
+    broker: Broker,
+) -> FormSubmissionResponse:
     now = services.core.now()
     with services.core.database.write() as connection:
-        return services.form_sessions.view(
-            connection, actor=actor, form_session_id=form_session_id, now=now
+        result = services.submissions.submit(
+            connection,
+            tenant_id=context.tenant_id,
+            subject_id=child_id,
+            source=payload.source,
+            local_date=payload.local_date.isoformat(),
+            answers=payload.answers,
+            now=now,
         )
-
-
-@router.post(
-    "/form-sessions/{form_session_id}/answers",
-    status_code=201,
-    response_model=AnswerAcceptedView,
-)
-def answer_form_session(
-    request: Request,
-    form_session_id: str,
-    payload: AnswerRequest,
-    actor: Actor,
-    services: Registry,
-    key: IdempotencyKey,
-) -> Response:
-    body = payload.model_dump(mode="json")
-    result = services.core.execute_command(
-        actor=actor,
-        request=_command(
-            request, key=key, path_params={"form_session_id": form_session_id}, body=body
-        ),
-        authorize_replay=lambda connection, now: services.form_sessions.authorize_session(
-            connection,
-            actor=actor,
-            form_session_id=form_session_id,
-            capability=GrantCapability.DAILY_OBSERVATION_WRITE,
-            now=now,
-        ),
-        execute=lambda connection, now: (
-            201,
-            services.form_sessions.answer(
-                connection,
-                actor=actor,
-                form_session_id=form_session_id,
-                request=payload,
-                now=now,
-            ).model_dump(mode="json"),
-        ),
-    )
-    return _json(result.body, result.status_code)
-
-
-@router.post(
-    "/form-sessions/{form_session_id}/submit",
-    status_code=201,
-    response_model=SubmitFormSessionView,
-)
-def submit_form_session(
-    request: Request,
-    form_session_id: str,
-    actor: Actor,
-    services: Registry,
-    key: IdempotencyKey,
-) -> Response:
-    result = services.core.execute_command(
-        actor=actor,
-        request=_command(
-            request, key=key, path_params={"form_session_id": form_session_id}, body=None
-        ),
-        authorize_replay=lambda connection, now: services.form_sessions.authorize_session(
-            connection,
-            actor=actor,
-            form_session_id=form_session_id,
-            capability=GrantCapability.FORM_SUBMIT,
-            now=now,
-        ),
-        execute=lambda connection, now: (
-            201,
-            services.form_sessions.submit(
-                connection, actor=actor, form_session_id=form_session_id, now=now
-            ).model_dump(mode="json"),
-        ),
-    )
-    return _json(result.body, result.status_code)
-
-
-# -- predicción y outcome -------------------------------------------------
+    if result.recommendation_instance_id is not None:
+        background_tasks.add_task(
+            _generate_recommendation,
+            services,
+            broker,
+            context.tenant_id,
+            child_id,
+            str(result.prediction_episode_id),
+            payload.answers,
+        )
+    return result
 
 
 @router.get("/prediction-episodes/{prediction_episode_id}", response_model=PredictionEpisodeView)
 def read_prediction_episode(
-    prediction_episode_id: str, actor: Actor, services: Registry
+    prediction_episode_id: str, context: Context, services: Registry
 ) -> PredictionEpisodeView:
     now = services.core.now()
     with services.core.database.write() as connection:
         return services.episodes.get(
-            connection, actor=actor, prediction_episode_id=prediction_episode_id, now=now
+            connection,
+            tenant_id=context.tenant_id,
+            prediction_episode_id=prediction_episode_id,
+            now=now,
         )
 
 
 @router.get("/outcome-requests", response_model=OutcomeRequestListResponse)
-def list_outcome_requests(actor: Actor, services: Registry) -> OutcomeRequestListResponse:
+def list_outcome_requests(context: Context, services: Registry) -> OutcomeRequestListResponse:
     now = services.core.now()
-    # Al pasar el deadline, `SPEC 4.4` exige materializar la resolución `unknown`
-    # antes de derivar `missing`: por eso la lectura usa una transacción de
-    # escritura. No crea episodios, requests ni solicitudes de autoría.
     with services.core.database.write() as connection:
-        return services.outcomes.list_requests(connection, actor=actor, now=now)
+        return services.outcomes.list_requests(connection, tenant_id=context.tenant_id, now=now)
 
 
 @router.post(
@@ -235,167 +156,143 @@ def list_outcome_requests(actor: Actor, services: Registry) -> OutcomeRequestLis
     response_model=OutcomeReportResponseView,
 )
 def create_outcome_report(
-    request: Request,
     prediction_episode_id: str,
     payload: OutcomeReportRequest,
-    actor: Actor,
+    context: Context,
     services: Registry,
-    key: IdempotencyKey,
-) -> Response:
-    body = payload.model_dump(mode="json")
-    result = services.core.execute_command(
-        actor=actor,
-        request=_command(
-            request,
-            key=key,
-            path_params={"prediction_episode_id": prediction_episode_id},
-            body=body,
-        ),
-        authorize_replay=lambda connection, now: services.outcomes.authorize_report(
-            connection, actor=actor, prediction_episode_id=prediction_episode_id, now=now
-        ),
-        execute=lambda connection, now: (
-            201,
-            services.outcomes.create_report(
-                connection,
-                actor=actor,
-                prediction_episode_id=prediction_episode_id,
-                request=payload,
-                now=now,
-            ).model_dump(mode="json"),
-        ),
-    )
-    return _json(result.body, result.status_code)
-
-
-# -- recomendación --------------------------------------------------------
+) -> OutcomeReportResponseView:
+    now = services.core.now()
+    with services.core.database.write() as connection:
+        return services.outcomes.create_report(
+            connection,
+            tenant_id=context.tenant_id,
+            prediction_episode_id=prediction_episode_id,
+            request=payload,
+            now=now,
+        )
 
 
 @router.get(
     "/prediction-episodes/{prediction_episode_id}/recommendations",
-    response_model=RecommendationsView,
+    response_model=RecommendationInstanceView,
 )
-def read_recommendations(
-    prediction_episode_id: str, actor: Actor, services: Registry, response: Response
-) -> RecommendationsView:
-    """SPEC 11.6 / CONVENTIONS 12.1: este GET no crea filas."""
-    now = services.core.now()
+def episode_recommendation(
+    prediction_episode_id: str, context: Context, services: Registry
+) -> RecommendationInstanceView:
     with services.core.database.read() as connection:
-        view = services.recommendations.for_episode(
-            connection, actor=actor, prediction_episode_id=prediction_episode_id, now=now
+        return services.recommendations.for_episode(
+            connection,
+            tenant_id=context.tenant_id,
+            prediction_episode_id=prediction_episode_id,
         )
-    response.headers["ETag"] = f'"{view.revision}"'
-    return view
 
 
-@router.get("/recommendation-instances", response_model=RecommendationInboxView)
-def read_recommendation_inbox(
-    actor: Actor, services: Registry, review_status: str = "pending"
-) -> RecommendationInboxView:
-    if review_status != "pending":
-        raise invalid("validation_error", reason="unsupported_review_status")
-    now = services.core.now()
+@router.get("/recommendations", response_model=RecommendationListResponse)
+def list_recommendations(
+    context: Context,
+    services: Registry,
+    status: Literal["pending", "matched", "abstained"] | None = None,
+    child_id: str | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+) -> RecommendationListResponse:
     with services.core.database.read() as connection:
-        return services.recommendations.inbox(connection, actor=actor, now=now)
+        return services.recommendations.list(
+            connection,
+            tenant_id=context.tenant_id,
+            status=status,
+            child_id=child_id,
+            limit=limit,
+        )
 
 
 @router.post(
-    "/recommendation-instances/{recommendation_instance_id}/reviews",
+    "/recommendations/{recommendation_instance_id}/feedback",
     status_code=201,
-    response_model=RecommendationReviewResponse,
+    response_model=FeedbackResponse,
 )
-def create_recommendation_review(
-    request: Request,
+def create_feedback(
     recommendation_instance_id: str,
-    payload: RecommendationReviewRequest,
-    actor: Actor,
+    payload: FeedbackRequest,
+    background_tasks: BackgroundTasks,
+    context: Context,
     services: Registry,
-    key: IdempotencyKey,
-    revision: IfMatch,
-) -> Response:
-    body = payload.model_dump(mode="json")
-    result = services.core.execute_command(
-        actor=actor,
-        request=_command(
-            request,
-            key=key,
-            path_params={"recommendation_instance_id": recommendation_instance_id},
-            body=body,
-        ),
-        authorize_replay=lambda connection, now: services.recommendations.authorize_instance(
-            connection,
-            actor=actor,
-            recommendation_instance_id=recommendation_instance_id,
-            capability=GrantCapability.RECOMMENDATION_REVIEW,
-            now=now,
-        ),
-        execute=lambda connection, now: (
-            201,
-            services.recommendations.create_review(
-                connection,
-                actor=actor,
-                recommendation_instance_id=recommendation_instance_id,
-                request=payload,
-                if_match=revision,
-                now=now,
-            ).model_dump(mode="json"),
-        ),
-    )
-    return _json(result.body, result.status_code)
-
-
-@router.post(
-    "/recommendation-instances/{recommendation_instance_id}/executions",
-    status_code=201,
-    response_model=ExecutionView,
-)
-def create_strategy_execution(
-    request: Request,
-    recommendation_instance_id: str,
-    payload: StrategyExecutionRequest,
-    actor: Actor,
-    services: Registry,
-    key: IdempotencyKey,
-    revision: IfMatch,
-) -> Response:
-    body = payload.model_dump(mode="json")
-    result = services.core.execute_command(
-        actor=actor,
-        request=_command(
-            request,
-            key=key,
-            path_params={"recommendation_instance_id": recommendation_instance_id},
-            body=body,
-        ),
-        authorize_replay=lambda connection, now: services.recommendations.authorize_instance(
-            connection,
-            actor=actor,
-            recommendation_instance_id=recommendation_instance_id,
-            capability=GrantCapability.EXECUTION_RECORD,
-            now=now,
-        ),
-        execute=lambda connection, now: (
-            201,
-            services.recommendations.create_execution(
-                connection,
-                actor=actor,
-                recommendation_instance_id=recommendation_instance_id,
-                request=payload,
-                if_match=revision,
-                now=now,
-            ).model_dump(mode="json"),
-        ),
-    )
-    return _json(result.body, result.status_code)
-
-
-# -- evaluación -----------------------------------------------------------
-
-
-@router.get("/evaluation/{model_version}", response_model=EvaluationReportView)
-def read_evaluation(model_version: str, actor: Actor, services: Registry) -> EvaluationReportView:
+    broker: Broker,
+) -> FeedbackResponse:
     now = services.core.now()
     with services.core.database.write() as connection:
-        return services.evaluation.get(
-            connection, actor=actor, model_version=model_version, now=now
+        result = services.recommendations.feedback(
+            connection,
+            tenant_id=context.tenant_id,
+            recommendation_instance_id=recommendation_instance_id,
+            request=payload,
+            now=now,
         )
+    broker.publish(
+        {
+            "type": "feedback.recorded",
+            "recommendation_instance_id": recommendation_instance_id,
+            "rating": payload.rating,
+            "at": now,
+        }
+    )
+    if payload.rating == "bad":
+        background_tasks.add_task(
+            _redraft_recommendation, services, broker, recommendation_instance_id
+        )
+    return result
+
+
+@router.websocket("/ws")
+async def websocket_events(websocket: WebSocket) -> None:
+    await websocket.accept()
+    broker: EventBroker = websocket.app.state.event_broker
+    try:
+        async with broker.subscribe() as queue:
+            while True:
+                await websocket.send_json(await queue.get())
+    except WebSocketDisconnect:
+        return
+
+
+def _generate_recommendation(
+    services: ServiceRegistry,
+    broker: EventBroker,
+    tenant_id: str,
+    child_id: str,
+    prediction_episode_id: str,
+    answers: tuple[AnswerItem, ...],
+) -> None:
+    result = services.recommendations.generate(
+        tenant_id=tenant_id,
+        subject_id=child_id,
+        prediction_episode_id=prediction_episode_id,
+        probability=services.recommendations.probability_for_episode(prediction_episode_id),
+        answers=answers,
+        now=services.core.now(),
+    )
+    broker.publish(
+        {
+            "type": "recommendation.ready",
+            "child_id": result.child_id,
+            "prediction_episode_id": result.prediction_episode_id,
+            "recommendation_instance_id": result.recommendation_instance_id,
+            "status": result.status,
+            "abstention_reason": result.abstention_reason,
+            "at": services.core.now(),
+        }
+    )
+
+
+def _redraft_recommendation(
+    services: ServiceRegistry, broker: EventBroker, recommendation_instance_id: str
+) -> None:
+    result = services.recommendations.redraft(recommendation_instance_id, now=services.core.now())
+    broker.publish(
+        {
+            "type": "recommendation.redrafted",
+            "recommendation_instance_id": result.recommendation_instance_id,
+            "attempt": result.attempt,
+            "status": result.status,
+            "at": services.core.now(),
+        }
+    )

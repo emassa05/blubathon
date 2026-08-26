@@ -13,8 +13,8 @@ from packages.shared.constants import CONSTANTS, ConstantSpec
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 EXPECTED_VALUES = {
-    "C01": "0.3.0",
-    "C02": "/api/v1",
+    "C01": "0.4.0",
+    "C02": "/v1",
     "C03": "America/Santiago",
     "C04": 24,
     "C05": 48,

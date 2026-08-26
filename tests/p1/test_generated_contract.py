@@ -23,25 +23,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 GENERATED = REPO_ROOT / "packages" / "shared" / "generated"
 EXAMPLES = REPO_ROOT / "packages" / "shared" / "examples"
 
-# TAREAS M1/P1.2 lists these by name. Every one must exist.
+# The handoff keeps representative v0.4 request, response and event payloads.
 REQUIRED_EXAMPLES = (
-    "form_session.audit.json",
-    "form_session.with_default.json",
-    "form_answer.manual.json",
-    "form_answer.accept_default.json",
-    "form_answer.edit_default.json",
-    "prediction.synthetic_score.json",
-    "prediction.personal_abstained.json",
-    "recommendation.match.json",
+    "child.list.json",
+    "form_plan.request.json",
+    "form_plan.response.json",
+    "form_submission.request.json",
+    "form_submission.response.json",
+    "recommendation.matched.json",
     "recommendation.abstained.json",
-    "outcome.yes.json",
-    "outcome.no.json",
-    "outcome.explicit_unknown_pending.json",
-    "outcome.early_no_pending.json",
-    "outcome.conflicted.json",
-    "outcome.late.json",
-    "error.idempotency_conflict.json",
-    "error.cross_tenant.json",
+    "recommendation.today.json",
+    "feedback.request.json",
+    "notification.ready.json",
 )
 
 

@@ -11,10 +11,8 @@ from packages.shared.domain.api import (
     FormSessionResponse,
     FormSubmitResponse,
     HumanPlanItem,
-    IdempotencyScope,
     PredictionOutputView,
     RecommendationResponse,
-    request_fingerprint,
 )
 from packages.shared.domain.observation import (
     AnswerSubmission,
@@ -683,46 +681,6 @@ def test_an_abstained_recommendation_states_its_reason() -> None:
             status=RecommendationResponseStatus.ABSTAINED,
             recommendation_instance_id=ident("instance"),
         )
-
-
-def test_the_idempotency_scope_uses_the_concrete_path() -> None:
-    with pytest.raises(ValidationError):
-        IdempotencyScope(
-            tenant_id=TENANT,
-            actor_id=ACTOR,
-            method="POST",
-            normalized_concrete_path="/api/v1/form-sessions/{id}/answers",
-            idempotency_key="key",
-        )
-    first = IdempotencyScope(
-        tenant_id=TENANT,
-        actor_id=ACTOR,
-        method="POST",
-        normalized_concrete_path=f"/api/v1/form-sessions/{ident('a')}/answers",
-        idempotency_key="key",
-    )
-    second = IdempotencyScope(
-        tenant_id=TENANT,
-        actor_id=ACTOR,
-        method="POST",
-        normalized_concrete_path=f"/api/v1/form-sessions/{ident('b')}/answers",
-        idempotency_key="key",
-    )
-    assert first.fingerprint() != second.fingerprint()
-
-
-def test_the_same_key_on_two_resources_never_shares_a_replay() -> None:
-    scope = IdempotencyScope(
-        tenant_id=TENANT,
-        actor_id=ACTOR,
-        method="POST",
-        normalized_concrete_path=f"/api/v1/form-sessions/{ident('a')}/answers",
-        idempotency_key="key",
-    )
-    body = {"answer": {"field_code": "food_changes", "interaction": "manual", "value": False}}
-    first = request_fingerprint(scope, path_params={"id": str(ident("a"))}, query={}, body=body)
-    second = request_fingerprint(scope, path_params={"id": str(ident("b"))}, query={}, body=body)
-    assert first != second
 
 
 def test_the_episode_response_never_carries_a_band_or_a_decision_policy() -> None:

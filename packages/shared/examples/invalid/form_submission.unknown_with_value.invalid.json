@@ -1,0 +1,11 @@
+{
+  "source": "caregiver_daily",
+  "local_date": "2026-08-25",
+  "answers": [
+    {
+      "field_code": "sleep_quality",
+      "value": "interrupted",
+      "interaction": "unknown"
+    }
+  ]
+}

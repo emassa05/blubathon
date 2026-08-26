@@ -17,7 +17,7 @@ from typing import Any, Literal, cast
 
 DecisionClass = Literal["mathematical", "evidence", "policy", "engineering"]
 
-CONTRACT_VERSION = "faro-contract-0.3.0"
+CONTRACT_VERSION = "faro-contract-0.4.0"
 """Version of the executable contract published by `packages/shared`.
 
 Distinct from ``SPEC_VERSION``: the SPEC can be clarified without regenerating
@@ -68,8 +68,8 @@ def _spec(
 
 
 _REGISTRY: tuple[ConstantSpec, ...] = (
-    _spec("C01", "SPEC_VERSION", "0.3.0", "engineering", "SPEC 15 / C01"),
-    _spec("C02", "API_PREFIX", "/api/v1", "engineering", "SPEC 11 / C02"),
+    _spec("C01", "SPEC_VERSION", "0.4.0", "engineering", "SPEC 15 / C01"),
+    _spec("C02", "API_PREFIX", "/v1", "engineering", "SPEC 11 / C02"),
     _spec("C03", "REFERENCE_TIMEZONE", "America/Santiago", "engineering", "SPEC 5.1 / C03"),
     _spec("C04", "TARGET_HORIZON_HOURS", 24, "policy", "SPEC 4.1 / C04"),
     _spec("C05", "OUTCOME_CAPTURE_LIMIT_HOURS", 48, "policy", "SPEC 4.1 / C05"),

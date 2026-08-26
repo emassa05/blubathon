@@ -45,12 +45,8 @@ source_modules =
 # `ml/prediction` in M2.
 forbidden_modules =
     ml.defaults
-    ml.engine
-    ml.eval
     ml.form
     ml.prediction
-    ml.features
-    ml.voi
 
 [importlinter:contract:rag-does-not-touch-the-clinic]
 name = RAG never reads the clinical store or the application
@@ -63,25 +59,6 @@ forbidden_modules =
     fastapi
     sqlite3
 
-[importlinter:contract:runtime-has-no-model-index-or-network]
-name = The RAG runtime calls no LLM, no embeddings, no index and no network
-# SPEC 9.8 / C29: runtime is a pure decision. Forbidding `rag.authoring` covers
-# BM25, RRF and the local draft in one rule; the rest name the transports a
-# future edit could reach for.
-type = forbidden
-source_modules =
-    rag.runtime
-forbidden_modules =
-    rag.authoring
-    httpx
-    requests
-    socket
-    urllib
-    lightgbm
-    sklearn
-    numpy
-    scipy
-
 [importlinter:contract:layers]
 name = Application above domain above contract
 type = layers
@@ -89,3 +66,12 @@ layers =
     apps
     ml : rag
     packages
+
+[importlinter:contract:only-one-door-to-the-llm]
+name = Only the recommendation service can reach the LLM pipeline
+type = forbidden
+source_modules =
+    apps.api.routes
+    apps.api.store
+forbidden_modules =
+    rag.authoring

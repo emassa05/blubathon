@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import date, datetime
-from typing import Any
 from uuid import UUID
 
 from apps.api.canonical import parse_timestamp
@@ -19,13 +18,6 @@ from packages.shared.domain.identity import SubjectProfile
 from packages.shared.domain.observation import FieldObservation, FormSession, QuestionPresentation
 from packages.shared.domain.outcome import OutcomeResolution
 from packages.shared.domain.prediction import PredictionEpisode
-from packages.shared.domain.rag import (
-    CatalogVersion,
-    RecommendationSetVersion,
-    ScenarioPredicate,
-    StrategyCitation,
-    StrategyVersion,
-)
 from packages.shared.enums import VoiStatus
 
 
@@ -158,80 +150,4 @@ def outcome_resolution(row: sqlite3.Row) -> OutcomeResolution:
         qualifying_report_id=identifier(row["qualifying_report_id"]),
         ever_conflicted=bool(row["ever_conflicted"]),
         resolution_version=int(row["resolution_version"]),
-    )
-
-
-def scenario_predicate(raw: str | dict[str, Any] | None) -> ScenarioPredicate:
-    payload = raw if isinstance(raw, dict) else load(raw, {})
-    return ScenarioPredicate.model_validate(payload or {})
-
-
-def strategy_citation(row: sqlite3.Row) -> StrategyCitation:
-    return StrategyCitation(
-        citation_id=UUID(row["citation_id"]),
-        claim_id=UUID(row["claim_id"]),
-        document_chunk_id=UUID(row["document_chunk_id"]),
-        locator=row["locator"],
-        quoted_text=row["quoted_text"],
-        # `StrategyCitation` verifica el chunk citado, no el texto citado: el
-        # hash sale de `document_chunks`, no de `strategy_citations`.
-        chunk_sha256=row["chunk_sha256"],
-        canonical_url=row["canonical_url"],
-    )
-
-
-def strategy_version(row: sqlite3.Row, citations: tuple[StrategyCitation, ...]) -> StrategyVersion:
-    return StrategyVersion(
-        strategy_id=UUID(row["strategy_id"]),
-        strategy_version_id=UUID(row["strategy_version_id"]),
-        purpose_es=row["purpose_es"],
-        action_text_es=row["action_text_es"],
-        claims=tuple(load_list(row["claims"])),
-        citations=citations,
-        applicability_predicate=scenario_predicate(row["applicability_predicate"]),
-        required_approver_role=row["required_approver_role"],
-        allowed_executor_roles=frozenset(load_list(row["allowed_executor_roles"])),
-        corpus_version=row["corpus_version"],
-        evidence_review_id=identifier(row["evidence_review_id"]),
-        clinical_review_id=identifier(row["clinical_review_id"]),
-        effective_from=instant(row["effective_from"]),
-        supersedes_version_id=identifier(row["supersedes_version_id"]),
-        status=row["status"],
-        content_sha256=row["content_sha256"],
-    )
-
-
-def recommendation_set_version(row: sqlite3.Row) -> RecommendationSetVersion:
-    # `RuntimeCatalog` compara `CatalogVersion.recommendation_set_version_ids`
-    # contra `RecommendationSetVersion.recommendation_set_id`: la identidad de un
-    # set dentro de un catálogo es la de su versión, que es lo que P2 persiste.
-    return RecommendationSetVersion(
-        recommendation_set_id=UUID(row["recommendation_set_version_id"]),
-        recommendation_set_version=row["recommendation_set_version"],
-        applicability_predicate=scenario_predicate(row["applicability_predicate"]),
-        ordered_strategy_version_ids=tuple(
-            UUID(str(item)) for item in load_list(row["ordered_strategy_version_ids"])
-        ),
-        reviewed_priority=int(row["reviewed_priority"]),
-        clinical_review_id=identifier(row["clinical_review_id"]),
-        status=row["status"],
-        effective_from=instant(row["effective_from"]),
-        suspended_at=optional_instant(row["suspended_at"]),
-        content_sha256=row["content_sha256"],
-    )
-
-
-def catalog_version(row: sqlite3.Row) -> CatalogVersion:
-    return CatalogVersion(
-        catalog_version=row["catalog_version"],
-        tenant_id=UUID(row["tenant_id"]),
-        corpus_version=row["corpus_version"],
-        recommendation_set_version_ids=tuple(
-            UUID(str(item)) for item in load_list(row["recommendation_set_version_ids"])
-        ),
-        catalog_activation_review_id=identifier(row["catalog_activation_review_id"]),
-        status=row["status"],
-        effective_from=instant(row["effective_from"]),
-        suspended_at=optional_instant(row["suspended_at"]),
-        content_sha256=row["content_sha256"],
     )
