@@ -71,13 +71,7 @@ pnpm --dir apps/mobile dev        # http://localhost:5173
 
 Para correr el dominio real y el RAG completo:
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-BLUBATHON_P1_ADAPTERS=real BLUBATHON_DRAFT_LLM=anthropic \
-  uvicorn "apps.api.main:create_app" --factory --port 8000
-```
 
-También corre contra un modelo local servido por Ollama
 (`BLUBATHON_DRAFT_LLM=ollama`).
 
 
