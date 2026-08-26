@@ -31,3 +31,4 @@ Datos base/
 # (TAREAS handoff H4); only manifests and hashes do.
 rag/corpus/
 rag/index/
+.DS_Store
