@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 
 from apps.api.canonical import canonical_timestamp, parse_timestamp
 from apps.api.contracts.constants import (
@@ -27,6 +27,8 @@ from apps.api.contracts.models import (
 from apps.api.errors import invalid, not_found
 from apps.api.services import form_plan
 from apps.api.services.base import Services
+from apps.api.services.local_time import REFERENCE_ZONE
+from apps.api.services.local_time import local_date as reference_date
 from apps.api.services.recommendation_query import query_for, risk_band_for
 from apps.api.store import episodes, identity, outcomes, recommendations
 from apps.api.store import form_sessions as submissions_store
@@ -71,6 +73,7 @@ class SubmissionService:
         if subject is None or subject["tenant_id"] != tenant_id:
             raise not_found()
         stored_source = _stored_source(source)
+        effective_at = _effective_at_for(local_date, now)
         allowed = set(applicable_fields(stored_source))
         submission_id = submissions_store.create_submission(
             connection,
@@ -106,7 +109,7 @@ class SubmissionService:
                     entry_mode=_entry_mode(answer.interaction),
                     data_origin=_origin_for(subject["cohort_kind"]),
                     cohort_kind=subject["cohort_kind"],
-                    effective_at=now,
+                    effective_at=effective_at,
                     ingested_at=now,
                     local_date=local_date,
                 ),
@@ -296,6 +299,33 @@ def _stored_source(source: str) -> str:
     if source != "caregiver_daily":
         raise invalid("validation_error", reason="unsupported_source")
     return "home"
+
+
+def _effective_at_for(local_date: str, now: str) -> str:
+    """El instante efectivo de una respuesta, dentro del día que declara.
+
+    `FieldObservation` exige que `local_date` sea la fecha en zona de referencia
+    de `effective_at`, y aquí se escribían el día del formulario y el reloj del
+    servidor sin compararlos. Al rellenar el cuestionario de un día pasado, la
+    fila quedaba con el día de ayer y el instante de hoy: se guardaba sin
+    protestar y hacía estallar la siguiente lectura del dominio.
+
+    `effective_at` es tiempo clínico —cuándo fue cierto lo observado— y
+    `ingested_at` tiempo de registro, que sigue siendo `now`. Rellenar ayer no
+    cambia cuándo pasó, solo cuándo se anotó.
+    """
+
+    momento = parse_timestamp(now)
+    dia = date.fromisoformat(local_date)
+    hoy = reference_date(momento)
+    if dia == hoy:
+        return now
+    if dia > hoy:
+        # Sin instante posible dentro de un día que no ha llegado. Se rechaza
+        # en vez de escribir una fila que el dominio no puede releer.
+        raise invalid("local_date_in_future", local_date=local_date)
+    fin_del_dia = datetime.combine(dia, time(23, 59, 59, 999000), tzinfo=REFERENCE_ZONE)
+    return canonical_timestamp(fin_del_dia)
 
 
 def _origin_for(cohort_kind: str) -> str:
