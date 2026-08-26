@@ -16,11 +16,12 @@ html {
   /* La tipografía va en rem: si se toca este tamaño, escala toda la pantalla. */
   font-size: 100%;
   -webkit-text-size-adjust: 100%;
+  /* Lo que asoma al rebotar el desplazamiento, en vez de blanco. */
+  background: var(--faro-fondo-final);
 }
 
 body {
   min-height: 100dvh;
-  background: var(--faro-lienzo);
   color: inherit;
   font-family: var(--faro-fuente);
   font-weight: 400;

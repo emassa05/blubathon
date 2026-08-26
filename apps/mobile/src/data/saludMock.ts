@@ -1,4 +1,4 @@
-import type { EstadoDispositivo, ResumenSalud } from "@/types/salud";
+import type { ResumenSalud } from "@/types/salud";
 
 /**
  * Datos ficticios de la pantalla Salud.
@@ -37,14 +37,4 @@ export const RESUMEN_SALUD_MOCK: ResumenSalud = {
     { id: "2026-08-23", dia: "Domingo 23", estado: "sin-responder" },
   ],
   formularioPendiente: true,
-};
-
-/**
- * Fallback de la barra de estado: son los valores del diseño. La hora real la
- * pone el reloj del sistema y la batería `navigator.getBattery()` cuando existe
- * (ver `useEstadoDispositivo`).
- */
-export const ESTADO_DISPOSITIVO_MOCK: EstadoDispositivo = {
-  hora: "18:09",
-  bateria: 58,
 };

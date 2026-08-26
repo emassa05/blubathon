@@ -37,6 +37,3 @@ export function normalizarDuracion(segundos: number): number {
   const acotado = Math.min(maximo, Math.max(minimo, segundos));
   return Math.round(acotado / paso) * paso;
 }
-
-/** Intervalo de refresco del reloj de la barra de estado, en milisegundos. */
-export const INTERVALO_RELOJ_MS = 15_000;

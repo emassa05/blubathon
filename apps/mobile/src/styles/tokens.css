@@ -1,79 +1,14 @@
 /* Tokens de Faro.
  *
- * Dos bloques a propósito:
- *
- *  - `:root` guarda lo que existe fuera del marco (el lienzo de la vista de
- *    catálogo y su etiqueta) más la escala tipográfica, de espaciado, de
- *    interletrado y de radios, que no depende de la pantalla.
- *  - `.faro-marco` —el elemento raíz de la pantalla— guarda la paleta, el
- *    gradiente, las sombras, las medidas del lienzo 390x844 y la duración por
- *    defecto de la animación del aviso.
- *
+ * Todo vive en `:root`: la paleta, el gradiente, las sombras, la escala
+ * tipográfica en rem, el espaciado, los radios y las medidas de las piezas.
  * Ningún componente escribe un color, un radio ni un tamaño de letra suelto:
  * todos se consumen con `var(--faro-*)`.
- *
- * El punto de corte de la vista preview (480px) NO puede vivir aquí: `@media`
- * no acepta `var()`. Está duplicado en `App.vue` y en `SaludView.vue`, y los
- * dos sitios llevan un comentario que apunta a este.
  */
 
 :root {
   --faro-fuente: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Fuera del marco: solo en la vista de catálogo/preview. */
-  --faro-lienzo: oklch(0.96 0.006 250);
-  --faro-etiqueta-catalogo: oklch(0.45 0.06 168);
-
-  /* Escala tipográfica en rem sobre una raíz de 16px, para que el zoom de
-     texto del navegador siga funcionando. El nombre conserva el valor en px
-     del diseño. */
-  --faro-fs-11: 0.6875rem;
-  --faro-fs-12: 0.75rem;
-  --faro-fs-125: 0.78125rem;
-  --faro-fs-13: 0.8125rem;
-  --faro-fs-135: 0.84375rem;
-  --faro-fs-15: 0.9375rem;
-  --faro-fs-155: 0.96875rem;
-  --faro-fs-17: 1.0625rem;
-  --faro-fs-20: 1.25rem;
-  --faro-fs-26: 1.625rem;
-  --faro-fs-88: 5.5rem;
-
-  /* Espaciado fijo en px: los paddings del diseño no escalan con el zoom. */
-  --faro-esp-4: 4px;
-  --faro-esp-6: 6px;
-  --faro-esp-9: 9px;
-  --faro-esp-10: 10px;
-  --faro-esp-12: 12px;
-  --faro-esp-14: 14px;
-  --faro-esp-16: 16px;
-  --faro-esp-18: 18px;
-  --faro-esp-20: 20px;
-  --faro-esp-22: 22px;
-  --faro-esp-24: 24px;
-  --faro-esp-26: 26px;
-  --faro-esp-30: 30px;
-
-  --faro-radio-4: 4px;
-  --faro-radio-10: 10px;
-  --faro-radio-18: 18px;
-  --faro-radio-24: 24px;
-  --faro-radio-26: 26px;
-  --faro-radio-44: 44px;
-  --faro-radio-pastilla: 999px;
-
-  /* Área táctil mínima (WCAG 2.5.5 / 2.5.8). */
-  --faro-toque: 44px;
-
-  /* Interletrado */
-  --faro-track-barra: 0.2px;
-  --faro-track-cifra: -0.02em;
-  --faro-track-006: 0.06em;
-  --faro-track-012: 0.12em;
-  --faro-track-014: 0.14em;
-}
-
-.faro-marco {
   /* Paleta */
   --faro-verde-profundo: oklch(0.32 0.03 168);
   --faro-verde-titulo: oklch(0.34 0.02 168);
@@ -91,7 +26,7 @@
   --faro-naranja-boton: oklch(0.66 0.155 52);
   --faro-superficie: #fff;
 
-  /* Fondo del marco: paradas exactas del diseño. Los navegadores objetivo
+  /* Fondo de la página: paradas exactas del diseño. Los navegadores objetivo
      soportan oklch(); si hiciera falta cubrir navegadores antiguos, el fallback
      hex va en una declaración anterior, calculado, nunca a ojo. */
   --faro-fondo: linear-gradient(
@@ -104,6 +39,10 @@
     oklch(0.98 0.006 160) 100%
   );
 
+  /* Última parada del gradiente, en sólido: es lo que se ve al rebotar el
+     desplazamiento por debajo de la página. */
+  --faro-fondo-final: oklch(0.98 0.006 160);
+
   /* Velo de la tarjeta de recomendación, sobre la foto. */
   --faro-velo-foto: linear-gradient(
     180deg,
@@ -114,7 +53,6 @@
   /* Sombras */
   --faro-sombra-tarjeta: 0 14px 32px -18px oklch(0.4 0.05 168 / 0.45);
   --faro-sombra-boton: 0 12px 26px -12px oklch(0.55 0.14 50 / 0.7);
-  --faro-sombra-marco: 0 30px 70px -20px oklch(0.42 0.085 168 / 0.4);
   --faro-sombra-texto: 0 1px 10px oklch(0.25 0.05 168 / 0.5);
 
   /* Foco visible. Valor interpretado: el diseño no define el anillo. */
@@ -123,23 +61,58 @@
   --faro-foco-claro: rgb(255 255 255 / 0.92);
   --faro-foco-oscuro: var(--faro-verde-accion);
 
-  /* Medidas del lienzo y de las piezas del diseño. */
-  --faro-marco-ancho: 390px;
-  --faro-marco-alto: 844px;
-  --faro-barra-alto: 58px;
-  --faro-fecha-top: 66px;
-  --faro-bienestar-top: 104px;
-  --faro-contenido-top: 236px;
-  --faro-contenido-bottom: 26px;
+  /* Escala tipográfica en rem sobre una raíz de 16px, para que el zoom de
+     texto del navegador siga funcionando. El nombre conserva el valor en px
+     del diseño. */
+  --faro-fs-11: 0.6875rem;
+  --faro-fs-12: 0.75rem;
+  --faro-fs-125: 0.78125rem;
+  --faro-fs-13: 0.8125rem;
+  --faro-fs-135: 0.84375rem;
+  --faro-fs-15: 0.9375rem;
+  --faro-fs-155: 0.96875rem;
+  --faro-fs-17: 1.0625rem;
+  --faro-fs-20: 1.25rem;
+  --faro-fs-26: 1.625rem;
+  --faro-fs-88: 5.5rem;
+
+  /* Interletrado */
+  --faro-track-cifra: -0.02em;
+  --faro-track-012: 0.12em;
+  --faro-track-014: 0.14em;
+
+  /* Espaciado fijo en px: los paddings del diseño no escalan con el zoom. */
+  --faro-esp-4: 4px;
+  --faro-esp-6: 6px;
+  --faro-esp-9: 9px;
+  --faro-esp-10: 10px;
+  --faro-esp-12: 12px;
+  --faro-esp-14: 14px;
+  --faro-esp-16: 16px;
+  --faro-esp-18: 18px;
+  --faro-esp-20: 20px;
+  --faro-esp-22: 22px;
+  --faro-esp-24: 24px;
+  --faro-esp-26: 26px;
+
+  --faro-radio-10: 10px;
+  --faro-radio-18: 18px;
+  --faro-radio-24: 24px;
+  --faro-radio-26: 26px;
+  --faro-radio-pastilla: 999px;
+
+  /* Área táctil mínima (WCAG 2.5.5 / 2.5.8). */
+  --faro-toque: 44px;
+
+  /* Medidas de la página y de las piezas del diseño. */
+  --faro-ancho-max: 480px;
+  --faro-alto-referencia: 844px;
   --faro-recomendacion-alto: 150px;
   --faro-caja-icono: 30px;
   --faro-icono-16: 16px;
   --faro-icono-26: 26px;
   --faro-punto: 9px;
   --faro-boton-aviso: 52px;
-  --faro-bateria-ancho: 24px;
-  --faro-bateria-alto: 12px;
-  --faro-bateria-borde: 1.5px;
 
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */

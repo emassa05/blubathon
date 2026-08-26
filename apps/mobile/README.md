@@ -1,8 +1,9 @@
 # Faro móvil — pantalla Salud
 
-Interfaz visual de Faro en **Vue 3 + Vite + TypeScript**. Contiene una sola
-pantalla, `Salud`, implementada contra una especificación cerrada de diseño.
-No hay router, ni store, ni más pantallas: no es un descuido, es el alcance.
+Interfaz visual de Faro en **Vue 3 + Vite + TypeScript**. Es una página
+responsive de una sola vista, `Salud`, implementada contra una especificación
+cerrada de diseño. No hay router, ni store, ni más pantallas: no es un
+descuido, es el alcance.
 
 Sin librerías de UI y sin librería de iconos. Todo el estilo son
 `<style scoped>` y variables CSS; los iconos son SVG inline en componentes
@@ -31,15 +32,22 @@ pnpm lint         # ESLint (vue + vuejs-accessibility), 0 warnings
 pnpm format       # Prettier
 ```
 
-La pantalla se ve de dos formas y las dos salen del mismo componente:
+No hay marco de prototipo ni barra de estado simulada: es una página. El
+gradiente ocupa siempre el viewport completo y el contenido va en una columna
+que se adapta:
 
-| Ancho de viewport    | Qué se ve                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| < 480px (móvil real) | la pantalla ocupa el viewport entero (`100dvh`), sin esquinas redondeadas ni etiqueta |
-| ≥ 480px (preview)    | marco de 390 × 844 con `border-radius: 44`, sombra, y la etiqueta `Salud` debajo      |
+| Ancho de viewport | Qué hace la columna                                |
+| ----------------- | -------------------------------------------------- |
+| hasta 480px       | ocupa todo el ancho; los paddings (24) son fijos   |
+| a partir de 480px | se queda en 480 y se centra, con el fondo a sangre |
 
-El punto de corte está duplicado en `App.vue` y `SaludView.vue` porque `@media`
-no acepta `var()`; `styles/tokens.css` lo documenta.
+En vertical, la columna toma como referencia el alto del diseño (844px): en una
+ventana más alta no se estira sin fin, mantiene esa proporción; en una más baja,
+la página se desplaza como cualquier otra. El gradiente se pinta a ese mismo
+alto y por debajo continúa el color de su última parada, así que no hay costura
+ni pierde contraste el texto blanco de la cabecera. No hay ni un solo
+punto de corte por ancho: el ajuste sale de `max-width`, `min(100dvh, ...)` y
+`flex`. El único `@media` del código es el de `prefers-reduced-motion`.
 
 ---
 
@@ -48,13 +56,13 @@ no acepta `var()`; `styles/tokens.css` lo documenta.
 ```text
 src/
   main.ts                      monta la app y carga fuentes, reset y tokens
-  App.vue                      lienzo de la vista de catálogo (marco + etiqueta)
-  views/SaludView.vue          la pantalla: única dueña de los datos
-  components/salud/            BarraEstado, NavegadorFecha, CabeceraBienestar,
+  App.vue                      raíz: solo monta la vista
+  views/SaludView.vue          la página: única dueña de los datos y del layout
+  components/salud/            NavegadorFecha, CabeceraBienestar,
                                TarjetaRecomendacion, TarjetaFactores,
                                TarjetaFormularios, AvisoPendiente
   components/icons/            IconoLuna, IconoRombo, IconoPortapapeles
-  composables/                 useDiaSeleccionado, useEstadoDispositivo
+  composables/                 useDiaSeleccionado
   data/saludMock.ts            los datos ficticios
   types/salud.ts               el contrato de la pantalla
   theme/tokens.ts              tokens que necesita la lógica (animación, rango)
@@ -92,11 +100,6 @@ Tres puntos más de conexión, marcados en el código con `TODO(spec)`:
 | Foto de la tarjeta de recomendación | `recomendacion.imagen`        | `null` → se pinta un placeholder a rayas, deliberadamente distinto de una foto |
 | Abrir el formulario del día         | `SaludView.abrirFormulario()` | vacío: no hay navegación en el alcance                                         |
 | Ver todos los formularios           | `SaludView.verMas()`          | vacío: ídem                                                                    |
-
-La barra de estado no es mock del todo: `useEstadoDispositivo` pone la hora del
-reloj del sistema y pide la batería a `navigator.getBattery()` cuando el
-navegador la expone. Si no existe o falla, se queda con `18:09` y `58` del mock,
-en silencio.
 
 ---
 
@@ -139,19 +142,10 @@ Lo que la pantalla garantiza:
 - El día seleccionado vive en una región `aria-live="polite"`.
 - El color nunca informa solo: junto al punto verde/gris va siempre
   `Respondido` / `Sin responder`.
-- Tipografía en `rem`, para que el zoom de texto funcione. El contenedor de
-  contenido desplaza (`overflow-y: auto`) antes que recortar; en horizontal
-  recorta (`overflow-x: clip`), porque no hay nada que desplazar y así no
-  aparece la barra que provocarían los pocos píxeles que el `scale()` del aviso
-  añade al área desbordada.
-
-  Con **zoom de página** al 200% (el habitual) todo escala junto y la pantalla
-  se ve igual. Con **zoom solo de texto** al 200%, el contenido sigue completo y
-  desplazable, pero la banda superior se solapa: el navegador de fecha, el
-  sobretítulo y la cifra están anclados a `top: 66 / 104 / 236`, que es lo que
-  fija el diseño. Despegarlos de esas coordenadas cambiaría la pantalla al 100%,
-  así que queda anotado en vez de corregido.
-
+- Tipografía en `rem`, para que el zoom de texto funcione. Al 200% —de página o
+  solo de texto— no hay recortes ni solapes, y no aparece desplazamiento
+  horizontal a ningún ancho entre 320px y pantalla completa: el layout está en
+  flujo normal, sin posiciones absolutas.
 - `pnpm lint` incluye `eslint-plugin-vuejs-accessibility` con 0 warnings, y
   `tests/accesibilidad.test.ts` corre axe-core sobre la pantalla montada
   (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `best-practice`): 0 violaciones.
@@ -166,20 +160,22 @@ accesible. Está silenciada en esa línea y explicada allí.
 Calculados sobre los `oklch()` del diseño convertidos a sRGB. Los que **no**
 llegan a AA:
 
-| Par                                     | Ratio      | Mínimo | Dónde                                                                                   |
-| --------------------------------------- | ---------- | ------ | --------------------------------------------------------------------------------------- |
-| `grisTexto` sobre blanco                | **4.25:1** | 4.5:1  | subtítulo de "Lo más importante hoy", detalle de cada factor, estado de cada formulario |
-| blanco al 85% sobre el gradiente (~13%) | **4.27:1** | 4.5:1  | sobretítulo `BIENESTAR DE HOY`                                                          |
+| Par                      | Ratio      | Mínimo | Dónde                                                                                   |
+| ------------------------ | ---------- | ------ | --------------------------------------------------------------------------------------- |
+| `grisTexto` sobre blanco | **4.25:1** | 4.5:1  | subtítulo de "Lo más importante hoy", detalle de cada factor, estado de cada formulario |
 
-Los dos se arreglan con un retoque mínimo de paleta —`grisTexto` a
-`oklch(0.55 0.015 168)` da 4.9:1, y subir la opacidad del sobretítulo de 0.85 a
-1 da 5.0:1— pero la especificación es cerrada, así que quedan como están y
-constan aquí.
+Se arregla con un retoque mínimo de paleta —`grisTexto` a
+`oklch(0.55 0.015 168)` da 4.9:1— pero la especificación es cerrada, así que
+queda como está y consta aquí.
 
 El resto pasa: `verdeProfundo` 12.5:1, `verdeTitulo` 11.6:1, `verdeTexto`
 9.1:1, `verdeAccion` 5.3:1, `alertaTexto` sobre `alertaFondo` 4.7:1,
-`naranjaEtiqueta` 5.1:1, `naranjaTitulo` 9.1:1, la hora 8.8:1, la fecha 6.1:1 y
-la cifra `86%` 4.1:1 (texto grande, mínimo 3:1).
+`naranjaEtiqueta` 5.1:1, `naranjaTitulo` 9.1:1, la fecha 7.3:1, el sobretítulo
+`BIENESTAR DE HOY` 5.0:1 y la cifra `86%` 4.8:1 (texto grande, mínimo 3:1).
+
+El sobretítulo llegaba justo por debajo (4.27:1) cuando la cabecera arrancaba a
+104px de una barra de estado simulada. Al quitar la barra, el texto quedó sobre
+una franja más oscura del gradiente y pasa a 5.0:1.
 
 Los puntos de estado quedan en 2.75:1 (`puntoActivo`) y 1.52:1
 (`puntoInactivo`) sobre blanco. No incumplen 1.4.11 porque no portan

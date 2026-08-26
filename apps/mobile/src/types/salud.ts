@@ -43,14 +43,6 @@ export interface ResumenSalud {
   readonly formularioPendiente: boolean;
 }
 
-/** Estado del dispositivo que pinta la barra superior. */
-export interface EstadoDispositivo {
-  /** Hora en formato HH:mm. */
-  readonly hora: string;
-  /** Carga de la batería, 0-100. */
-  readonly bateria: number;
-}
-
 /* Vocabulario visible. Vive junto al tipo para que añadir un valor obligue a
    dar su etiqueta. */
 
