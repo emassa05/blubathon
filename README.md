@@ -4,7 +4,10 @@ Backend de seguimiento diario: formulario inteligente → modelo predictivo →
 recomendación RAG. Mono-tenant, sin autenticación/autorización/auditoría.
 
 Cubre `apps/api`, `ml`, `rag`, `packages/shared`, `tools`. UI en
-`apps/mobile` (doc aparte).
+`apps/mobile` (doc aparte), conectada a esta API y tipada contra el mismo
+contrato generado: `packages/shared/generated` se publica como el paquete
+`@faro/contract` y la interfaz lo importa, así que un cambio de contrato rompe
+su compilación.
 
 ---
 
@@ -447,7 +450,7 @@ cargado es indistinguible de lo que produciría el pipeline de autoría.
 |---|---|---|
 | `BLUBATHON_MODE` | `demo` | `pilot` exige PostgreSQL, bloquea arranque sobre SQLite |
 | `BLUBATHON_DB_PATH` | `data/blubathon.db` | Ruta SQLite |
-| `BLUBATHON_CORS_ORIGINS` | `http://127.0.0.1:3000,http://localhost:3000` | Allowlist CORS |
+| `BLUBATHON_CORS_ORIGINS` | `http://127.0.0.1:3000,http://localhost:3000` | Allowlist CORS. En desarrollo no hace falta: `apps/mobile` sale por su propio proxy |
 | `BLUBATHON_P1_ADAPTERS` | `mock` | `real` → `ml/**` + `rag/authoring` |
 | `BLUBATHON_DRAFT_LLM` | — | `anthropic` (necesita `ANTHROPIC_API_KEY`) o `ollama` (local) |
 | `BLUBATHON_OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Modelo servido por Ollama |

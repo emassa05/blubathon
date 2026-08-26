@@ -1,67 +1,136 @@
-import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { RIESGO_DE_PRUEBA } from "@/theme/riesgo";
+import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import SaludView from "@/views/SaludView.vue";
 
+import {
+  ID_NINO_FALSO,
+  diaFalso,
+  historialFalso,
+  instalarServidorFalso,
+  planFalso,
+} from "./servidorFalso";
+
+const HOY = fechaDeHoy();
+
+// En local, no en UTC: `toISOString` movería el día según el huso de la máquina.
+function diaAntesDe(iso: string): string {
+  const fecha = new Date(`${iso}T00:00:00`);
+  fecha.setDate(fecha.getDate() - 1);
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  return `${fecha.getFullYear()}-${mes}-${String(fecha.getDate()).padStart(2, "0")}`;
+}
+
+const AYER_ISO = diaAntesDe(HOY);
+
+const CHILD = `/v1/children/${ID_NINO_FALSO}`;
+
+function servidor(extra: Record<string, unknown> = {}): void {
+  instalarServidorFalso({
+    "/v1/children": { children: [{ child_id: ID_NINO_FALSO, display_label: "Niña demo 1" }] },
+    [`${CHILD}/history`]: historialFalso([
+      diaFalso({ fecha: HOY, probabilidad: 0.18, intervalo: [0.1, 0.25], conRecomendacion: true }),
+      diaFalso({ fecha: AYER_ISO, probabilidad: 0.62 }),
+    ]),
+    [`${CHILD}/form-plan`]: planFalso(["sleep_quality", "routine_changes"]),
+    [`${CHILD}/recommendations/today`]: {
+      status: "matched",
+      risk_band: "low",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      action_text_es: "Mantener la rutina de sueño.",
+      purpose_es: null,
+      citations: [],
+      abstention_reason: null,
+      rating: null,
+    },
+    ...extra,
+  });
+}
+
+async function montar() {
+  const wrapper = mount(SaludView);
+  await flushPromises();
+  return wrapper;
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("SaludView", () => {
-  it("monta la pantalla completa con los datos del mock", () => {
-    const wrapper = mount(SaludView);
+  it("arma la pantalla con lo que devuelve la API", async () => {
+    servidor();
+    const wrapper = await montar();
     const texto = wrapper.text();
 
     expect(texto).toContain("Riesgo de desregulación");
     expect(texto).toContain("18%");
-    expect(texto).toContain("Nivel de confianza 85%");
-    expect(texto).toContain("Mantener la rutina de sueño y un momento tranquilo antes de dormir.");
+    expect(texto).toContain("Mantener la rutina de sueño.");
     expect(texto).toContain("Lo más importante hoy");
-    expect(texto).toContain("Horas de sueño");
-    expect(texto).toContain("Estrés percibido");
+    // Los destacados del plan del formulario, con su etiqueta del contrato.
+    expect(texto).toContain("Calidad del sueño");
+    expect(texto).toContain("Cambios en la rutina");
     expect(texto).toContain("Últimos formularios");
-    expect(texto).toContain("Lunes 24");
-    expect(texto).toContain("Domingo 23");
-    expect(texto).toContain("Tienes un formulario este día");
   });
 
-  it("la columna lleva la clase de la banda que le toca al riesgo del mock", () => {
-    const wrapper = mount(SaludView);
+  it("la columna lleva la clase de la banda que le toca al riesgo", async () => {
+    servidor();
+    const wrapper = await montar();
 
     expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--bajo");
   });
 
-  it("el botón de prueba recorre las tres bandas y vuelve a empezar", async () => {
+  it("anuncia la carga antes de tener datos", () => {
+    servidor();
     const wrapper = mount(SaludView);
-    const columna = () => wrapper.get(".pantalla__columna").classes();
-    const boton = wrapper.get(".pantalla__prueba");
 
-    await boton.trigger("click");
-    expect(columna()).toContain("faro-banda--medio");
-    expect(wrapper.text()).toContain(`${RIESGO_DE_PRUEBA.medio}%`);
-
-    await boton.trigger("click");
-    expect(columna()).toContain("faro-banda--alto");
-    expect(wrapper.text()).toContain(`${RIESGO_DE_PRUEBA.alto}%`);
-
-    await boton.trigger("click");
-    expect(columna()).toContain("faro-banda--bajo");
-    expect(wrapper.text()).toContain(`${RIESGO_DE_PRUEBA.bajo}%`);
+    expect(wrapper.get('[role="status"]').text()).toBe("Cargando…");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--desconocido");
   });
 
-  it("abre en el día del resumen y navega a los adyacentes", async () => {
-    const wrapper = mount(SaludView);
-    const etiqueta = () => wrapper.get(".fecha__etiqueta").text();
+  it("cuando el modelo se abstiene no muestra cifra ni la pinta de riesgo bajo", async () => {
+    servidor({
+      [`${CHILD}/history`]: historialFalso([diaFalso({ fecha: HOY, probabilidad: null })]),
+    });
+    const wrapper = await montar();
 
-    expect(etiqueta()).toBe("Martes 25");
+    expect(wrapper.get(".riesgo__cifra").text()).toBe("—");
+    expect(wrapper.find(".riesgo__confianza").exists()).toBe(false);
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--desconocido");
+  });
 
+  it("muestra el mensaje del backend cuando la petición falla", async () => {
+    servidor({
+      [`${CHILD}/history`]: {
+        estado: 500,
+        cuerpo: {
+          error: { code: "internal_error", message_es: "Ocurrió un error.", request_id: "r1" },
+        },
+      },
+    });
+    const wrapper = await montar();
+
+    expect(wrapper.get('[role="alert"]').text()).toBe("Ocurrió un error.");
+    expect(wrapper.find(".recomendacion").exists()).toBe(false);
+  });
+
+  it("navega de día y vuelve a pedir el resumen", async () => {
+    servidor();
+    const wrapper = await montar();
+    const peticiones = () =>
+      vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/history")).length;
+
+    const antes = peticiones();
     await wrapper.get('[aria-label="Día anterior"]').trigger("click");
-    expect(etiqueta()).toBe("Lunes 24");
+    await flushPromises();
 
-    await wrapper.get('[aria-label="Día siguiente"]').trigger("click");
-    await wrapper.get('[aria-label="Día siguiente"]').trigger("click");
-    expect(etiqueta()).toBe("Miércoles 26");
+    expect(peticiones()).toBe(antes + 1);
   });
 
-  it("tiene un único h1 y un h2 por sección", () => {
-    const wrapper = mount(SaludView);
+  it("tiene un único h1 y un h2 por sección", async () => {
+    servidor();
+    const wrapper = await montar();
 
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.findAll("h2").map((h) => h.text())).toEqual([

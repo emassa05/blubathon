@@ -151,9 +151,9 @@
   --faro-dur: 5s;
 }
 
-/* Las tres bandas.
+/* Las bandas.
  *
- * Todas siguen el mismo patrón, para que los tres estados se vean de una pieza:
+ * Todas siguen el mismo patrón, para que los estados se vean de una pieza:
  *
  * - `panel-cima` → `panel`: el gradiente. Casi blanco arriba y con el color de
  *   la banda abajo. El texto cae en la parte clara, que es donde más contraste
@@ -163,6 +163,31 @@
  * - `rec-*`: el acento de la recomendación, que es una tarjeta blanca con un
  *   lavado de color, no un bloque de color.
  */
+
+/*
+ * Sin estimación. Es la única banda sin tono: el modelo se abstiene y un color
+ * —cualquiera de los tres— se leería como un nivel de riesgo. El gris dice que
+ * no hay dato, que es exactamente lo que pasa.
+ *
+ * El croma no es cero del todo: un gris absolutamente neutro junto a los otros
+ * tres se ve apagado, no calmo. Un resto de azul lo deja en la misma familia.
+ */
+.faro-banda--desconocido {
+  --faro-panel-cima: oklch(0.975 0.003 250);
+  --faro-panel: oklch(0.905 0.008 250);
+  --faro-brillo: oklch(1 0 0 / 0.55);
+  --faro-onda-1: oklch(0.87 0.01 250);
+  --faro-onda-2: oklch(0.825 0.012 250);
+  --faro-onda-3: oklch(0.78 0.014 250);
+
+  --faro-tinta: oklch(0.33 0.012 250);
+  --faro-texto-fuerte: oklch(0.33 0.012 250);
+  --faro-texto-suave: oklch(0.44 0.012 250);
+
+  --faro-rec-tinte: oklch(0.915 0.01 250 / 0.9);
+  --faro-rec-insignia: oklch(0.89 0.01 250);
+  --faro-rec-sobretitulo: oklch(0.44 0.012 250);
+}
 
 .faro-banda--bajo {
   --faro-panel-cima: oklch(0.972 0.012 235);

@@ -33,4 +33,15 @@ describe("CabeceraRiesgo", () => {
     await boton.trigger("click");
     expect(wrapper.emitted("masInfo")).toHaveLength(1);
   });
+
+  it("sin estimación no escribe un cero ni deja la pastilla de confianza", () => {
+    const wrapper = mount(CabeceraRiesgo, { props: { riesgo: null, confianza: null } });
+
+    expect(wrapper.get(".riesgo__cifra").text()).toBe("—");
+    expect(wrapper.find(".riesgo__porciento").exists()).toBe(false);
+    expect(wrapper.find(".riesgo__confianza").exists()).toBe(false);
+    expect(wrapper.get("h1").attributes("aria-label")).toBe(
+      "Riesgo de desregulación: sin estimación todavía",
+    );
+  });
 });

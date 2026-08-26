@@ -5,10 +5,10 @@ import IconoEscudo from "@/components/icons/IconoEscudo.vue";
 import IconoInfo from "@/components/icons/IconoInfo.vue";
 
 const props = defineProps<{
-  /** Riesgo de desregulación, 0-100. */
-  riesgo: number;
-  /** Confianza del modelo en ese riesgo, 0-100. */
-  confianza: number;
+  /** Riesgo de desregulación, 0-100. `null` cuando el modelo se abstiene. */
+  riesgo: number | null;
+  /** Confianza del modelo en ese riesgo, 0-100. `null` si no hay estimación. */
+  confianza: number | null;
 }>();
 
 defineEmits<{
@@ -17,8 +17,15 @@ defineEmits<{
 
 const SOBRETITULO = "Riesgo de desregulación";
 
+/** Sin cifra no se pone un cero: se dice que no la hay. */
+const SIN_ESTIMACION = "—";
+
 /** Una sola etiqueta legible: "Riesgo de desregulación: 18 por ciento". */
-const etiqueta = computed(() => `${SOBRETITULO}: ${props.riesgo} por ciento`);
+const etiqueta = computed(() =>
+  props.riesgo === null
+    ? `${SOBRETITULO}: sin estimación todavía`
+    : `${SOBRETITULO}: ${props.riesgo} por ciento`,
+);
 
 const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase()}`);
 </script>
@@ -51,13 +58,15 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
         <!-- Sin espacios entre los dos tramos: la cifra y el signo son una sola
              palabra, y cualquier hueco aquí saldría también en el DOM. -->
         <span class="riesgo__cifra" aria-hidden="true"
-          ><span>{{ riesgo }}</span
-          ><span class="riesgo__porciento">%</span></span
+          ><span>{{ riesgo ?? SIN_ESTIMACION }}</span
+          ><span v-if="riesgo !== null" class="riesgo__porciento">%</span></span
         >
       </span>
     </h1>
 
-    <p class="riesgo__confianza">
+    <!-- Sin estimación no hay confianza que dar: la pastilla desaparece en vez
+         de mostrar un cero, que se leería como "confianza nula". -->
+    <p v-if="confianza !== null" class="riesgo__confianza">
       <IconoEscudo class="riesgo__escudo" aria-hidden="true" />
       <span
         >Nivel de confianza <b class="riesgo__dato">{{ confianza }}%</b></span

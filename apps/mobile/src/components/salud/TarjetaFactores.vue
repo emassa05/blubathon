@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FARO_TEXTS_ES } from "@faro/contract/texts";
 import type { Component } from "vue";
 
 import IconoLuna from "@/components/icons/IconoLuna.vue";
@@ -18,9 +19,16 @@ const ICONOS: Record<IconoFactor, Component> = {
 <template>
   <section class="factores">
     <h2 class="factores__titulo">Lo más importante hoy</h2>
-    <p class="factores__subtitulo">Variables que más pueden influir en el riesgo de hoy.</p>
+    <!-- Lo que el formulario prioriza, no las causas del riesgo: el track
+         visible es una tasa observada y no pondera predictores, así que
+         atribuirle importancias sería afirmar algo que el modelo no calcula. -->
+    <p class="factores__subtitulo">Lo que el formulario de hoy pregunta primero.</p>
 
-    <ul class="factores__lista">
+    <p v-if="factores.length === 0" class="factores__vacio">
+      {{ FARO_TEXTS_ES.emptyEs }}
+    </p>
+
+    <ul v-else class="factores__lista">
       <li v-for="factor in factores" :key="factor.id" class="factor">
         <span class="factor__caja">
           <component :is="ICONOS[factor.icono]" class="factor__glifo" />
@@ -67,6 +75,12 @@ const ICONOS: Record<IconoFactor, Component> = {
 
 .factores__lista {
   margin-top: var(--faro-esp-10);
+}
+
+.factores__vacio {
+  margin-top: var(--faro-esp-10);
+  font-size: var(--faro-fs-125);
+  color: var(--faro-gris-texto);
 }
 
 /*

@@ -7,57 +7,45 @@
  * paleta: ningún componente cambia.
  */
 
-export const BANDAS_RIESGO = ["bajo", "medio", "alto"] as const;
+/**
+ * `desconocido` no es un cuarto nivel de riesgo: es la ausencia de estimación.
+ * El modelo se abstiene cuando no tiene resultados verificados suficientes
+ * (SPEC 8.5), y pintar eso de celeste lo leería como riesgo bajo.
+ */
+export const BANDAS_RIESGO = ["desconocido", "bajo", "medio", "alto"] as const;
 
 export type BandaRiesgo = (typeof BANDAS_RIESGO)[number];
 
-/** Cortes del diseño, en % de riesgo. El 25 justo cae en "medio". */
-export const CORTE_MEDIO = 25;
+/**
+ * Cortes en % de riesgo.
+ *
+ * Son los mismos que el backend usa para su `risk_band` (`p ≥ 0.5 → high`,
+ * `0.2 ≤ p < 0.5 → medium`, `p < 0.2 → low`). Tienen que serlo: cuando la API
+ * declara la banda —en la recomendación de hoy— la pantalla usa la suya, y dos
+ * juegos de cortes harían que el color se contradijera con el dato.
+ */
+export const CORTE_MEDIO = 20;
 export const CORTE_ALTO = 50;
 
-export function bandaRiesgo(riesgo: number): BandaRiesgo {
-  if (riesgo < CORTE_MEDIO) return "bajo";
-  if (riesgo <= CORTE_ALTO) return "medio";
-  return "alto";
+/** `null` es abstención del modelo, no un riesgo de cero. */
+export function bandaRiesgo(riesgo: number | null): BandaRiesgo {
+  if (riesgo === null) return "desconocido";
+  if (riesgo >= CORTE_ALTO) return "alto";
+  if (riesgo >= CORTE_MEDIO) return "medio";
+  return "bajo";
 }
 
+/** La banda tal como la declara la API, cuando la declara. */
+export const BANDA_DE_LA_API: Record<"low" | "medium" | "high" | "unknown", BandaRiesgo> = {
+  low: "bajo",
+  medium: "medio",
+  high: "alto",
+  unknown: "desconocido",
+};
+
 export const CLASE_BANDA: Record<BandaRiesgo, string> = {
+  desconocido: "faro-banda--desconocido",
   bajo: "faro-banda--bajo",
   medio: "faro-banda--medio",
   alto: "faro-banda--alto",
 };
-
-export const ETIQUETA_BANDA: Record<BandaRiesgo, string> = {
-  bajo: "Bajo",
-  medio: "Medio",
-  alto: "Alto",
-};
-
-/**
- * Un riesgo representativo de cada banda.
- *
- * TODO(spec): solo lo usa el botón de prueba de `SaludView`, que es temporal.
- * Cuando la pantalla reciba datos reales, esto y el botón se van juntos.
- */
-export const RIESGO_DE_PRUEBA: Record<BandaRiesgo, number> = {
-  bajo: 18,
-  medio: 38,
-  alto: 72,
-};
-
-/**
- * La banda siguiente, en círculo. Para el botón de prueba.
- *
- * Va como tabla y no como `indexOf` + módulo: el índice es correcto por
- * construcción pero el tipo no lo sabe, y una tabla obliga a decidir el
- * siguiente al añadir una banda en vez de dejar que el orden lo decida solo.
- */
-const SIGUIENTE: Record<BandaRiesgo, BandaRiesgo> = {
-  bajo: "medio",
-  medio: "alto",
-  alto: "bajo",
-};
-
-export function bandaSiguiente(banda: BandaRiesgo): BandaRiesgo {
-  return SIGUIENTE[banda];
-}
