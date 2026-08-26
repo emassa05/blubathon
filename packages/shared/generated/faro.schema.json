@@ -4021,7 +4021,7 @@
     },
     "PredictionOutputView": {
       "additionalProperties": false,
-      "description": "A single track's answer as a caller sees it (SPEC 11.5).\n\n`confidence` is absent on purpose. The shadow challenger never appears here.",
+      "description": "A single track's answer as a caller sees it (SPEC 11.5).\n\n`confidence` is absent on purpose: what a track publishes about its own\nuncertainty is its interval, and a track without one says nothing rather\nthan borrowing another's.\n\nThe challenger appears here now. It used to be barred outright because it\nran in shadow; it is an operational track since it started answering the\n24-hour question, and the bar came off with the intended use.",
       "properties": {
         "abstention_reasons": {
           "default": [],

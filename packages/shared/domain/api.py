@@ -245,7 +245,13 @@ class FormSubmitResponse(FaroModel):
 class PredictionOutputView(FaroModel):
     """A single track's answer as a caller sees it (SPEC 11.5).
 
-    `confidence` is absent on purpose. The shadow challenger never appears here.
+    `confidence` is absent on purpose: what a track publishes about its own
+    uncertainty is its interval, and a track without one says nothing rather
+    than borrowing another's.
+
+    The challenger appears here now. It used to be barred outright because it
+    ran in shadow; it is an operational track since it started answering the
+    24-hour question, and the bar came off with the intended use.
     """
 
     track_id: TrackId
@@ -262,8 +268,6 @@ class PredictionOutputView(FaroModel):
 
     @model_validator(mode="after")
     def _track_semantics_hold_on_the_wire_too(self) -> Self:
-        if self.track_id is TrackId.REAL_LOGIT_CHALLENGER_V1:
-            raise ValueError("the shadow challenger is never exposed in v0.3")
         if self.intended_use is not TRACK_INTENDED_USE[self.track_id]:
             raise ValueError(f"{self.track_id} is a {TRACK_INTENDED_USE[self.track_id]} track")
         if self.estimate_kind is not TRACK_ESTIMATE_KIND[self.track_id]:
@@ -300,6 +304,16 @@ class PredictionOutputView(FaroModel):
                 or self.interval_method is not None
             ):
                 raise ValueError("a simulation is never a clinical probability")
+        elif self.track_id is TrackId.REAL_LOGIT_CHALLENGER_V1:
+            # The challenger publishes a probability and no interval: a logistic
+            # point estimate carries no uncertainty of its own, and showing the
+            # baseline's beside it would attribute it to the wrong model.
+            if self.probability is None:
+                raise ValueError("a visible challenger needs a probability")
+            if self.interval is not None or self.interval_method is not None:
+                raise ValueError("the challenger publishes no interval")
+            if self.simulation_score is not None:
+                raise ValueError("a challenger reports a probability, not a score")
         elif self.probability is None or self.interval is None or self.interval_method is None:
             raise ValueError("a visible real baseline needs probability, interval and method")
         elif self.simulation_score is not None:

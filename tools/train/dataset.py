@@ -28,13 +28,12 @@ from uuid import UUID
 
 from apps.api.adapters.p1 import rows as translate
 from apps.api.canonical import parse_timestamp
-from apps.api.services.local_time import local_date
 from apps.api.store import history
 from ml.prediction.baseline import BASELINE_MIN_OUTCOMES, DEFAULT_PRIOR_PER_CATEGORY
 from ml.prediction.challenger import (
+    CHALLENGER_PREDICTOR_FIELDS,
     ChallengerRow,
-    encode_predictor,
-    personal_predictor_rate,
+    predictor_deviations,
 )
 from packages.shared.enums import FieldCode, Source
 
@@ -42,10 +41,9 @@ from packages.shared.enums import FieldCode, Source
 # datos y por eso el Brier fuera de muestra es honesto; agregar una variable acá
 # porque la tabla de frecuencias la premió convertiría la evaluación en un
 # ejercicio circular.
-PREDICTORS: tuple[FieldCode, ...] = (
-    FieldCode.SLEEP_QUALITY,
-    FieldCode.DAILY_REGULATION_STATE,
-)
+# La lista vive en `ml.prediction.challenger`: entrenar y puntuar tienen que
+# mirar exactamente los mismos predictores.
+PREDICTORS: tuple[FieldCode, ...] = CHALLENGER_PREDICTOR_FIELDS
 
 VERIFIED_STATUSES = ("yes", "no")
 
@@ -205,33 +203,12 @@ def _deviations(
     subject_id: str,
     as_of: datetime,
 ) -> dict[FieldCode, float | None]:
-    """Valor del día menos la costumbre del niño, por predictor.
+    """Delega en la definición compartida con el runtime."""
 
-    El día que corresponde es el `local_date` del corte, no `as_of.date()`: el
-    episodio de las 20:00 de Santiago es medianoche UTC del día siguiente, y
-    tomar la fecha UTC metería dentro del predictor la observación del día que
-    se está prediciendo.
-    """
-
-    day = local_date(as_of)
-    result: dict[FieldCode, float | None] = {}
-    for field_code in PREDICTORS:
-        rate = personal_predictor_rate(
-            observations,
-            tenant_id=UUID(tenant_id),
-            subject_id=UUID(subject_id),
-            source=Source.HOME,
-            field_code=field_code,
-            as_of_at=as_of,
-        )
-        today = next(
-            (
-                observation
-                for observation in observations
-                if observation.field_code == field_code and observation.local_date == day
-            ),
-            None,
-        )
-        encoded = None if today is None else encode_predictor(field_code, today.value)
-        result[field_code] = None if rate.rate is None or encoded is None else encoded - rate.rate
-    return result
+    return predictor_deviations(
+        observations,
+        tenant_id=UUID(tenant_id),
+        subject_id=UUID(subject_id),
+        source=Source.HOME,
+        as_of_at=as_of,
+    )

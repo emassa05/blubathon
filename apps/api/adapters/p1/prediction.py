@@ -14,6 +14,8 @@ El adaptador llama a cada uno y arma la tupla de salidas.
 
 from __future__ import annotations
 
+import json
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
@@ -30,15 +32,23 @@ from ml.prediction import (
     build_personal_baseline,
     score_simulation,
 )
+from ml.prediction.challenger import (
+    ChallengerFit,
+    ChallengerRow,
+    predictor_deviations,
+)
 from ml.prediction.synthetic_reference import CohortViolationError
+from ml.spec_constants import PERSONAL_DEVIATION_WINDOW_DAYS
 from packages.shared.enums import (
     CohortKind,
     DataOrigin,
     EstimateKind,
+    FieldCode,
     IntendedUse,
     OutcomeResolutionStatus,
     PredictionAbstentionReason,
     PredictionStatus,
+    Source,
     TrackId,
 )
 from packages.shared.projection import project_as_of
@@ -67,18 +77,28 @@ class P1Prediction:
         snapshot: dict[str, Any],
     ) -> tuple[TrackOutput, ...]:
         cutoff = parse_timestamp(as_of_at)
+        baseline = self._baseline(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            as_of_at=as_of_at,
+            cutoff=cutoff,
+            care_mode=care_mode,
+            target_definition_version=target_definition_version,
+            input_data_origin=input_data_origin,
+        )
         return (
             self._synthetic(cohort_kind, input_data_origin, snapshot),
-            self._baseline(
+            baseline,
+            # El challenger corrige la tasa base, asi que la recibe ya calculada
+            # en vez de volver a pedirla.
+            self._challenger(
                 tenant_id=tenant_id,
                 subject_id=subject_id,
                 as_of_at=as_of_at,
                 cutoff=cutoff,
-                care_mode=care_mode,
-                target_definition_version=target_definition_version,
                 input_data_origin=input_data_origin,
+                baseline=baseline,
             ),
-            self._challenger(tenant_id=tenant_id, input_data_origin=input_data_origin),
         )
 
     # -- tracks ------------------------------------------------------------
@@ -181,30 +201,146 @@ class P1Prediction:
             abstention_reasons=tuple(reason.value for reason in estimate.abstention_reasons),
         )
 
-    def _challenger(self, *, tenant_id: str, input_data_origin: str) -> TrackOutput:
-        """SPEC 8.4-8.5: el challenger se entrena offline y solo puntúa en sombra.
+    def _challenger(
+        self,
+        *,
+        tenant_id: str,
+        subject_id: str,
+        as_of_at: str,
+        cutoff: Any,
+        input_data_origin: str,
+        baseline: TrackOutput,
+    ) -> TrackOutput:
+        """SPEC 8.4: la tasa base personal corregida por el día que se declara.
 
-        En runtime no se entrena nada. Si `tools/train` no publicó una versión en
-        estado `shadow`, la razón es exactamente esa; `not_trainable_single_class`
-        pertenece a `NotTrainableReason`, que es de entrenamiento y no del
-        catálogo cerrado de abstenciones publicadas.
+            logit(p) = logit(p_base) + b0 + b1*desv_sueno + b2*desv_regulacion
+
+        En runtime no se entrena nada: los coeficientes salen del artefacto que
+        `tools/train` publicó en estado `shadow`. Las desviaciones se construyen
+        con `predictor_deviations`, la misma funcion que uso el entrenamiento,
+        porque aplicar el modelo a features distintas de las que vio daria un
+        numero con toda la apariencia de ser correcto.
+
+        Cada pieza que falte es una abstencion con su motivo, nunca un numero
+        inventado: sin modelo, sin tasa base o sin historia suficiente del
+        predictor, el track se calla y la pantalla cae a la tasa base.
         """
+
         shadow = history.shadow_model_version(
             self._database.connection,
             tenant_id=tenant_id,
             track_id=TrackId.REAL_LOGIT_CHALLENGER_V1.value,
         )
+        if shadow is None or not shadow["artifact"]:
+            return self._challenger_abstains(
+                input_data_origin,
+                CHALLENGER_MODEL_VERSION if shadow is None else shadow["model_version"],
+                PredictionAbstentionReason.MODEL_STATE_NOT_SHADOW,
+            )
+
+        fit = _fit_from_artifact(shadow["artifact"])
+        if fit is None:
+            return self._challenger_abstains(
+                input_data_origin,
+                shadow["model_version"],
+                PredictionAbstentionReason.MODEL_STATE_NOT_SHADOW,
+            )
+
+        # El offset del challenger es la tasa base: sin ella no hay nada que
+        # corregir, y sus propios motivos ya explican por que falta.
+        if baseline.probability is None:
+            return self._challenger_abstains(
+                input_data_origin,
+                shadow["model_version"],
+                PredictionAbstentionReason.INSUFFICIENT_VERIFIED_OUTCOMES,
+            )
+
+        since = (cutoff.date() - timedelta(days=PERSONAL_DEVIATION_WINDOW_DAYS)).isoformat()
+        observations = [
+            translate.field_observation(row)
+            for row in history.observations_for_subject(
+                self._database.connection,
+                tenant_id=tenant_id,
+                subject_id=subject_id,
+                since_local_date=since,
+            )
+        ]
+        deviations = predictor_deviations(
+            observations,
+            tenant_id=UUID(tenant_id),
+            subject_id=UUID(subject_id),
+            source=Source.HOME,
+            as_of_at=cutoff,
+        )
+        if any(value is None for value in deviations.values()):
+            return self._challenger_abstains(
+                input_data_origin,
+                shadow["model_version"],
+                PredictionAbstentionReason.PERSONAL_PREDICTOR_HISTORY_INSUFFICIENT,
+            )
+
+        probability = fit.predict(
+            ChallengerRow(
+                subject_id=UUID(subject_id),
+                p_base=baseline.probability,
+                sleep_deviation=deviations[FieldCode.SLEEP_QUALITY],
+                regulation_deviation=deviations[FieldCode.DAILY_REGULATION_STATE],
+                label=0,
+            )
+        )
+        if probability is None:
+            return self._challenger_abstains(
+                input_data_origin,
+                shadow["model_version"],
+                PredictionAbstentionReason.MODEL_STATE_NOT_SHADOW,
+            )
         return TrackOutput(
             track_id=TrackId.REAL_LOGIT_CHALLENGER_V1.value,
-            intended_use=IntendedUse.SHADOW_EVALUATION.value,
+            intended_use=IntendedUse.OPERATIONAL_SUPPORT.value,
+            status=PredictionStatus.OK.value,
+            estimate_kind=EstimateKind.SHADOW_CHALLENGER_SCORE.value,
+            model_version=shadow["model_version"],
+            input_data_origin=input_data_origin,
+            probability=probability,
+            exposed=True,
+        )
+
+    def _challenger_abstains(
+        self,
+        input_data_origin: str,
+        model_version: str,
+        reason: PredictionAbstentionReason,
+    ) -> TrackOutput:
+        return TrackOutput(
+            track_id=TrackId.REAL_LOGIT_CHALLENGER_V1.value,
+            intended_use=IntendedUse.OPERATIONAL_SUPPORT.value,
             status=PredictionStatus.ABSTAINED.value,
             estimate_kind=EstimateKind.SHADOW_CHALLENGER_SCORE.value,
-            model_version=(CHALLENGER_MODEL_VERSION if shadow is None else shadow["model_version"]),
+            model_version=model_version,
             input_data_origin=input_data_origin,
-            abstention_reasons=(PredictionAbstentionReason.MODEL_STATE_NOT_SHADOW.value,),
-            # SPEC 8.5: en v0.3 el challenger nunca se expone, ni con modelo.
-            exposed=False,
+            abstention_reasons=(reason.value,),
+            exposed=True,
         )
+
+
+def _fit_from_artifact(artifact: str) -> ChallengerFit | None:
+    """Los coeficientes tal y como `tools/train` los serializo."""
+
+    try:
+        payload = json.loads(artifact)
+    except json.JSONDecodeError:
+        return None
+    if payload.get("intercept") is None:
+        return None
+    return ChallengerFit(
+        converged=True,
+        intercept=float(payload["intercept"]),
+        beta_sleep=None if payload.get("beta_sleep") is None else float(payload["beta_sleep"]),
+        beta_regulation=(
+            None if payload.get("beta_regulation") is None else float(payload["beta_regulation"])
+        ),
+        penalty=None if payload.get("penalty") is None else float(payload["penalty"]),
+    )
 
 
 def _is_number(value: Any) -> bool:

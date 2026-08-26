@@ -12,6 +12,36 @@ from __future__ import annotations
 
 import sqlite3
 
+# La estimación que se publica: el challenger corrige la tasa base con el día
+# declarado (SPEC 8.4), así que cuando tiene número manda él. Si se abstiene
+# —sin modelo, sin tasa base, sin historia del predictor— queda la tasa base,
+# que es la misma cifra sin la corrección del día. La caída es continua: con
+# coeficientes y desviaciones nulas las dos coinciden.
+TRACK_PREFERENCE = (
+    "real_logit_challenger_v1",
+    "real_personal_baseline_v1",
+)
+
+#: Elige la primera salida expuesta con probabilidad, en el orden de arriba.
+OPERATIONAL_OUTPUT_SQL = """
+    SELECT * FROM prediction_outputs AS o
+     WHERE o.prediction_episode_id = :episode
+       AND o.exposed = 1
+     ORDER BY (o.probability IS NULL),
+              CASE o.track_id
+                WHEN 'real_logit_challenger_v1' THEN 0
+                WHEN 'real_personal_baseline_v1' THEN 1
+                ELSE 2 END
+     LIMIT 1
+"""
+
+
+def operational_output(
+    connection: sqlite3.Connection, prediction_episode_id: str
+) -> sqlite3.Row | None:
+    """La salida cuyo número ve el usuario, abstenida o no."""
+    return connection.execute(OPERATIONAL_OUTPUT_SQL, {"episode": prediction_episode_id}).fetchone()
+
 
 def observations_for_subject(
     connection: sqlite3.Connection, *, tenant_id: str, subject_id: str, since_local_date: str
@@ -152,9 +182,24 @@ def child_submission_days(
             " r.resolved_at AS outcome_reported_at"
             " FROM form_sessions AS f"
             " LEFT JOIN prediction_episodes AS e ON e.form_session_id = f.form_session_id"
+            # El track ya no se fija a mano: gana el challenger si estimó, y
+            # si no la tasa base. `p.status` sale del que de verdad se muestra.
+            # El track ya no se fija a mano. Primero cualquiera que haya
+            # estimado, y entre esos el challenger, que corrige la tasa base con
+            # el día declarado. Si ninguno estimó se toma igual una fila: la
+            # abstención tiene que llegar a la pantalla como abstención, no como
+            # un día sin predicción.
             " LEFT JOIN prediction_outputs AS p"
-            "  ON p.prediction_episode_id = e.prediction_episode_id"
-            "  AND p.track_id = 'real_personal_baseline_v1'"
+            "  ON p.prediction_output_id = ("
+            "     SELECT o.prediction_output_id FROM prediction_outputs AS o"
+            "      WHERE o.prediction_episode_id = e.prediction_episode_id"
+            "        AND o.exposed = 1"
+            "      ORDER BY (o.probability IS NULL),"
+            "               CASE o.track_id"
+            "                 WHEN 'real_logit_challenger_v1' THEN 0"
+            "                 WHEN 'real_personal_baseline_v1' THEN 1"
+            "                 ELSE 2 END"
+            "      LIMIT 1)"
             " LEFT JOIN recommendation_instances AS i"
             "  ON i.prediction_episode_id = e.prediction_episode_id"
             " LEFT JOIN outcome_resolutions AS r"

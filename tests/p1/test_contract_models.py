@@ -330,22 +330,43 @@ def test_the_simulation_track_never_runs_on_real_input_and_is_never_a_probabilit
     assert output.probability is None and output.interval is None
 
 
-def test_the_challenger_stores_a_shadow_score_and_is_never_exposed() -> None:
+def test_the_challenger_is_an_operational_track_and_publishes_its_score() -> None:
+    """Dejó de correr en sombra al empezar a responder la pregunta de 24 horas.
+
+    La tasa base dice con qué frecuencia le pasa; el challenger la corrige con
+    el día declarado, que es lo que el producto promete. Un track cuya cifra
+    llega al cuidador no está en sombra, diga lo que diga el enum.
+    """
+
     output = _output(
         track_id=TrackId.REAL_LOGIT_CHALLENGER_V1,
-        intended_use=IntendedUse.SHADOW_EVALUATION,
+        intended_use=IntendedUse.OPERATIONAL_SUPPORT,
         estimate_kind=EstimateKind.SHADOW_CHALLENGER_SCORE,
         status=PredictionStatus.OK,
         abstention_reasons=(),
-        shadow_score=0.3,
+        probability=0.3,
     )
-    assert output.is_exposable_to_caregiver is False
+    assert output.is_exposable_to_caregiver is True
+
+    vista = PredictionOutputView(
+        track_id=TrackId.REAL_LOGIT_CHALLENGER_V1,
+        intended_use=IntendedUse.OPERATIONAL_SUPPORT,
+        status=PredictionStatus.OK,
+        estimate_kind=EstimateKind.SHADOW_CHALLENGER_SCORE,
+        probability=0.3,
+        model_version="challenger-0.3.0",
+        input_data_origin=DataOrigin.REAL,
+    )
+    assert vista.probability == 0.3
+
+    # Lo que no cambió: seguir declarándose en sombra ya no cuadra con el track.
     with pytest.raises(ValidationError):
         PredictionOutputView(
             track_id=TrackId.REAL_LOGIT_CHALLENGER_V1,
             intended_use=IntendedUse.SHADOW_EVALUATION,
             status=PredictionStatus.OK,
             estimate_kind=EstimateKind.SHADOW_CHALLENGER_SCORE,
+            probability=0.3,
             model_version="challenger-0.3.0",
             input_data_origin=DataOrigin.REAL,
         )

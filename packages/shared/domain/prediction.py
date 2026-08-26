@@ -54,10 +54,20 @@ TARGET_HORIZON = timedelta(hours=TARGET_HORIZON_HOURS)
 CAPTURE_LIMIT = timedelta(hours=OUTCOME_CAPTURE_LIMIT_HOURS)
 
 # SPEC 8.1: which data each track is allowed to have been built from and shown as.
+#
+# The challenger moved from shadow to operational support. Its whole point is to
+# answer the question the product asks -- "is a dysregulation likely in the next
+# 24 hours?" -- which the personal baseline cannot: a rate over past verified
+# outcomes says how often it happens, never how today is going. The challenger
+# carries that baseline as a fixed offset and corrects it with the day, so the
+# two agree exactly when there is nothing to correct.
+#
+# Operational means the label matches where the number lands. A track whose
+# estimate reaches a caregiver is not in shadow, whatever the enum used to say.
 TRACK_INTENDED_USE: dict[TrackId, IntendedUse] = {
     TrackId.SYNTHETIC_REFERENCE_V021: IntendedUse.SIMULATION_ONLY,
     TrackId.REAL_PERSONAL_BASELINE_V1: IntendedUse.OPERATIONAL_SUPPORT,
-    TrackId.REAL_LOGIT_CHALLENGER_V1: IntendedUse.SHADOW_EVALUATION,
+    TrackId.REAL_LOGIT_CHALLENGER_V1: IntendedUse.OPERATIONAL_SUPPORT,
 }
 TRACK_ESTIMATE_KIND: dict[TrackId, EstimateKind] = {
     TrackId.SYNTHETIC_REFERENCE_V021: EstimateKind.SIMULATION_SCORE,
@@ -257,21 +267,30 @@ class PredictionOutput(FaroModel):
             ):
                 raise ValueError("a simulation is never a clinical probability")
         else:
-            if self.shadow_score is None:
-                raise ValueError("a shadow challenger stores shadow_score")
-            if (
-                self.probability is not None
-                or self.simulation_score is not None
-                or self.interval is not None
-            ):
-                raise ValueError("a shadow output has no visible probability or interval")
+            # The challenger is operational now, so its number is a probability
+            # like the baseline's: `shadow_score` was the field for a track that
+            # nobody was allowed to read, and there is no such track any more.
+            if self.probability is None:
+                raise ValueError("an operational challenger reports a probability")
+            if self.simulation_score is not None or self.shadow_score is not None:
+                raise ValueError("a challenger reports a probability, not a score")
+            # No interval: a logistic point estimate publishes no uncertainty of
+            # its own, and borrowing the baseline's would misattribute it.
+            if self.interval is not None or self.interval_method is not None:
+                raise ValueError("the challenger publishes no interval")
         return self
 
     @property
     def is_exposable_to_caregiver(self) -> bool:
-        """The challenger stays hidden in v0.3 even when it does not abstain."""
+        """Whether this track's answer may reach a caregiver.
 
-        return self.track_id is not TrackId.REAL_LOGIT_CHALLENGER_V1
+        It follows the declared intended use instead of naming a track: a
+        simulation never reaches one, and both real tracks are operational
+        support. Hard-coding the challenger here is what kept it hidden after it
+        had stopped being a shadow model.
+        """
+
+        return self.intended_use is IntendedUse.OPERATIONAL_SUPPORT
 
 
 class VoiEstimate(FaroModel):

@@ -60,8 +60,13 @@ def test_no_output_carries_a_number_without_a_status_that_allows_it(caregiver) -
     episode = caregiver.get(f"/v1/prediction-episodes/{result['prediction_episode_id']}").json()
     tracks = {output["track_id"]: output for output in episode["outputs"]}
 
-    # SPEC 8.5: el challenger en sombra nunca se expone.
-    assert "real_logit_challenger_v1" not in tracks
+    # El challenger ya es operativo, pero solo aparece donde hay modelo: el
+    # conjunto `mock` no entrena nada, así que ahí sigue sin salir.
+    challenger = tracks.get("real_logit_challenger_v1")
+    if challenger is not None:
+        assert challenger["intended_use"] == "operational_support"
+        # Sin intervalo: una estimación puntual no publica incertidumbre propia.
+        assert challenger["interval"] is None
 
     for output in episode["outputs"]:
         if output["status"] == "ok":

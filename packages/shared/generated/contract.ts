@@ -1007,7 +1007,13 @@ export interface PredictionOutput {
 /**
  * A single track's answer as a caller sees it (SPEC 11.5).
  *
- * `confidence` is absent on purpose. The shadow challenger never appears here.
+ * `confidence` is absent on purpose: what a track publishes about its own
+ * uncertainty is its interval, and a track without one says nothing rather
+ * than borrowing another's.
+ *
+ * The challenger appears here now. It used to be barred outright because it
+ * ran in shadow; it is an operational track since it started answering the
+ * 24-hour question, and the bar came off with the intended use.
  */
 export interface PredictionOutputView {
   track_id: TrackId;

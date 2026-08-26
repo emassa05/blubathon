@@ -148,6 +148,55 @@ def personal_predictor_rate(
     return PersonalRate(field_code=field_code, rate=sum(usable) / len(usable), n_days=len(usable))
 
 
+#: Los dos predictores preregistrados de SPEC 8.4, en su orden fijo.
+CHALLENGER_PREDICTOR_FIELDS: tuple[FieldCode, ...] = (
+    FieldCode.SLEEP_QUALITY,
+    FieldCode.DAILY_REGULATION_STATE,
+)
+
+
+def predictor_deviations(
+    observations: Iterable[FieldObservation],
+    *,
+    tenant_id: UUID,
+    subject_id: UUID,
+    source: object,
+    as_of_at: datetime,
+) -> dict[FieldCode, float | None]:
+    """El valor del día menos la costumbre del sujeto, por predictor.
+
+    Vive aquí y no en el entrenamiento porque **la misma definición tiene que
+    valer para entrenar y para puntuar**. Si el runtime construyera la
+    desviación de otra manera, el modelo se aplicaría a features distintas de
+    las que vio, y el número saldría con toda la apariencia de ser correcto.
+
+    El día que corresponde es el `local_date` del corte en zona de referencia,
+    no la fecha UTC: el episodio de las 20:00 de Santiago es medianoche UTC del
+    día siguiente, y tomar la fecha UTC metería en el predictor la observación
+    del día que se está prediciendo.
+    """
+
+    day = local_date(as_of_at)
+    rows = list(observations)
+    result: dict[FieldCode, float | None] = {}
+    for field_code in CHALLENGER_PREDICTOR_FIELDS:
+        rate = personal_predictor_rate(
+            rows,
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            source=source,
+            field_code=field_code,
+            as_of_at=as_of_at,
+        )
+        del_dia = next(
+            (row for row in rows if row.field_code == field_code and row.local_date == day),
+            None,
+        )
+        encoded = None if del_dia is None else encode_predictor(field_code, del_dia.value)
+        result[field_code] = None if rate.rate is None or encoded is None else encoded - rate.rate
+    return result
+
+
 @dataclass(frozen=True, slots=True)
 class ChallengerRow:
     """One episode as the challenger sees it, already reduced to its features."""

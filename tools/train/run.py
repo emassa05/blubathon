@@ -95,7 +95,10 @@ def train(
     brier_baseline = _baseline_brier(dataset)
     penalty = None if result.selection is None else result.selection.penalty
     brier = None if result.selection is None else result.selection.brier
-    model_version = f"{result.model_version}+{run_id[:8]}" if result.trainable else None
+    # Separador `-` y no `+`: la etiqueta viaja en el contrato desde que el
+    # challenger se expone, y `VersionLabel` solo admite `[a-z0-9._-]`. El `+`
+    # de metadatos de build de semver nunca se validó porque nadie la publicaba.
+    model_version = f"{result.model_version}-{run_id[:8]}" if result.trainable else None
 
     report = TrainingReport(
         training_run_id=run_id,
@@ -280,19 +283,23 @@ def _write_model_version(
         separators=(",", ":"),
         sort_keys=True,
     )
+    # El artefacto se guarda, no solo su hash: sin los coeficientes el runtime
+    # no puede puntuar y el track abstiene aunque haya versión publicada.
     connection.execute(
         "INSERT INTO model_versions (model_version, tenant_id, training_run_id, track_id,"
-        " training_data_origin, intended_use, state, artifact_sha256, created_at,"
-        " state_changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        " training_data_origin, intended_use, state, artifact_sha256, artifact, created_at,"
+        " state_changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             model_version,
             tenant_id,
             run_id,
             TrackId.REAL_LOGIT_CHALLENGER_V1.value,
             DATA_ORIGIN,
-            IntendedUse.SHADOW_EVALUATION.value,
+            # El mismo uso que declara el track en `TRACK_INTENDED_USE`.
+            IntendedUse.OPERATIONAL_SUPPORT.value,
             MODEL_STATE,
             hashlib.sha256(artifact.encode("utf-8")).hexdigest(),
+            artifact,
             canonical_timestamp(now),
             canonical_timestamp(now),
         ),

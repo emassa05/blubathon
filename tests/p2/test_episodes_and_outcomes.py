@@ -42,9 +42,14 @@ def test_submission_creates_episode_outcome_and_recommendation(client) -> None:
 
     episode = client.get(f"/v1/prediction-episodes/{body['prediction_episode_id']}")
     assert episode.status_code == 200
-    assert "real_logit_challenger_v1" not in {
-        item["track_id"] for item in episode.json()["outputs"]
-    }
+    # El challenger es operativo, así que sale en la respuesta como cualquier
+    # otro track. Sin modelo entrenado no puntúa, y entonces lo que publica es
+    # su abstención con el motivo: nunca un número.
+    tracks = {item["track_id"]: item for item in episode.json()["outputs"]}
+    challenger = tracks.get("real_logit_challenger_v1")
+    if challenger is not None and challenger["status"] != "ok":
+        assert challenger["probability"] is None
+        assert challenger["abstention_reasons"]
 
 
 def test_second_submission_links_the_open_episode(client) -> None:

@@ -20,6 +20,7 @@ from apps.api.contracts.models import (
 from apps.api.errors import not_found
 from apps.api.services.base import Services
 from apps.api.services.recommendation_query import query_for, risk_band_for
+from apps.api.store import history
 from apps.api.store import recommendations as store
 from apps.api.store.json_columns import load_list
 from packages.shared.domain.rag import DocumentChunk, StrategyCitation
@@ -133,11 +134,10 @@ class RecommendationService:
 
     def probability_for_episode(self, prediction_episode_id: str) -> float | None:
         with self._services.database.read() as connection:
-            row = connection.execute(
-                "SELECT probability FROM prediction_outputs WHERE prediction_episode_id = ?"
-                " AND track_id = 'real_personal_baseline_v1'",
-                (prediction_episode_id,),
-            ).fetchone()
+            # La misma cifra que ve la pantalla: si el challenger estimó, la
+            # banda de riesgo y la consulta del RAG tienen que salir de ahí y no
+            # de la tasa base, o el consejo hablaría de otro día.
+            row = history.operational_output(connection, prediction_episode_id)
         return None if row is None else row["probability"]
 
     def redraft(self, recommendation_instance_id: str, *, now: str) -> RecommendationResult:

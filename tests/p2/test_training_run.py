@@ -139,8 +139,12 @@ def test_a_published_model_lands_in_shadow_and_never_in_production(db, trainable
             (report.model_version,),
         ).fetchone()
 
+    # El estado no se toca: publicar sigue sin promover nada, y el salto de
+    # `shadow` a `shadow_evaluated` sigue siendo decisión humana.
     assert version["state"] == "shadow"
-    assert version["intended_use"] == "shadow_evaluation"
+    # El uso declarado sí: el track es operativo desde que su cifra se muestra,
+    # y la versión del modelo tiene que decir lo mismo que el track.
+    assert version["intended_use"] == "operational_support"
     assert version["training_run_id"] == report.training_run_id
     assert evaluation["dataset_snapshot_id"] == report.dataset_snapshot_id
     assert "sombra" in evaluation["limitations_es"]
