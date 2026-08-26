@@ -107,7 +107,17 @@ def import_dataset(
     target_definition_version: str = ids.TARGET_DEMO_FIXTURE,
     ingested_at: datetime | None = None,
 ) -> ImportReport:
-    """Importa el conjunto completo. Idempotente: todos los IDs son derivados."""
+    """Importa el conjunto completo. Idempotente: todos los IDs son derivados.
+
+    `ingested_at` de una fila clínica es el instante en que esa fila quedó
+    disponible, y en un backfill eso es el día en que el tutor la anotó, no el
+    día en que se corrió el import. Fecharlas todas "hoy" haría que
+    `project_as_of` no viera ninguna en ningún corte anterior a la importación:
+    el histórico quedaría escrito pero invisible, y el challenger no podría
+    calcular la tasa personal previa de ninguna fila. `moment` queda sólo para
+    las filas de administración (mapping, sujeto, perfil, consentimiento), que
+    sí nacen hoy.
+    """
 
     moment = canonical_timestamp(ingested_at or datetime.now(UTC))
     _require_seeded(connection, tenant_id=tenant_id, target=target_definition_version)
@@ -154,7 +164,7 @@ def import_dataset(
                 actor_id=caregiver_id,
                 local_date=record.day,
                 at=canonical_timestamp(as_of),
-                ingested_at=moment,
+                ingested_at=canonical_timestamp(as_of),
                 source_mapping_id=source_mapping_id,
             )
             observations += 1
@@ -200,7 +210,7 @@ def import_dataset(
             target_end_at=canonical_timestamp(target_end),
             capture_deadline_at=canonical_timestamp(deadline),
             reported_at=canonical_timestamp(target_end),
-            ingested_at=moment,
+            ingested_at=canonical_timestamp(target_end),
         )
 
     sessions_imported = _import_professional_sessions(
@@ -275,8 +285,16 @@ def _upsert_subjects(
     Sin consentimiento activo el baseline descarta el resultado
     (`consent_authorized`), así que el consentimiento es parte de la
     importación, no un paso aparte.
+
+    Perfil, consentimiento y grant se fechan un día antes del primer registro,
+    no hoy: cubrir sólo desde la fecha del import dejaría todo el histórico
+    fuera de cobertura en cuanto alguien evalúe la autorización a la fecha del
+    episodio en vez de darla por buena.
     """
 
+    covers_from = canonical_timestamp(
+        _instant(min(record.day for record in dataset.daily)) - timedelta(days=1)
+    )
     subject_ids: dict[str, str] = {}
     for case in dataset.cases:
         subject_id = _id("subject", case.case_id)
@@ -298,9 +316,9 @@ def _upsert_subjects(
                 dump([case.sensory_profile]),
                 CARE_MODE,
                 PROFILE_VERSION,
-                moment,
-                moment,
-                moment,
+                covers_from,
+                covers_from,
+                covers_from,
             ),
         )
         connection.execute(
@@ -315,9 +333,9 @@ def _upsert_subjects(
                 subject_id,
                 caregiver_id,
                 MAPPING_VERSION,
-                moment,
-                moment,
-                moment,
+                covers_from,
+                covers_from,
+                covers_from,
             ),
         )
         connection.execute(
@@ -332,8 +350,8 @@ def _upsert_subjects(
                 caregiver_id,
                 dump(["subject_care"]),
                 ids.TENANT_ADMIN_A,
-                moment,
-                moment,
+                covers_from,
+                covers_from,
             ),
         )
     return subject_ids
@@ -577,7 +595,7 @@ def _import_professional_sessions(
             actor_id=professional_id,
             local_date=session.day,
             at=at,
-            ingested_at=moment,
+            ingested_at=at,
             source_mapping_id=source_mapping_id,
         )
         imported += 1
