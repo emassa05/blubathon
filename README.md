@@ -27,8 +27,8 @@ no cuenta como respuesta.
 **Ver una estimación con su incertidumbre, o ninguna.** El riesgo del día sale
 de la tasa observada del propio niño en episodios anteriores comparables, no de
 un promedio poblacional. Viene con un intervalo, no con una cifra sola. Y cuando
-no hay historial suficiente —menos de cinco resultados confirmados, o
-información en conflicto— no muestra número. Dice que no sabe.
+no hay historial suficiente menos de cinco resultados confirmados, o
+información en conflicto no muestra número. Dice que no sabe.
 
 **Recibir una sugerencia que se puede rastrear.** La recomendación del día se
 redacta a partir de documentos cargados en el corpus, y cada cita tiene que ser
@@ -37,7 +37,7 @@ la recomendación no se muestra: se declara abstenida, con el motivo. No hay
 consejo sin procedencia.
 
 **Cerrar el círculo.** Después de cada día registrado queda abierta una pregunta
-—¿ocurrió el evento en la ventana declarada?— con plazo. Responderla es lo que
+¿ocurrió el evento en la ventana declarada? con plazo. Responderla es lo que
 alimenta la estimación siguiente.
 
 **Decir que una sugerencia no sirvió.** Marcarla como mala no es responder una
