@@ -29,6 +29,10 @@ export type {
   FormQuestion,
   FormSubmissionRequest,
   FormSubmissionResponse,
+  OutcomeReportRequest,
+  OutcomeReportValue,
+  OutcomeRequestListResponse,
+  OutcomeRequestView,
   RecommendationCitation,
   TodayRecommendationResponse,
 } from "@contrato/contract";

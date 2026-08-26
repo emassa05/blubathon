@@ -21,23 +21,24 @@ const ESTADO_EN_PALABRAS: Record<ResumenDia["estado"], string> = {
 };
 
 /**
- * La estimación del día.
+ * La cifra del día, solo cuando existe.
  *
- * El contrato no publica bandas operativas y el track personal se abstiene
- * mientras no haya resultados verificados suficientes, así que lo normal hoy es
- * que no haya número. Cuando no lo hay se dice, en vez de enseñar un cero.
+ * El track personal se abstiene mientras no tenga cinco resultados verificados
+ * (SPEC 8.5 / C19), y hasta entonces no hay número que dar. Antes se dibujaba
+ * igualmente una caja con un guion bajo el rótulo "Riesgo", que se leía como
+ * una cifra que no se actualizaba nunca. Ahora la caja no se dibuja y el porqué
+ * lo dice la nota.
  */
-const estimacion = computed(() => {
-  if (props.resumen.probabilidad !== null) {
-    return { cifra: `${Math.round(props.resumen.probabilidad * 100)}%`, nota: "" };
-  }
-  if (props.resumen.estado !== "respondido") return null;
-  return {
-    cifra: "—",
-    nota: props.resumen.estimacionAbstenida
-      ? "El modelo se abstuvo: todavía no hay suficiente historial verificado."
-      : "Este día no tiene estimación numérica.",
-  };
+const cifra = computed(() =>
+  props.resumen.probabilidad === null ? null : `${Math.round(props.resumen.probabilidad * 100)}%`,
+);
+
+const notaEstimacion = computed(() => {
+  if (props.resumen.probabilidad !== null) return "";
+  if (props.resumen.estado !== "respondido") return "";
+  return props.resumen.estimacionAbstenida
+    ? "El modelo se abstuvo: todavía no hay suficiente historial verificado."
+    : "Este día no tiene estimación numérica.";
 });
 
 const banda = computed(() => bandaDelDia(props.resumen));
@@ -77,13 +78,13 @@ const accion = computed(() =>
 
       <!-- La cifra solo aparece si existe. La banda pinta el fondo únicamente
            cuando hay número que encuadrar. -->
-      <p v-if="estimacion" class="detalle__estimacion" :class="banda ? CLASE_BANDA[banda] : ''">
-        <span class="detalle__cifra">{{ estimacion.cifra }}</span>
+      <p v-if="cifra" class="detalle__estimacion" :class="banda ? CLASE_BANDA[banda] : ''">
+        <span class="detalle__cifra">{{ cifra }}</span>
         <span class="detalle__pie">Riesgo</span>
       </p>
     </header>
 
-    <p v-if="estimacion?.nota" class="detalle__nota">{{ estimacion.nota }}</p>
+    <p v-if="notaEstimacion" class="detalle__nota">{{ notaEstimacion }}</p>
 
     <ul v-if="recomendacion || resultado" class="detalle__hechos">
       <li v-if="recomendacion" class="detalle__hecho">{{ recomendacion }}</li>

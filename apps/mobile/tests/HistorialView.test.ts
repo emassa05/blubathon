@@ -67,7 +67,7 @@ describe("HistorialView", () => {
     expect(wrapper.text()).toContain("El modelo se abstuvo");
   });
 
-  it("cambia de semana y ofrece volver a la actual", async () => {
+  it("cambia de semana con los chevrones y sin un tercer botón que corra la fecha", async () => {
     const wrapper = mount(HistorialView);
     await flushPromises();
 
@@ -75,10 +75,12 @@ describe("HistorialView", () => {
     await wrapper.get('[aria-label="Semana anterior"]').trigger("click");
 
     expect(wrapper.get(".semana__etiqueta").text()).not.toContain(semanaDe(anterior, HOY).etiqueta);
-    expect(wrapper.find(".semana__hoy").exists()).toBe(true);
+    // El botón "Esta semana" era un cuarto hijo del flex y le robaba ancho al
+    // rótulo, que dejaba de quedar centrado entre los dos chevrones.
+    expect(wrapper.find(".semana__hoy").exists()).toBe(false);
 
-    await wrapper.get(".semana__hoy").trigger("click");
-    expect(wrapper.get(".dia--elegido").attributes("aria-label")).toContain("hoy");
+    await wrapper.get('[aria-label="Semana siguiente"]').trigger("click");
+    expect(wrapper.get(".semana__etiqueta").text()).toContain(semanaDe(HOY, HOY).etiqueta);
   });
 
   it("abre el cuestionario del día que se está mirando", async () => {

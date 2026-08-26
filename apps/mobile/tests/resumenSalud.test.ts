@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { cargarResumenSalud } from "@/adaptadores/resumenSalud";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
+import { guardarRespuestas, olvidarRespuestas, respuestasDe } from "@/estado/respuestas";
 
 import {
   ID_NINO_FALSO,
@@ -27,7 +28,19 @@ function cargarHoy() {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  olvidarRespuestas();
 });
+
+/** El cuerpo JSON que se mandó a esa ruta, o `null` si no se llamó. */
+function cuerpoEnviadoA(ruta: string): Record<string, unknown> | null {
+  const llamadas = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+  for (const [entrada, init] of llamadas) {
+    if (!String(entrada).includes(ruta)) continue;
+    const cuerpo = (init as RequestInit | undefined)?.body;
+    if (typeof cuerpo === "string") return JSON.parse(cuerpo) as Record<string, unknown>;
+  }
+  return null;
+}
 
 describe("cargarResumenSalud", () => {
   it("pasa la probabilidad a porcentaje y el ancho del intervalo a confianza", async () => {
@@ -97,20 +110,20 @@ describe("cargarResumenSalud", () => {
         id: "sleep_hours",
         icono: "luna",
         titulo: "Horas de sueño",
-        detalle: "Sin registrar hace 7 días o más",
+        detalle: "Sin registrar en los últimos 7 días",
         prioridad: "alta",
       },
       {
         id: "routine_changes",
         icono: "rombo",
         titulo: "Cambios en la rutina",
-        detalle: "Sin registrar hace 7 días o más",
+        detalle: "Sin registrar en los últimos 7 días",
         prioridad: "alta",
       },
     ]);
   });
 
-  it("el listado va por calendario, así que el día sin envío sale como hueco", async () => {
+  it("el listado empieza en el día visible y el día sin envío sale como hueco", async () => {
     instalarServidorFalso({
       [`${CHILD}/history`]: historialFalso([
         diaFalso({ fecha: HOY, probabilidad: 0.2 }),
@@ -123,13 +136,51 @@ describe("cargarResumenSalud", () => {
     const resumen = await cargarHoy();
     const estados = resumen.formularios.map((registro) => registro.estado);
 
+    // El día visible abre la lista. Antes empezaba en el siguiente hacia atrás
+    // y hoy solo se veía por el aviso de pendiente, que desaparece al enviarlo.
     expect(resumen.formularios.map((r) => r.id)).toEqual([
+      HOY,
       diaAntesDe(HOY, 1),
       diaAntesDe(HOY, 2),
       diaAntesDe(HOY, 3),
-      diaAntesDe(HOY, 4),
     ]);
-    expect(estados).toEqual(["sin-responder", "respondido", "sin-responder", "sin-responder"]);
+    expect(estados).toEqual(["respondido", "sin-responder", "respondido", "sin-responder"]);
+    expect(resumen.formularios[0]?.dia).toBe("Hoy");
+  });
+
+  it("no manda al plan respuestas de un día que el servidor ya no tiene", async () => {
+    // El caso real: la base se resembró y el navegador conservó lo de antes.
+    // Esas respuestas viajaban como `answers` y el backend suprime la sugerencia
+    // de todo campo "ya respondido" (SPEC 6.6), así que no salía ninguna.
+    guardarRespuestas(ID_NINO_FALSO, HOY, { food_changes: false, eating_status: 4 });
+
+    instalarServidorFalso({
+      [`${CHILD}/history`]: historialFalso([]),
+      [`${CHILD}/form-plan`]: planFalso([]),
+      [`${CHILD}/recommendations/today`]: { status: "no_submission_today", citations: [] },
+    });
+
+    await cargarHoy();
+
+    expect(cuerpoEnviadoA("form-plan")).toEqual({ source: "caregiver_daily", answers: {} });
+    expect(respuestasDe(ID_NINO_FALSO, HOY)).toBeUndefined();
+  });
+
+  it("sí manda las respuestas del día que el servidor confirma", async () => {
+    guardarRespuestas(ID_NINO_FALSO, HOY, { food_changes: false });
+
+    instalarServidorFalso({
+      [`${CHILD}/history`]: historialFalso([diaFalso({ fecha: HOY, probabilidad: 0.2 })]),
+      [`${CHILD}/form-plan`]: planFalso([]),
+      [`${CHILD}/recommendations/today`]: { status: "pending", citations: [] },
+    });
+
+    await cargarHoy();
+
+    expect(cuerpoEnviadoA("form-plan")).toEqual({
+      source: "caregiver_daily",
+      answers: { food_changes: false },
+    });
   });
 
   it("un día sin envío queda pendiente", async () => {

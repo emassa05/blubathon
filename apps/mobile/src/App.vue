@@ -6,6 +6,7 @@ import DialogoCuestionario from "@/components/cuestionario/DialogoCuestionario.v
 import { useHistorial } from "@/estado/historial";
 import { useNino } from "@/estado/nino";
 import { useRecomendacionHoy } from "@/estado/recomendacion";
+import { useResultados } from "@/estado/resultados";
 import HistorialView from "@/views/HistorialView.vue";
 import SaludView from "@/views/SaludView.vue";
 
@@ -29,6 +30,7 @@ const cuestionario = ref<string | null>(null);
 const { ninoId } = useNino();
 const { cargar: cargarHistorial } = useHistorial();
 const { cargar: cargarRecomendacion } = useRecomendacionHoy();
+const { cargar: cargarResultados } = useResultados();
 
 // Salud trae sus datos por su cuenta, así que se le pide el refresco a ella.
 const salud = ref<{ recargar: () => Promise<void> } | null>(null);
@@ -42,6 +44,10 @@ async function alEnviar(): Promise<void> {
   await Promise.all([
     cargarHistorial(ninoId.value, true),
     cargarRecomendacion(ninoId.value, true),
+    // Cada envío abre un episodio, y con él la solicitud de resultado que
+    // habrá que contestar mañana. Sin refrescar, la tarjeta no aparecería
+    // hasta recargar la página.
+    cargarResultados(true),
     salud.value?.recargar() ?? Promise.resolve(),
   ]);
 }

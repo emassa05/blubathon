@@ -65,11 +65,6 @@ watch(inicioSemana, () => {
 function irASemana(cantidad: number): void {
   inicioSemana.value = desplazarSemana(inicioSemana.value, cantidad);
 }
-
-function volverAHoy(): void {
-  inicioSemana.value = lunesDe(hoy.value);
-  seleccionado.value = hoy.value;
-}
 </script>
 
 <template>
@@ -99,7 +94,6 @@ function volverAHoy(): void {
             :semana="semana"
             @semana-anterior="irASemana(-1)"
             @semana-siguiente="irASemana(1)"
-            @semana-actual="volverAHoy"
           />
 
           <CalendarioSemanal

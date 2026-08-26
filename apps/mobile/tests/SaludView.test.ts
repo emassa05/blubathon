@@ -161,8 +161,11 @@ describe("SaludView", () => {
     servidor();
     const wrapper = await montar();
 
-    // La tarjeta cuenta hacia atrás desde el día visible: la primera fila es ayer.
+    // La lista empieza en el día visible, así que la primera fila es hoy y la
+    // segunda ayer. Hoy tiene que estar: el aviso de pendiente desaparece al
+    // enviarlo y antes el día se quedaba sin aparecer en ningún sitio.
     await wrapper.findAll(".formulario__fila")[0]?.trigger("click");
-    expect(wrapper.emitted("abrirCuestionario")).toEqual([[AYER_ISO]]);
+    await wrapper.findAll(".formulario__fila")[1]?.trigger("click");
+    expect(wrapper.emitted("abrirCuestionario")).toEqual([[HOY], [AYER_ISO]]);
   });
 });

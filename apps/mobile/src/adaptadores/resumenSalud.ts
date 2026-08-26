@@ -23,6 +23,7 @@ import type {
 import { FARO_CONSTANTS } from "@faro/contract/constants";
 import { FARO_TEXTS_ES } from "@faro/contract/texts";
 
+import { DIAS_HISTORIAL } from "@/api/config";
 import { ErrorFaro } from "@/api/errores";
 import {
   historialNino,
@@ -31,9 +32,10 @@ import {
   recomendacionDeHoy,
 } from "@/api/faro";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
+import { reconciliar, respuestasDe } from "@/estado/respuestas";
 import type { FactorRiesgo, IconoFactor, RegistroFormulario, ResumenSalud } from "@/types/salud";
 
-/** Días que lista "Últimos formularios", contando hacia atrás desde el visible. */
+/** Días que lista "Últimos formularios", empezando por el visible. */
 const DIAS_EN_LISTA = 4;
 
 /** "lunes 24" → la fila del listado. */
@@ -49,8 +51,14 @@ const CAMPOS_DE_SUENO: ReadonlySet<FieldCode> = new Set<FieldCode>([
 /** SPEC 6.10 / C14: un campo se considera vencido a los 7 días. */
 const DIAS_VENCIMIENTO = FARO_CONSTANTS.C14.value;
 
+/**
+ * `days_since_presented` no viaja en `FormQuestion`, así que el texto no puede
+ * dar el número exacto. Dice el umbral, que es lo que el motivo significa: el
+ * backend marca `staleness` cuando pasaron `C14` días o cuando el campo no se
+ * ha registrado nunca.
+ */
 const DETALLE_POR_MOTIVO: Record<FormQuestion["reason"], string> = {
-  staleness: `Sin registrar hace ${DIAS_VENCIMIENTO} días o más`,
+  staleness: `Sin registrar en los últimos ${DIAS_VENCIMIENTO} días`,
   exploration: "Turno de exploración de esta semana",
   canonical_order: "Por orden del formulario",
 };
@@ -179,17 +187,24 @@ function diaAnteriorA(fechaIso: string, dias: number): string {
  * `GET /history` solo devuelve días **con** envío, así que recorrerlo dejaría
  * todas las filas en "Respondido" y el hueco —que es justo lo que hay que
  * ver— desaparecería.
+ *
+ * Empieza en el día visible y no en el anterior. Antes lo saltaba porque hoy
+ * tenía su propio aviso, pero ese aviso solo se dibuja mientras el formulario
+ * está pendiente: al enviarlo desaparecía, y el día se quedaba sin estar en
+ * ningún sitio de la pantalla.
  */
 function formularios(
   fechaIso: string,
   conEnvio: ReadonlySet<string>,
 ): readonly RegistroFormulario[] {
+  const hoy = fechaDeHoy();
   return Array.from({ length: DIAS_EN_LISTA }, (_, indice) => {
-    const fecha = diaAnteriorA(fechaIso, indice + 1);
+    const fecha = diaAnteriorA(fechaIso, indice);
     const etiqueta = FORMATO_FILA.format(new Date(`${fecha}T00:00:00`));
     return {
       id: fecha,
-      dia: etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1),
+      // "Hoy" se lee antes que "miércoles 26", y es la fila que más se pulsa.
+      dia: fecha === hoy ? "Hoy" : etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1),
       estado: conEnvio.has(fecha) ? ("respondido" as const) : ("sin-responder" as const),
     };
   });
@@ -221,25 +236,35 @@ export async function cargarResumenSalud(opciones: {
   const { idNino, fechaIso, signal } = opciones;
   const esHoy = fechaIso === fechaDeHoy();
 
-  const [historial, plan, deHoy] = await Promise.all([
-    historialNino(idNino, { signal }),
+  // El historial va primero y solo: es la autoridad sobre qué días existen, y
+  // hasta tenerlo la copia local puede estar mintiendo. Cuesta un viaje de más
+  // en esta pantalla, y es el precio de no mandar respuestas fantasma al plan.
+  const historial = await historialNino(idNino, { signal });
+  const dias = historial.days ?? [];
+  const conEnvio = new Set(
+    dias.filter((candidato) => presente(candidato.submission_id)).map((c) => c.local_date),
+  );
+  reconciliar(idNino, { conEnvio, completo: dias.length < DIAS_HISTORIAL });
+
+  // `POST /form-plan` no lee la base: deriva los campos ya contestados **solo**
+  // del cuerpo de la petición. Mandarlo vacío significaba "no hay nada
+  // respondido", y por eso destacaba siempre los mismos dos campos aunque
+  // acabaras de contestarlos. La copia local es lo único que sabe qué se envió.
+  const yaRespondido = respuestasDe(idNino, fechaIso) ?? {};
+
+  const [plan, deHoy] = await Promise.all([
     esHoy
-      ? planFormulario(idNino, { source: "caregiver_daily", answers: {} }, signal)
+      ? planFormulario(idNino, { source: "caregiver_daily", answers: yaRespondido }, signal)
       : Promise.resolve(null),
     esHoy ? recomendacionDeHoy(idNino, signal) : Promise.resolve(null),
   ]);
 
-  const dias = historial.days ?? [];
   const dia = dias.find((candidato) => candidato.local_date === fechaIso) ?? null;
   const estadoRecomendacion = deHoy ?? (await recomendacionDelDia(dia, signal));
 
   const prediccion = dia?.prediction ?? null;
   const probabilidad = prediccion?.status === "ok" ? prediccion.probability : null;
   const riesgo = presente(probabilidad) ? porcentaje(probabilidad) : null;
-
-  const conEnvio = new Set(
-    dias.filter((candidato) => presente(candidato.submission_id)).map((c) => c.local_date),
-  );
 
   return {
     fecha: fechaIso,

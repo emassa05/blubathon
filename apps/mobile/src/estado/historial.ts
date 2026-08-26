@@ -17,7 +17,9 @@ import { computed, ref } from "vue";
 
 import type { ChildHistoryDay } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
+import { DIAS_HISTORIAL } from "@/api/config";
 import { historialNino } from "@/api/faro";
+import { reconciliar } from "@/estado/respuestas";
 
 const dias = ref<readonly ChildHistoryDay[]>([]);
 const cargando = ref(false);
@@ -39,6 +41,17 @@ async function pedir(ninoId: string): Promise<void> {
   try {
     const respuesta = await historialNino(ninoId);
     dias.value = respuesta.days ?? [];
+    // El historial manda sobre la copia local: un día guardado aquí que el
+    // servidor no devuelve ya no existe, y arrastrarlo enseña respuestas
+    // fantasma y apaga las sugerencias del formulario.
+    reconciliar(ninoId, {
+      conEnvio: new Set(
+        dias.value
+          .filter((dia) => dia.submission_id !== null && dia.submission_id !== undefined)
+          .map((dia) => dia.local_date),
+      ),
+      completo: dias.value.length < DIAS_HISTORIAL,
+    });
     cargado.value = true;
     ninoCargado = ninoId;
   } catch (fallo) {

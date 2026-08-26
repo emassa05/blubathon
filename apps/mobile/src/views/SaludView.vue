@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FARO_TEXTS_ES } from "@faro/contract/texts";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
@@ -9,8 +9,11 @@ import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
+import TarjetaResultado from "@/components/salud/TarjetaResultado.vue";
 import { useDiaSeleccionado } from "@/composables/useDiaSeleccionado";
 import { useResumenSalud } from "@/composables/useResumenSalud";
+import { useNino } from "@/estado/nino";
+import { useResultados } from "@/estado/resultados";
 import { CLASE_BANDA, bandaRiesgo } from "@/theme/riesgo";
 
 const emitir = defineEmits<{
@@ -22,6 +25,28 @@ const emitir = defineEmits<{
 // `props` ya traducidas y no saben que existe una API.
 const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado();
 const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
+
+// El resultado pendiente no depende del día que se esté mirando: es la pregunta
+// que el sistema dejó abierta y que hay que contestar antes de que venza.
+const { ninoId } = useNino();
+const {
+  error: errorResultado,
+  enviando,
+  pendienteDe,
+  reportar,
+  cargar: cargarResultados,
+} = useResultados();
+
+const resultadoPendiente = computed(() => pendienteDe(ninoId.value));
+
+onMounted(cargarResultados);
+
+/** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
+async function alReportar(valor: "yes" | "no"): Promise<void> {
+  const solicitud = resultadoPendiente.value;
+  if (solicitud === null) return;
+  if (await reportar(solicitud, valor)) await recargar();
+}
 
 // Mientras se carga o cuando falla no hay estimación, y eso es exactamente la
 // banda `desconocido`: gris, no celeste. Pintar de "riesgo bajo" un día del que
@@ -81,6 +106,14 @@ defineExpose({ recargar });
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
           />
+          <TarjetaResultado
+            v-if="resultadoPendiente"
+            :solicitud="resultadoPendiente"
+            :enviando="enviando !== null"
+            :error="errorResultado"
+            @reportar="alReportar"
+          />
+
           <AvisoPendiente
             v-if="resumen.formularioPendiente"
             :dia="etiquetaAccesible"
