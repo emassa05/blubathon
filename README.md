@@ -47,12 +47,9 @@ encuesta: descarta los fragmentos que se usaron y vuelve a redactar con otros.
 
 ## Qué no hace
 
-> Organiza registros, calcula estadísticas personales y muestra
-> estimaciones experimentales. No diagnostica, no indica tratamientos y no
-> reemplaza el criterio profesional.
+No diagnostica, no indica tratamientos y no reemplaza el criterio profesional.
 
-> No vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de
-> inmediato los protocolos de emergencia o resguardo.
+No vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmediato los protocolos de emergencia o resguardo.
 
 ---
 
