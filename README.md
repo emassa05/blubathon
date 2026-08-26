@@ -7,7 +7,7 @@ ese historial Blubathon devuelve tres cosas, una estimación de riesgo para las
 próximas 24 horas, una sugerencia de apoyo con su fuente citada, y una pregunta
 de cierre para confirmar qué pasó realmente.
 
-Ese último paso permite no aprende de lo que predijo, sino de lo que se le confirmó que ocurrió.
+Ese último paso permite no aprender de lo que predijo, sino de lo que se le confirmó que ocurrió.
 
 ---
 
