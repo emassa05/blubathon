@@ -1,4 +1,4 @@
-"""Faro v0.4 FastAPI application.
+"""Blubathon v0.4 FastAPI application.
 
 Única frontera de traducción HTTP. La abstención es HTTP 200 con estado
 explícito y nunca usa el sobre de error (SPEC 11.7, CONVENTIONS 12.2).
@@ -29,7 +29,7 @@ from apps.api.services import Services, build_registry
 from apps.api.settings import Settings, load_settings
 from apps.api.store.db import Database
 
-logger = logging.getLogger("faro.api")
+logger = logging.getLogger("blubathon.api")
 
 
 def create_app(
@@ -60,7 +60,7 @@ def create_app(
         database.close()
 
     app = FastAPI(
-        title="Faro API",
+        title="Blubathon API",
         version=SPEC_VERSION,
         lifespan=lifespan,
         # CONVENTIONS 15: la documentación OpenAPI se deshabilita en piloto.

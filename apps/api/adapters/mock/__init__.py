@@ -17,7 +17,7 @@ from apps.api.adapters.mock.prediction import MockPrediction
 MOCK_SOURCE = "mock"
 
 
-def build_mock_ports(*, secret: bytes = b"faro-demo-audit-secret") -> Ports:
+def build_mock_ports(*, secret: bytes = b"blubathon-demo-audit-secret") -> Ports:
     return Ports(
         defaults=MockDefaults(secret=secret),
         form=MockForm(),

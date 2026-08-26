@@ -1,7 +1,7 @@
 """Configuración de despliegue (SPEC 12.3).
 
-`FARO_MODE=demo` usa SQLite local, cohorte `demo_fixture` y sesión ficticia
-preseeded. `FARO_MODE=pilot` exige PostgreSQL: SQLite bloquea el arranque.
+`BLUBATHON_MODE=demo` usa SQLite local, cohorte `demo_fixture` y sesión ficticia
+preseeded. `BLUBATHON_MODE=pilot` exige PostgreSQL: SQLite bloquea el arranque.
 """
 
 from __future__ import annotations
@@ -28,12 +28,12 @@ PILOT_URL_SCHEME = PILOT_DATABASE.split(">", 1)[0]
 class Settings:
     mode: DeploymentMode = DeploymentMode.DEMO
     database_url: str = ""
-    db_path: Path = field(default_factory=lambda: _REPOSITORY_ROOT / "data" / "faro.db")
+    db_path: Path = field(default_factory=lambda: _REPOSITORY_ROOT / "data" / "blubathon.db")
     bind_host: str = "127.0.0.1"
     bind_port: int = 8000
     cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
-    audit_secret: bytes = b"faro-demo-audit-secret"
-    scenario_secret: bytes = b"faro-demo-scenario-secret"
+    audit_secret: bytes = b"blubathon-demo-audit-secret"
+    scenario_secret: bytes = b"blubathon-demo-scenario-secret"
 
     @property
     def expose_openapi(self) -> bool:
@@ -68,17 +68,19 @@ def _origins(raw: str | None) -> tuple[str, ...]:
 
 def load_settings(environ: dict[str, str] | None = None) -> Settings:
     env = dict(os.environ if environ is None else environ)
-    mode = DeploymentMode(env.get("FARO_MODE", DeploymentMode.DEMO.value))
-    data_dir = Path(env.get("FARO_DATA_DIR", _REPOSITORY_ROOT / "data"))
+    mode = DeploymentMode(env.get("BLUBATHON_MODE", DeploymentMode.DEMO.value))
+    data_dir = Path(env.get("BLUBATHON_DATA_DIR", _REPOSITORY_ROOT / "data"))
     settings = Settings(
         mode=mode,
-        database_url=env.get("FARO_DATABASE_URL", ""),
-        db_path=Path(env.get("FARO_DB_PATH", data_dir / "faro.db")),
-        bind_host=env.get("FARO_BIND_HOST", "127.0.0.1"),
-        bind_port=int(env.get("FARO_BIND_PORT", "8000")),
-        cors_origins=_origins(env.get("FARO_CORS_ORIGINS")),
-        audit_secret=env.get("FARO_AUDIT_SECRET", "faro-demo-audit-secret").encode(),
-        scenario_secret=env.get("FARO_SCENARIO_SECRET", "faro-demo-scenario-secret").encode(),
+        database_url=env.get("BLUBATHON_DATABASE_URL", ""),
+        db_path=Path(env.get("BLUBATHON_DB_PATH", data_dir / "blubathon.db")),
+        bind_host=env.get("BLUBATHON_BIND_HOST", "127.0.0.1"),
+        bind_port=int(env.get("BLUBATHON_BIND_PORT", "8000")),
+        cors_origins=_origins(env.get("BLUBATHON_CORS_ORIGINS")),
+        audit_secret=env.get("BLUBATHON_AUDIT_SECRET", "blubathon-demo-audit-secret").encode(),
+        scenario_secret=env.get(
+            "BLUBATHON_SCENARIO_SECRET", "blubathon-demo-scenario-secret"
+        ).encode(),
     )
     settings.validate()
     return settings

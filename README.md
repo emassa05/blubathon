@@ -1,221 +1,140 @@
 # Blubathon — backend v0.4.0
 
-Blubathon acompaña el seguimiento diario de un niño o niña: registra
-observaciones (formulario inteligente), estima con qué probabilidad ocurre un
-evento objetivo en la ventana siguiente (modelo predictivo) y, cuando el
-riesgo lo amerita, redacta una recomendación breve apoyada en literatura
-indexada (sistema RAG).
+Backend de seguimiento diario: formulario inteligente → modelo predictivo →
+recomendación RAG. Mono-tenant, sin autenticación/autorización/auditoría.
 
-Blubathon **no** diagnostica, **no** prescribe y **no** reemplaza el criterio
-profesional. Es una demo mono-tenant: no hay autenticación, autorización,
-sesiones de usuario ni auditoría — todo corre bajo un único tenant fijo.
-
-Este documento describe el backend (`apps/api`, `ml`, `rag`,
-`packages/shared`, `tools`). La interfaz visual vive en `apps/mobile` y tiene
-su propia documentación.
+Cubre `apps/api`, `ml`, `rag`, `packages/shared`, `tools`. UI en
+`apps/mobile` (doc aparte).
 
 ---
 
-## 1. Las piezas
+## 1. Piezas
 
-```text
-packages/shared/   el contrato: modelos Pydantic, enums, catálogo de campos,
-                    textos en español y utilidades canónicas. No importa a
-                    nadie.
-ml/                 dominio puro: ml/prediction (modelo), ml/form y
-                    ml/defaults (formulario inteligente). Funciones sobre
-                    filas ya cargadas; no abren la base ni leen el reloj.
-rag/                rag/authoring: BM25, fusión, recuperación, redacción y
-                    verificación de citas. rag/domain: documentos, chunking,
-                    normalización, guardas de texto.
-apps/api/           FastAPI: rutas (apps/api/routes/v1.py), servicios de
-                    aplicación (apps/api/services), store SQLite y
-                    migraciones. Es quien carga filas y llama al dominio.
-tools/               contracts (genera el contrato publicado), seed (datos
-                    ficticios), rag_authoring (construye el índice del
-                    corpus offline).
-```
+| Paquete | Contiene |
+|---|---|
+| `packages/shared/` | Contrato: modelos Pydantic, enums, catálogo de campos, textos ES. No importa a nadie. |
+| `ml/` | Dominio puro. `ml/prediction` (modelo), `ml/form` + `ml/defaults` (formulario). Funciones sobre filas ya cargadas, sin I/O. |
+| `rag/` | `rag/authoring`: BM25, fusión, recuperación, redacción, verificación de citas. `rag/domain`: documentos, chunking, normalización. |
+| `apps/api/` | FastAPI. Rutas en `routes/v1.py`, servicios en `services/`, store SQLite + migraciones. |
+| `tools/` | `contracts` (genera el contrato publicado), `seed` (datos ficticios), `rag_authoring` (build offline del índice). |
 
-`lint-imports` hace cumplir la capa: `apps` puede depender de `ml` y `rag`,
-nadie depende de `apps`, el store no calcula, y solo
-`apps/api/services/recommendations.py` puede alcanzar `rag.authoring` (el
-único lugar del sistema con acceso al LLM).
+`lint-imports`: `apps` depende de `ml`/`rag`, nadie depende de `apps`, el
+store no calcula, y solo `apps/api/services/recommendations.py` importa
+`rag.authoring` (única puerta al LLM).
 
-`apps/api/ports/` declara tres protocolos (`defaults`, `form`, `prediction`)
-que solo describen la forma del resultado. `FARO_P1_ADAPTERS` elige quién los
-implementa (el nombre de la variable es una herencia de nombre interno, no
-afecta al producto):
+`apps/api/ports/` define 3 protocolos (`defaults`, `form`, `prediction`).
+`BLUBATHON_P1_ADAPTERS` elige la implementación:
 
-| Adaptador | Cuándo | Qué hace |
+| Adaptador | Env | Comportamiento |
 |---|---|---|
-| `apps/api/adapters/p1` (`FARO_P1_ADAPTERS=real`) | dominio real | llama a `ml/**` sobre filas de la base |
-| `apps/api/adapters/mock` (por defecto) | tests y demo rápida | responde con fixtures fijas |
+| `apps/api/adapters/p1` | `real` | llama a `ml/**` sobre filas de la base |
+| `apps/api/adapters/mock` | `mock` (default) | fixtures fijas, sin fórmulas |
 
-Todo el sistema corre para un solo tenant fijo (`RequestContext`,
-`apps/api/context.py`); no hay `Authorization`, `Idempotency-Key` ni `ETag` en
-ningún endpoint.
+Un solo tenant fijo (`apps/api/context.py::RequestContext`). Sin
+`Authorization`, `Idempotency-Key`, `ETag`.
 
 ---
 
-## 2. El modelo predictivo (`ml/prediction/`)
+## 2. Modelo predictivo — `ml/prediction/`
 
-Dos tracks, y nunca comparten significado:
+Dos tracks, significados no intercambiables.
 
-### `real_personal_baseline_v1` — el único track visible
-
-Estima la tasa observada del objetivo entre los episodios primarios previos
-del **mismo** sujeto, bajo el mismo `care_mode` y la misma definición de
-objetivo. No es incidencia diaria, no es riesgo poblacional y no depende de
-las respuestas de hoy.
+**`real_personal_baseline_v1`** (único track visible) — tasa observada del
+objetivo entre episodios primarios previos del mismo sujeto, mismo
+`care_mode`, misma definición de objetivo.
 
 ```text
-p | D ~ Beta(1 + e, 1 + n - e)
-p_mean = (1 + e) / (2 + n)
+p | D ~ Beta(1+e, 1+n-e)
+p_mean = (1+e) / (2+n)
 intervalo = [BetaPPF(0.05), BetaPPF(0.95)]
 ```
 
-- `e` = resultados positivos verificados, `n` = resultados verificados totales,
-  sobre una ventana móvil de **60 días** (`BASELINE_WINDOW_DAYS`).
-- Se abstiene (`status=abstained`) si hay **menos de 5** resultados
-  verificados (`BASELINE_MIN_OUTCOMES`), si hay un conflicto sin resolver en
-  la ventana, o si falta el historial de `care_mode`.
-- Código: `ml/prediction/baseline.py::build_personal_baseline`.
+- `e`/`n` = outcomes positivos/totales verificados, ventana móvil 60 días (`BASELINE_WINDOW_DAYS`).
+- Abstiene si `n < 5` (`BASELINE_MIN_OUTCOMES`), conflicto sin resolver en ventana, o falta `care_mode`.
+- `ml/prediction/baseline.py::build_personal_baseline`.
 
-### `real_logit_challenger_v1` — siempre en sombra
+**`real_logit_challenger_v1`** (siempre en sombra, `exposed=False` fijo):
 
 ```text
 logit(p_t) = logit(p_base_t) + b0 + b1·sleep_deviation_t + b2·regulation_deviation_t
 ```
 
-Regresión logística preentrenada, con el baseline como offset de coeficiente
-fijo 1, dos predictores preregistrados (desviación de calidad de sueño y de
-regulación diaria sobre los últimos 30 días) y `lambda` elegido por
-`LeaveOneGroupOut(subject_id)` con Brier fuera de muestra
-(`ml/prediction/challenger.py`). **Nunca se expone**: `exposed=False` está
-fijo en el adaptador, sin condición, así que ninguna corrida de
-entrenamiento cambia ese hecho. Con los datos actuales, además, no hay ambas
-clases en las salidas (`not_trainable_single_class`).
+Offset = baseline (coef. fijo 1), 2 predictores preregistrados (desviación
+sueño/regulación, ventana 30 días), `lambda` por
+`LeaveOneGroupOut(subject_id)` + Brier out-of-fold
+(`ml/prediction/challenger.py`). Con los datos actuales:
+`not_trainable_single_class`.
 
-### De la probabilidad a la respuesta
-
-`risk_band` (usado por el formulario y por RAG, no por el track en sí):
+**`risk_band`** (consumido por formulario y RAG, no por el track):
 
 ```text
-probability is None       → "unknown"
-probability >= 0.5        → "high"
-0.2 <= probability < 0.5  → "medium"
-probability < 0.2         → "low"
+None → unknown | ≥0.5 → high | 0.2–0.5 → medium | <0.2 → low
 ```
 
 ---
 
-## 3. El formulario inteligente (`ml/form/`, `ml/defaults/`)
+## 3. Formulario inteligente — `ml/form/`, `ml/defaults/`
 
-19 campos de observación diaria (`packages/shared/enums.py::FieldCode`):
-sueño, despertares nocturnos, apoyo matutino, estado gastrointestinal,
-adherencia a medicación, cambios de alimentación/rutina, alerta, eventos de
-desregulación, participación en actividades, interacciones sociales,
-asistencia, notas libres, etc.
+19 campos (`FieldCode`): sueño, despertares, apoyo matutino, GI, medicación,
+alimentación/rutina, alerta, desregulación, actividad, social, asistencia,
+notas, etc.
 
-### El orden de las preguntas (`ml/form/plan.py::build_form_plan`)
+**Orden de preguntas** (`ml/form/plan.py::build_form_plan`), 5 bloques:
 
-Seis bloques, en este orden exacto:
+1. Vencidas por antigüedad (≥7 días sin presentarse, `STALENESS_CEILING_DAYS`, o nunca presentadas).
+2. Exploración: 1 día ISO/semana vía `HMAC(secreto, tenant, sujeto, semana, política) mod 7`, campo menos presentado en 60 días.
+3. VoI: mayor información de valor disponible, descendente.
+4. Orden canónico: llena cupos restantes.
+5. Cola: resto de campos aplicables, sin destacar — todo campo sigue accesible.
 
-1. **Vencidas por antigüedad** — todo campo monitoreado sin presentarse hace
-   ≥7 días (`STALENESS_CEILING_DAYS`), o nunca presentado.
-2. **Cupo de exploración** — un día ISO por semana, elegido de forma estable
-   por `HMAC(secreto, tenant, sujeto, semana, versión_política) mod 7`; toma
-   el campo aplicable menos presentado en los últimos 60 días.
-3. **VoI** — mayor información de valor disponible, descendente (ver abajo).
-4. **Orden canónico** — llena los cupos que falten con el orden fijo del
-   catálogo.
-5. **Cola** — el resto de los campos aplicables, sin destacar. Ningún campo
-   queda inaccesible: "destacado" es solo prioridad de atención.
+Cupos destacados: 3 si cobertura < 0.5 (`LOW_COVERAGE_THRESHOLD`), si no 2.
 
-El número de cupos destacados es 3 si la cobertura de datos del sujeto está
-por debajo de 0.5 (`LOW_COVERAGE_THRESHOLD`), si no 2
-(`FORM_HIGHLIGHTED_DEFAULT`/`FORM_HIGHLIGHTED_LOW_COVERAGE`).
+**VoI implementado, no conectado**: `ml/form/voi.py` calcula información
+mutua, pero `POST /v1/children/{id}/form-plan` siempre devuelve
+`voi_status: "unavailable_model"`, `voi_nats: null` — no hay modelo
+condicional que lo alimente. Razón `"voi"` nunca sale en la API; se usa
+`"canonical_order"`.
 
-**VoI está definido pero no conectado**: `ml/form/voi.py` implementa
-información mutua aproximada, pero `POST /v1/children/{id}/form-plan`
-siempre responde `voi_status: "unavailable_model"` y `voi_nats: null` — no
-existe todavía un modelo condicional de outcome que lo alimente. El motivo de
-pregunta `"voi"` nunca aparece en la respuesta pública; se usa
-`"canonical_order"` en su lugar.
+**Defaults** (`ml/defaults/estimator.py`) — 5 campos elegibles
+(`DEFAULT_ALLOWLIST_V1`): `food_changes`, `activity_participation`,
+`social_interactions`, `eating_status`, `attendance_status`.
 
-### Los defaults sugeridos (`ml/defaults/estimator.py`)
+- Binario: `Beta(1+k, 1+N-k)`, ventana 60 días.
+- Categórico/ordinal: `Dirichlet(1+n_j)` sobre soporte cerrado, candidato = `argmax`, empate = sin sugerencia.
+- Umbral: límite inferior del posterior (q=0.05) > `0.70` (`DEFAULT_LOWER_THRESHOLD`).
 
-Solo 5 campos pueden sugerir un valor (`DEFAULT_ALLOWLIST_V1`):
-`food_changes`, `activity_participation`, `social_interactions`,
-`eating_status`, `attendance_status`.
-
-- **Binario**: `Beta(1+k, 1+N-k)` sobre `N` observaciones elegibles en 60
-  días del mismo tenant/sujeto/fuente/campo.
-- **Categórico/ordinal**: `Dirichlet(1 + n_j)` sobre el soporte cerrado; el
-  candidato es el `argmax`; un empate no sugiere nada.
-- Se sugiere solo si el **límite inferior** del 5% del posterior supera
-  **0.70** (`DEFAULT_LOWER_THRESHOLD`) — se muestra el límite conservador, no
-  la media, porque dos historiales con la misma media pueden tener evidencia
-  muy distinta.
-
-### Enviar el formulario (`POST /v1/children/{id}/forms`)
-
-Una respuesta con `interaction: "unknown"` nunca genera una observación (no
-es `null`, no es `false`, no cuenta). Al guardarse: crea o enlaza un episodio
-de predicción, dispara la predicción del baseline, abre un `outcome_request`
-y deja una recomendación en `status="pending"` — el RAG corre después, en
-segundo plano.
+**`POST /v1/children/{id}/forms`**: `interaction: "unknown"` nunca genera
+observación. Al guardar: crea/enlaza episodio, corre baseline, abre
+`outcome_request`, deja recomendación en `pending` (RAG corre después, en
+background).
 
 ---
 
-## 4. El sistema RAG (`rag/`, `apps/api/services/recommendations.py`)
+## 4. Sistema RAG — `rag/`, `apps/api/services/recommendations.py`
 
-Dos mitades con roles distintos.
+**Autoría** (offline, `tools/rag_authoring/cli.py`): documentos versionados
+en texto plano (sin PDF) → chunking → normalización → hash → manifiesto
+reproducible. Solo CLI, nunca HTTP.
 
-### Autoría (offline, `rag/authoring/`, `tools/rag_authoring/cli.py`)
+**Runtime** (online, tras cada envío de formulario):
 
-Construye el índice a partir de documentos versionados en texto plano
-(`.txt`/`.md`, sin extracción de PDF): los divide en chunks
-(`rag/domain/chunking.py`), normaliza el texto, calcula hashes y arma un
-manifiesto reproducible (`rag-build.manifest.json`). Este paso corre por CLI,
-nunca por HTTP.
+1. `query_for()` construye consulta ES desde las respuestas (sin texto libre), prefijo = `risk_band`: `"Riesgo alto. Calidad del sueño : Interrumpido. ..."`.
+2. Recuperación: BM25 puro, modo `lexical_only` (sin recuperador denso configurado). Sin match → `abstained` / `no_indexed_match`.
+3. Redacción (`request_draft`): único punto con acceso a LLM, solo recibe chunks recuperados (sin identidad/notas/texto libre). Sin `draft_transport` configurado (default de esta demo) → `abstained` / `draft_unavailable`.
+4. Verificación de citas (`verify_citation`): cada cita debe ser literal de un chunk recuperado. Si no → `abstained` / `draft_not_grounded`. Ninguna fila `matched` tiene cita no verificada.
+5. Todo verificado → `matched`, se persiste `action_text_es`, `purpose_es`, citas.
 
-### Runtime (online, disparado tras cada envío del formulario)
+**Feedback** (`POST /v1/recommendations/{id}/feedback`, `rating: "bad"`):
+regenera en background excluyendo chunks usados, incrementa `attempt`.
 
-1. **`query_es`** (`apps/api/services/recommendation_query.py::query_for`) —
-   arma una consulta en español a partir de las respuestas (excluyendo texto
-   libre), con el `risk_band` como prefijo:
-   `"Riesgo alto. Calidad del sueño : Interrumpido. ..."`.
-2. **Recuperación** — BM25 léxico puro (`Bm25Index` +
-   `rag/authoring/retrieval.py::retrieve`, modo `lexical_only` en este
-   despliegue: no hay recuperador denso configurado). Sin coincidencias →
-   `status="abstained"`, `abstention_reason="no_indexed_match"`.
-3. **Redacción** (`rag/authoring/drafting.py::request_draft`) — el único
-   punto del sistema donde puede intervenir un LLM, y solo recibe los chunks
-   recuperados: nunca identidad, notas ni texto libre del cuidador. Sin un
-   `draft_transport` configurado (el caso por defecto en esta demo, ver §6),
-   → `abstention_reason="draft_unavailable"`.
-4. **Verificación de citas** (`rag/domain/citations.py::verify_citation`) —
-   cada cita del borrador debe ser una cita **literal** de un chunk
-   recuperado. Si alguna no lo es → `abstention_reason="draft_not_grounded"`.
-   Ninguna fila `status="matched"` existe con una cita no verificada.
-5. Con todo verificado: `status="matched"`, se persisten `action_text_es`,
-   `purpose_es` y las citas.
-
-**Retroalimentación** (`POST /v1/recommendations/{id}/feedback` con
-`rating: "bad"`) dispara una regeneración en segundo plano que excluye los
-chunks ya usados e incrementa `attempt`.
-
-Todo evento (`recommendation.ready`, `recommendation.redrafted`,
-`feedback.recorded`) se publica por `WS /v1/ws` después de que la transacción
-que lo originó hizo commit.
+Eventos (`recommendation.ready`, `recommendation.redrafted`,
+`feedback.recorded`) publicados por `WS /v1/ws` post-commit.
 
 ---
 
 ## 5. API
 
-Prefijo `/v1`. Sin autenticación. Los ejemplos son literales, generados por
-`tools.contracts.examples` a partir del contrato publicado
+Prefijo `/v1`. Sin auth. Ejemplos generados por `tools.contracts.examples`
 (`packages/shared/examples/valid/`).
 
 ### `GET /v1/children`
@@ -264,14 +183,10 @@ Prefijo `/v1`. Sin autenticación. Los ejemplos son literales, generados por
 
 ### `POST /v1/children/{child_id}/form-plan` — sin escritura
 
-Entrada:
-
 ```json
 {"source": "caregiver_daily", "answers": {"sleep_quality": "interrupted"}}
 ```
-
-Salida:
-
+→
 ```json
 {
   "questions": [
@@ -285,8 +200,6 @@ Salida:
 
 ### `POST /v1/children/{child_id}/forms`
 
-Entrada:
-
 ```json
 {
   "source": "caregiver_daily",
@@ -296,10 +209,8 @@ Entrada:
   ]
 }
 ```
-
-Salida (`201`) — `recommendation_instance_id` referencia una fila `pending`
-en el instante de la respuesta; el RAG corre después, en segundo plano:
-
+→ `201`, `recommendation_instance_id` en `pending` en el instante de la
+respuesta (RAG corre async):
 ```json
 {
   "submission_id": "c8d87770-b0c0-51a6-bdd5-f31fad4af9d5",
@@ -310,9 +221,8 @@ en el instante de la respuesta; el RAG corre después, en segundo plano:
 }
 ```
 
-`status` también puede ser `episode_linked` (ya había un episodio primario
-abierto ese día) o `target_definition_unavailable` (fail-closed: no hay una
-única definición de objetivo activa).
+`status` también: `episode_linked` (episodio primario ya abierto ese día),
+`target_definition_unavailable` (fail-closed).
 
 ### `GET /v1/children/{child_id}/recommendations/today`
 
@@ -338,9 +248,7 @@ Sin envío hoy → `{"status": "no_submission_today"}`.
 
 ### `GET /v1/recommendations?status=matched&child_id=...&limit=50`
 
-Cada `item` tiene la forma completa de una recomendación; dos ejemplos, uno
-resuelto y uno abstenido:
-
+Resuelto:
 ```json
 {
   "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
@@ -363,6 +271,7 @@ resuelto y uno abstenido:
 }
 ```
 
+Abstenido:
 ```json
 {
   "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
@@ -378,20 +287,16 @@ resuelto y uno abstenido:
 }
 ```
 
-`abstention_reason` toma `no_indexed_match`, `draft_unavailable` o
-`draft_not_grounded` — ver §4.
+`abstention_reason`: `no_indexed_match` | `draft_unavailable` |
+`draft_not_grounded` (§4).
 
 ### `POST /v1/recommendations/{recommendation_instance_id}/feedback`
-
-Entrada:
 
 ```json
 {"rating": "good", "note_es": null}
 ```
-
-Salida (`201`) — `rating: "bad"` dispara una regeneración en segundo plano;
-`attempt` es el valor antes de que esa regeneración termine:
-
+→ `201`, `rating: "bad"` dispara regeneración async; `attempt` es el valor
+previo a esa regeneración:
 ```json
 {"feedback_id": "8f1e2b7a-2b8e-5c3f-9e1a-4d6f8a2b1c3d", "rating": "good", "attempt": 1}
 ```
@@ -429,15 +334,11 @@ Salida (`201`) — `rating: "bad"` dispara una regeneración en segundo plano;
 
 ### `POST /v1/prediction-episodes/{prediction_episode_id}/outcome-reports`
 
-Entrada (un reporte afirmativo declara cuándo ocurrió; cualquier otro valor,
-nunca):
-
+`occurred_at` solo en reporte `yes`:
 ```json
 {"value": "yes", "occurred_at": "2026-08-26T09:00:00Z"}
 ```
-
-Salida (`201`):
-
+→ `201`:
 ```json
 {
   "report": {
@@ -485,7 +386,7 @@ Salida (`201`):
 
 ### `WS /v1/ws`
 
-Sin autenticación ni filtro por `child_id`. Eventos:
+Sin auth ni filtro por `child_id`.
 
 ```json
 {"type": "recommendation.ready", "child_id": "371c1a87-95e0-5025-9dad-ab57fc9a0b91",
@@ -493,13 +394,11 @@ Sin autenticación ni filtro por `child_id`. Eventos:
  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771", "status": "abstained",
  "abstention_reason": "draft_unavailable", "at": "2026-08-25T19:55:03.000Z"}
 ```
-
 ```json
 {"type": "recommendation.redrafted",
  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
  "attempt": 2, "status": "matched", "at": "2026-08-25T20:10:00.000Z"}
 ```
-
 ```json
 {"type": "feedback.recorded",
  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
@@ -508,60 +407,47 @@ Sin autenticación ni filtro por `child_id`. Eventos:
 
 ---
 
-## 6. Cómo correr el backend
+## 6. Correr el backend
 
 ```bash
-# 1. Sembrar la base local (datos completamente ficticios).
 python -m tools.seed
-
-# 2. Levantar la API.
 uvicorn "apps.api.main:create_app" --factory --host 127.0.0.1 --port 8000
 
-#    Contra el dominio real de ml/ y rag/ en vez de los mocks:
-FARO_P1_ADAPTERS=real uvicorn "apps.api.main:create_app" --factory --port 8000
+# contra el dominio real en vez de mocks:
+BLUBATHON_P1_ADAPTERS=real uvicorn "apps.api.main:create_app" --factory --port 8000
 ```
 
-`GET /health` dice contra qué está corriendo:
-`{"status": "ok", "spec_version": "0.4.0", "mode": "demo", "adapters": "p1"}`.
-La documentación OpenAPI vive en `/docs` y se deshabilita sola en modo piloto
-(`FARO_MODE=pilot`).
+`GET /health` → `{"status": "ok", "spec_version": "0.4.0", "mode": "demo",
+"adapters": "p1"}`. OpenAPI en `/docs`, deshabilitado en modo piloto
+(`BLUBATHON_MODE=pilot`).
 
-Por defecto no hay ningún `draft_transport` conectado, así que toda
-recomendación con chunks indexados abstiene con `draft_unavailable` — el LLM
-de redacción se conecta pasando un `DraftTransport`
-(`rag/authoring/drafting.py`) a `create_app(..., draft_transport=...)`.
+Sin `draft_transport` conectado (default), toda recomendación con chunks
+indexados abstiene con `draft_unavailable`. Se conecta pasando un
+`DraftTransport` (`rag/authoring/drafting.py`) a
+`create_app(..., draft_transport=...)`.
 
-### Variables de entorno
-
-Conservan el prefijo interno `FARO_` (no es el nombre del producto, es un
-identificador de configuración heredado):
-
-| Variable | Por defecto | Para qué |
+| Variable | Default | Efecto |
 |---|---|---|
-| `FARO_MODE` | `demo` | `pilot` exige PostgreSQL y bloquea el arranque sobre SQLite |
-| `FARO_DB_PATH` | `data/faro.db` | Base SQLite local |
-| `FARO_CORS_ORIGINS` | `http://127.0.0.1:3000,http://localhost:3000` | Allowlist explícita |
-| `FARO_P1_ADAPTERS` | `mock` | `real` corre contra `ml/**` y `rag/authoring` |
+| `BLUBATHON_MODE` | `demo` | `pilot` exige PostgreSQL, bloquea arranque sobre SQLite |
+| `BLUBATHON_DB_PATH` | `data/blubathon.db` | Ruta SQLite |
+| `BLUBATHON_CORS_ORIGINS` | `http://127.0.0.1:3000,http://localhost:3000` | Allowlist CORS |
+| `BLUBATHON_P1_ADAPTERS` | `mock` | `real` → `ml/**` + `rag/authoring` |
 
 ---
 
 ## 7. Verificación
 
 ```bash
-# Contrato: nada de generated/ ni examples/ se edita a mano.
 python -m tools.contracts.generate
 python -m tools.contracts.examples
 git diff --exit-code packages/shared/generated packages/shared/examples
 
-# Backend
 ruff check . && ruff format --check .
 lint-imports
 pytest tests -q
 
-# El camino real existe de verdad, no solo el mock.
-FARO_P1_ADAPTERS=real pytest tests/integration -q
+BLUBATHON_P1_ADAPTERS=real pytest tests/integration -q
 ```
 
 `lint-imports` verifica, entre otras cosas, que solo
-`apps/api/services/recommendations.py` alcanza `rag.authoring` — es la única
-puerta al LLM del sistema.
+`apps/api/services/recommendations.py` alcanza `rag.authoring`.
