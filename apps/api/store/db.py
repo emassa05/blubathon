@@ -7,6 +7,7 @@ request: el runner de migraciones corre al arrancar o desde `tools.seed`.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -44,6 +45,14 @@ class Database:
         self._settings = settings
         self._clock = clock
         self._connection = connect(settings.db_path)
+        # La conexión es una sola y se comparte entre hilos
+        # (`check_same_thread=False`): las peticiones síncronas de FastAPI y sus
+        # `BackgroundTasks` corren en el threadpool. Sin serializar, dos hilos
+        # se pisan las fronteras de transacción del otro.
+        self._transaction_lock = threading.RLock()
+        # Qué hilo tiene abierta la transacción de comando, para distinguir
+        # anidar (error del programador) de concurrir (esperar el turno).
+        self._writer: int | None = None
 
     @property
     def connection(self) -> sqlite3.Connection:
@@ -64,28 +73,49 @@ class Database:
         la decisión de oportunidad canónica por `(tenant_id, subject_id)` en la
         demo SQLite (SPEC 4.2). En piloto el equivalente es `SELECT ... FOR UPDATE`
         sobre la fila del sujeto.
+
+        Concurrir no es anidar. Con una sola conexión compartida entre hilos,
+        mirar `in_transaction` confundía las dos cosas: la transacción de otro
+        hilo se leía como anidamiento y reventaba en vez de esperar su turno.
+        Los tramos son cortos —el LLM y la recuperación quedan fuera— así que
+        hacer cola aquí no bloquea nada de forma apreciable.
         """
-        if self._connection.in_transaction:
+        if self._writer == threading.get_ident():
             raise RuntimeError("una transacción de comando no se anida")
-        self._connection.execute("BEGIN IMMEDIATE")
-        try:
-            yield self._connection
-        except Exception:
-            self._connection.rollback()
-            raise
-        self._connection.commit()
+        # Se comprueba el anidamiento **antes** de tomar el lock: reentrar en el
+        # mismo hilo tiene que fallar, no bloquearse contra sí mismo.
+        with self._transaction_lock:
+            self._writer = threading.get_ident()
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                yield self._connection
+            except Exception:
+                self._connection.rollback()
+                raise
+            finally:
+                self._writer = None
+            self._connection.commit()
 
     @contextmanager
     def read(self) -> Iterator[sqlite3.Connection]:
-        """Lectura consistente sin tomar el lock de escritura."""
-        if self._connection.in_transaction:
-            yield self._connection
-            return
-        self._connection.execute("BEGIN")
-        try:
-            yield self._connection
-        finally:
-            self._connection.rollback()
+        """Lectura consistente sin tomar el lock de escritura de SQLite.
+
+        Sí toma el del proceso: la conexión es una y compartida, así que una
+        lectura no puede solaparse con la transacción de otro hilo sin leer
+        estado a medio escribir.
+        """
+        with self._transaction_lock:
+            # Dentro de una transacción ya abierta —una lectura dentro de un
+            # comando, en este mismo hilo— se lee de ella y no se cierra nada:
+            # cerrarla desharía el comando a medias.
+            if self._connection.in_transaction:
+                yield self._connection
+                return
+            self._connection.execute("BEGIN")
+            try:
+                yield self._connection
+            finally:
+                self._connection.rollback()
 
     def close(self) -> None:
         self._connection.close()
