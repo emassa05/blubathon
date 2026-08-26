@@ -315,7 +315,7 @@ const motivoDestacada = computed(() => {
 .campo__titulo {
   font-size: var(--faro-fs-135);
   font-weight: 700;
-  color: var(--faro-verde-titulo);
+  color: var(--faro-marca-titulo);
 }
 
 .campo__hecho {
@@ -323,7 +323,7 @@ const motivoDestacada = computed(() => {
   place-items: center;
   width: var(--faro-icono-16);
   height: var(--faro-icono-16);
-  color: var(--faro-verde-accion);
+  color: var(--faro-marca-accion);
 }
 
 .campo__tilde {
@@ -344,7 +344,7 @@ const motivoDestacada = computed(() => {
   font-weight: 700;
   letter-spacing: var(--faro-track-012);
   text-transform: uppercase;
-  color: var(--faro-verde-accion);
+  color: var(--faro-marca-accion);
 }
 
 .campo__sin-catalogo {
@@ -370,7 +370,7 @@ const motivoDestacada = computed(() => {
   padding: var(--faro-esp-10) var(--faro-esp-16);
   font-size: var(--faro-fs-13);
   font-weight: 600;
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
   background: var(--faro-superficie);
   border: 1px solid var(--faro-linea);
   border-radius: var(--faro-radio-pastilla);
@@ -387,9 +387,9 @@ const motivoDestacada = computed(() => {
 
 .opcion--activa {
   font-weight: 700;
-  color: var(--faro-verde-profundo);
-  background: var(--faro-verde-icono-fondo);
-  border-color: var(--faro-verde-accion);
+  color: var(--faro-marca-profundo);
+  background: var(--faro-marca-icono-fondo);
+  border-color: var(--faro-marca-accion);
   border-width: 2px;
 }
 
@@ -419,7 +419,7 @@ const motivoDestacada = computed(() => {
   min-height: var(--faro-toque);
   font-size: var(--faro-fs-15);
   font-weight: 700;
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
   background: var(--faro-superficie);
   border: 1px solid var(--faro-linea);
   border-radius: var(--faro-radio-14);
@@ -431,9 +431,9 @@ const motivoDestacada = computed(() => {
 }
 
 .escala__punto--activo {
-  color: var(--faro-verde-profundo);
-  background: var(--faro-verde-icono-fondo);
-  border-color: var(--faro-verde-accion);
+  color: var(--faro-marca-profundo);
+  background: var(--faro-marca-icono-fondo);
+  border-color: var(--faro-marca-accion);
   border-width: 2px;
 }
 
@@ -441,7 +441,7 @@ const motivoDestacada = computed(() => {
   margin-top: var(--faro-esp-8);
   font-size: var(--faro-fs-125);
   font-weight: 600;
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
 }
 
 .numero {
@@ -457,7 +457,7 @@ const motivoDestacada = computed(() => {
   place-items: center;
   width: var(--faro-toque);
   height: var(--faro-toque);
-  color: var(--faro-verde-accion);
+  color: var(--faro-marca-accion);
   background: var(--faro-superficie);
   border: 1px solid var(--faro-linea);
   border-radius: 50%;
@@ -491,7 +491,7 @@ const motivoDestacada = computed(() => {
   font: inherit;
   font-size: var(--faro-fs-17);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
   text-align: center;
   background: var(--faro-superficie);
   border: 1px solid var(--faro-linea);
@@ -512,7 +512,7 @@ const motivoDestacada = computed(() => {
   padding: var(--faro-esp-12);
   font: inherit;
   font-size: var(--faro-fs-135);
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
   background: var(--faro-superficie);
   border: 1px solid var(--faro-linea);
   border-radius: var(--faro-radio-14);
@@ -536,20 +536,20 @@ const motivoDestacada = computed(() => {
 .sugerencia {
   margin-top: var(--faro-esp-12);
   padding: var(--faro-esp-12);
-  background: var(--faro-verde-icono-fondo);
-  border: 1px dashed var(--faro-verde-accion);
+  background: var(--faro-marca-icono-fondo);
+  border: 1px dashed var(--faro-marca-accion);
   border-radius: var(--faro-radio-14);
 }
 
 .sugerencia__valor {
   font-size: var(--faro-fs-125);
-  color: var(--faro-verde-titulo);
+  color: var(--faro-marca-titulo);
 }
 
 .sugerencia__ayuda {
   margin-top: var(--faro-esp-4);
   font-size: var(--faro-fs-11);
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
 }
 
 .sugerencia__usar {
@@ -559,7 +559,7 @@ const motivoDestacada = computed(() => {
   font-size: var(--faro-fs-125);
   font-weight: 700;
   color: var(--faro-superficie);
-  background: var(--faro-verde-accion);
+  background: var(--faro-marca-accion);
   border-radius: var(--faro-radio-pastilla);
 }
 

@@ -13,25 +13,37 @@
 :root {
   --faro-fuente: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Paleta de las tarjetas blancas */
-  --faro-verde-profundo: oklch(0.32 0.03 168);
-  --faro-verde-titulo: oklch(0.34 0.02 168);
-  --faro-verde-texto: oklch(0.4 0.02 168);
+  /* Paleta de las tarjetas blancas.
+   *
+   * Azul de marca en 245-250, no verde. El tono se eligió lejos del 235 de la
+   * banda `bajo`: comparten familia, que es lo que hace que la pantalla se vea
+   * de una pieza, pero no se confunden. Y no puede confundirlos el contexto
+   * tampoco: la banda es un lavado grande y pálido en la cabecera, y esto es
+   * texto e iconos sobre tarjeta blanca.
+   *
+   * Se conservan las claridades del verde que había, así que los contrastes no
+   * cambian: cada valor se comprobó contra blanco, `icono-fondo` y
+   * `fila-activa`, y todo lo que es texto pasa AA (4.5:1).
+   */
+  --faro-marca-profundo: oklch(0.32 0.05 245); /* 12.6:1 */
+  --faro-marca-titulo: oklch(0.34 0.042 245); /* 11.7:1 */
+  --faro-marca-texto: oklch(0.4 0.038 245); /* 9.2:1 */
   /* 4.8:1 sobre blanco. El 0.58 de antes se quedaba en 4.26:1 y era el único
      par de la pantalla que no llegaba a AA. */
-  --faro-gris-texto: oklch(0.55 0.015 168);
-  --faro-verde-accion: oklch(0.52 0.08 168);
-  --faro-verde-icono: oklch(0.48 0.08 168);
-  --faro-verde-icono-fondo: oklch(0.94 0.035 162);
-  --faro-punto-activo: oklch(0.68 0.1 162);
-  --faro-punto-inactivo: oklch(0.86 0.02 168);
+  --faro-gris-texto: oklch(0.55 0.022 245); /* 4.8:1 */
+  --faro-marca-accion: oklch(0.52 0.13 250); /* 5.5:1 */
+  --faro-marca-icono: oklch(0.48 0.13 250); /* 6.5:1 */
+  --faro-marca-icono-fondo: oklch(0.94 0.042 245);
+  /* Decorativo, nunca texto: le basta el 3:1 de no-texto y da 3.1:1. */
+  --faro-punto-activo: oklch(0.66 0.13 245);
+  --faro-punto-inactivo: oklch(0.86 0.022 245);
   --faro-alerta-fondo: oklch(0.945 0.04 40);
   --faro-alerta-texto: oklch(0.47 0.12 34);
   --faro-superficie: #fff;
 
   /* Filete entre filas. Separa sin dibujar una caja dentro de otra caja. */
-  --faro-linea: oklch(0.92 0.008 200);
-  --faro-fila-activa: oklch(0.95 0.008 200);
+  --faro-linea: oklch(0.92 0.01 245);
+  --faro-fila-activa: oklch(0.955 0.01 245);
 
   /*
    * El aviso del formulario pendiente. No entra en las bandas a propósito: es
@@ -46,7 +58,15 @@
   --faro-aviso-chevron: oklch(0.55 0.09 48);
 
   /* Color de la página, por debajo y alrededor del panel. */
-  --faro-fondo-final: oklch(0.985 0.004 220);
+  --faro-fondo-final: oklch(0.985 0.006 245);
+
+  /*
+   * El fondo con burbujas. `theme/fondo.ts` sortea una variante y la escribe
+   * aquí al arrancar; este valor es el que se ve si ese script no llegó a
+   * correr, así que es el color plano y no una de las variantes: un fondo
+   * decorativo no puede ser lo que impida que la página se vea.
+   */
+  --faro-fondo-pagina: var(--faro-fondo-final);
 
   /* Superficie translúcida: la pastilla de confianza y la insignia de la
      recomendación. Es el mismo recurso en los dos sitios a propósito. */
@@ -79,7 +99,7 @@
   --faro-foco-grosor: 2px;
   --faro-foco-offset: 2px;
   --faro-foco-panel: var(--faro-tinta);
-  --faro-foco-oscuro: var(--faro-verde-accion);
+  --faro-foco-oscuro: var(--faro-marca-accion);
 
   /* Escala tipográfica en rem sobre una raíz de 16px, para que el zoom de
      texto del navegador siga funcionando. El nombre conserva el valor en px

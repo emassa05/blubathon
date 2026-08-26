@@ -89,7 +89,7 @@ const ICONOS: Record<IconoFactor, Component> = {
 .criticas__titulo {
   font-size: var(--faro-fs-15);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .criticas__cuenta {
@@ -118,8 +118,8 @@ const ICONOS: Record<IconoFactor, Component> = {
   place-items: center;
   width: var(--faro-caja-icono);
   height: var(--faro-caja-icono);
-  color: var(--faro-verde-icono);
-  background: var(--faro-verde-icono-fondo);
+  color: var(--faro-marca-icono);
+  background: var(--faro-marca-icono-fondo);
   border-radius: var(--faro-radio-10);
 }
 
@@ -138,7 +138,7 @@ const ICONOS: Record<IconoFactor, Component> = {
 .critica__campo {
   font-size: var(--faro-fs-135);
   font-weight: 700;
-  color: var(--faro-verde-titulo);
+  color: var(--faro-marca-titulo);
 }
 
 .critica__detalle {

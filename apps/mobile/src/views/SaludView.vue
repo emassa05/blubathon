@@ -133,6 +133,9 @@ defineExpose({ recargar });
   align-items: flex-start;
   justify-content: center;
   min-height: 100dvh;
+  /* Plano a propósito. Las burbujas son de la columna, que es el lienzo de la
+     aplicación; extenderlas a todo el ancho las estiraría hasta desaparecer en
+     una ventana de escritorio. */
   background: var(--faro-fondo-final);
 }
 
@@ -211,7 +214,9 @@ defineExpose({ recargar });
   gap: var(--faro-esp-14);
   padding: calc(var(--faro-esp-14) + var(--faro-cupula)) var(--faro-esp-24) 0;
   margin-top: calc(var(--faro-cupula) * -1);
-  background: var(--faro-fondo-final);
+  /* Las burbujas se dimensionan contra esta caja, así que llenan la columna
+     igual en un teléfono que en una ventana ancha. */
+  background: var(--faro-fondo-pagina);
   border-radius: 50% 50% 0 0 / var(--faro-cupula) var(--faro-cupula) 0 0;
 }
 

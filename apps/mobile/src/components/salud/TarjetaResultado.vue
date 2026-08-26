@@ -108,7 +108,7 @@ const vencimiento = computed(() =>
   font-size: var(--faro-fs-155);
   font-weight: 700;
   line-height: 1.3;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .resultado__anclas {
@@ -163,8 +163,8 @@ const vencimiento = computed(() =>
 }
 
 .resultado__boton--no {
-  color: var(--faro-verde-accion);
-  background: var(--faro-verde-icono-fondo);
+  color: var(--faro-marca-accion);
+  background: var(--faro-marca-icono-fondo);
 }
 
 .resultado__icono {

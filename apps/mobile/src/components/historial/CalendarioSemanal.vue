@@ -124,7 +124,7 @@ function etiquetaCelda(celda: CeldaCalendario): string {
 .dia__numero {
   font-size: var(--faro-fs-155);
   font-weight: 700;
-  color: var(--faro-verde-titulo);
+  color: var(--faro-marca-titulo);
 }
 
 .dia__senales {
@@ -161,17 +161,17 @@ function etiquetaCelda(celda: CeldaCalendario): string {
 }
 
 .dia--hoy {
-  border-color: var(--faro-verde-accion);
+  border-color: var(--faro-marca-accion);
 }
 
 .dia--elegido {
-  background: var(--faro-verde-icono-fondo);
-  border-color: var(--faro-verde-accion);
+  background: var(--faro-marca-icono-fondo);
+  border-color: var(--faro-marca-accion);
   border-width: 2px;
 }
 
 .dia--elegido .dia__numero {
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 @media (min-width: 900px) {

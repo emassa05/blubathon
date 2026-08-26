@@ -218,7 +218,7 @@ async function enviar(): Promise<void> {
   padding-top: var(--faro-esp-14);
   font-size: var(--faro-fs-15);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .grupo__subtitulo {
@@ -237,8 +237,8 @@ async function enviar(): Promise<void> {
   place-items: center;
   width: 56px;
   height: 56px;
-  color: var(--faro-verde-accion);
-  background: var(--faro-verde-icono-fondo);
+  color: var(--faro-marca-accion);
+  background: var(--faro-marca-icono-fondo);
   border-radius: 50%;
 }
 
@@ -251,13 +251,13 @@ async function enviar(): Promise<void> {
   margin-top: var(--faro-esp-14);
   font-size: var(--faro-fs-17);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .hecho__detalle {
   margin-top: var(--faro-esp-6);
   font-size: var(--faro-fs-135);
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
 }
 
 .hecho__criticas {
@@ -279,7 +279,7 @@ async function enviar(): Promise<void> {
 
 .pie__cuenta b {
   font-size: var(--faro-fs-15);
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .pie__error {
@@ -294,7 +294,7 @@ async function enviar(): Promise<void> {
   font-size: var(--faro-fs-135);
   font-weight: 700;
   color: var(--faro-superficie);
-  background: var(--faro-verde-accion);
+  background: var(--faro-marca-accion);
   border-radius: var(--faro-radio-pastilla);
   box-shadow: var(--faro-elev-1);
 }

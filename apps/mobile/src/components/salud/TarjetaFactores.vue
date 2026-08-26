@@ -64,7 +64,7 @@ const ICONOS: Record<IconoFactor, Component> = {
 .factores__titulo {
   font-size: var(--faro-fs-17);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .factores__subtitulo {
@@ -105,9 +105,9 @@ const ICONOS: Record<IconoFactor, Component> = {
   place-items: center;
   width: var(--faro-caja-icono);
   height: var(--faro-caja-icono);
-  background: var(--faro-verde-icono-fondo);
+  background: var(--faro-marca-icono-fondo);
   border-radius: var(--faro-radio-10);
-  color: var(--faro-verde-icono);
+  color: var(--faro-marca-icono);
 }
 
 .factor__glifo {
@@ -126,7 +126,7 @@ const ICONOS: Record<IconoFactor, Component> = {
 .factor__titulo {
   font-size: var(--faro-fs-135);
   font-weight: 700;
-  color: var(--faro-verde-titulo);
+  color: var(--faro-marca-titulo);
 }
 
 .factor__detalle {

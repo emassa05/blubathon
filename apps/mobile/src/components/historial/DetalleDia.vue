@@ -146,7 +146,7 @@ const accion = computed(() =>
 .detalle__titulo {
   font-size: var(--faro-fs-17);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .detalle__estado {
@@ -163,8 +163,8 @@ const accion = computed(() =>
 }
 
 .detalle__estado--respondido {
-  color: var(--faro-verde-accion);
-  background: var(--faro-verde-icono-fondo);
+  color: var(--faro-marca-accion);
+  background: var(--faro-marca-icono-fondo);
 }
 
 /*
@@ -185,7 +185,7 @@ const accion = computed(() =>
 .detalle__cifra {
   font-size: var(--faro-fs-20);
   font-weight: 700;
-  color: var(--faro-texto-fuerte, var(--faro-verde-titulo));
+  color: var(--faro-texto-fuerte, var(--faro-marca-titulo));
 }
 
 .detalle__pie {
@@ -210,7 +210,7 @@ const accion = computed(() =>
 .detalle__hecho {
   padding-block: var(--faro-esp-6);
   font-size: var(--faro-fs-125);
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
 }
 
 .detalle__hecho + .detalle__hecho {

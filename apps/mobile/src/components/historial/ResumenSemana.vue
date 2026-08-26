@@ -65,7 +65,7 @@ const criticas = computed(() =>
 .cifra__dato {
   font-size: var(--faro-fs-20);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .cifra__dato--critica {

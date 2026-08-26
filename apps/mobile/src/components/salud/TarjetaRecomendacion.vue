@@ -83,6 +83,6 @@ const SOBRETITULO = "Recomendación de hoy";
   line-height: 1.4;
   /* El mismo oscuro que los títulos de las otras tarjetas: sobre blanco, lo que
      manda es el sistema, no la banda. */
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 </style>

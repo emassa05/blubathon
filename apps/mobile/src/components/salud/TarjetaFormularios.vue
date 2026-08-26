@@ -69,7 +69,7 @@ function etiquetaFila(registro: RegistroFormulario): string {
 .formularios__titulo {
   font-size: var(--faro-fs-15);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .formularios__accion {
@@ -81,7 +81,7 @@ function etiquetaFila(registro: RegistroFormulario): string {
   margin: calc(var(--faro-esp-14) * -1) calc(var(--faro-esp-10) * -1);
   font-size: var(--faro-fs-13);
   font-weight: 700;
-  color: var(--faro-verde-accion);
+  color: var(--faro-marca-accion);
   border-radius: var(--faro-radio-10);
 }
 
@@ -145,7 +145,7 @@ function etiquetaFila(registro: RegistroFormulario): string {
   min-width: 0;
   font-size: var(--faro-fs-135);
   font-weight: 700;
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
 }
 
 .formulario__estado {

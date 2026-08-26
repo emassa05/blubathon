@@ -52,7 +52,7 @@ defineEmits<{
   flex: 1;
   font-size: var(--faro-fs-155);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
   text-align: center;
 }
 
@@ -66,7 +66,7 @@ defineEmits<{
   min-height: var(--faro-toque);
   font-size: var(--faro-fs-26);
   line-height: 1;
-  color: var(--faro-verde-accion);
+  color: var(--faro-marca-accion);
   border-radius: var(--faro-radio-10);
 }
 

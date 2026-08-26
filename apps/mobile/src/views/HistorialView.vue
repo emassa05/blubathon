@@ -141,7 +141,8 @@ function irASemana(cantidad: number): void {
   padding: calc(var(--faro-esp-18) + env(safe-area-inset-top, 0px)) var(--faro-esp-24)
     calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
   margin-inline: auto;
-  background: var(--faro-fondo-final);
+  /* Las burbujas se dimensionan contra esta caja, igual que en Salud. */
+  background: var(--faro-fondo-pagina);
 }
 
 .historial__cabecera {
@@ -157,7 +158,7 @@ function irASemana(cantidad: number): void {
   width: var(--faro-toque);
   height: var(--faro-toque);
   margin-left: calc(var(--faro-esp-10) * -1);
-  color: var(--faro-verde-accion);
+  color: var(--faro-marca-accion);
   border-radius: 50%;
 }
 
@@ -191,7 +192,7 @@ function irASemana(cantidad: number): void {
 .historial__titulo {
   font-size: var(--faro-fs-20);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .historial__nino {
@@ -199,8 +200,8 @@ function irASemana(cantidad: number): void {
   padding: var(--faro-esp-6) var(--faro-esp-12);
   font-size: var(--faro-fs-125);
   font-weight: 700;
-  color: var(--faro-verde-accion);
-  background: var(--faro-verde-icono-fondo);
+  color: var(--faro-marca-accion);
+  background: var(--faro-marca-icono-fondo);
   border-radius: var(--faro-radio-pastilla);
 }
 

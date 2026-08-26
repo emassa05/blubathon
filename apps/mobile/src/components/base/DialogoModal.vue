@@ -165,7 +165,7 @@ useDialogo(contenedor, () => emitir("cerrar"));
   margin-top: var(--faro-esp-4);
   font-size: var(--faro-fs-17);
   font-weight: 700;
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 
 .dialogo__cerrar {
@@ -175,7 +175,7 @@ useDialogo(contenedor, () => emitir("cerrar"));
   width: var(--faro-toque);
   height: var(--faro-toque);
   margin: calc(var(--faro-esp-10) * -1) calc(var(--faro-esp-6) * -1) 0 0;
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
   border-radius: 50%;
 }
 

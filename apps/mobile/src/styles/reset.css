@@ -16,7 +16,8 @@ html {
   /* La tipografía va en rem: si se toca este tamaño, escala toda la pantalla. */
   font-size: 100%;
   -webkit-text-size-adjust: 100%;
-  /* Lo que asoma al rebotar el desplazamiento, en vez de blanco. */
+  /* Lo que asoma al rebotar el desplazamiento, en vez de blanco. Aquí va el
+     color plano y no las burbujas: esta capa solo se ve fuera del lienzo. */
   background: var(--faro-fondo-final);
 }
 

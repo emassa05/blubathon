@@ -93,13 +93,13 @@ async function alEnviar(): Promise<void> {
   padding: var(--faro-esp-14);
   font-size: var(--faro-fs-135);
   line-height: 1.5;
-  color: var(--faro-verde-texto);
+  color: var(--faro-marca-texto);
   background: var(--faro-superficie);
   border-radius: var(--faro-radio-14);
 }
 
 .sin-api code {
   font-size: var(--faro-fs-125);
-  color: var(--faro-verde-profundo);
+  color: var(--faro-marca-profundo);
 }
 </style>
