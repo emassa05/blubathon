@@ -26,6 +26,8 @@ TENANT_ADMIN_B = _uuid(23)
 SUBJECT_ANA = _uuid(101)
 SUBJECT_BETO = _uuid(102)
 SUBJECT_SIN_GRANT = _uuid(103)
+SUBJECT_REAL = _uuid(104)
+SUBJECT_REAL_B = _uuid(105)
 SUBJECT_TENANT_B = _uuid(201)
 
 TOKENS: dict[str, str] = {
@@ -40,5 +42,6 @@ TOKENS: dict[str, str] = {
 }
 
 TARGET_DEMO_FIXTURE = "target-demo-fixture-0.3.0"
+TARGET_TENANT_A = "target-tenant-a-0.3.0"
 CORPUS_FIXTURE = "corpus-fixture-0.3.0"
 CATALOG_FIXTURE = "catalog-fixture-0.3.0"

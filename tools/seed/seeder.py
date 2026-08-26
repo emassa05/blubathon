@@ -125,8 +125,14 @@ def _seed_identity(connection: sqlite3.Connection, *, moment: str, valid_from: s
     for subject in data.SUBJECTS:
         connection.execute(
             "INSERT OR IGNORE INTO subjects(subject_id, tenant_id, display_label,"
-            " cohort_kind, created_at) VALUES (?, ?, ?, 'demo_fixture', ?)",
-            (subject["subject_id"], subject["tenant_id"], subject["display_label"], moment),
+            " cohort_kind, created_at) VALUES (?, ?, ?, ?, ?)",
+            (
+                subject["subject_id"],
+                subject["tenant_id"],
+                subject["display_label"],
+                subject["cohort_kind"],
+                moment,
+            ),
         )
         connection.execute(
             "INSERT OR IGNORE INTO subject_profiles(subject_profile_id, tenant_id, subject_id,"
@@ -189,16 +195,24 @@ def _seed_identity(connection: sqlite3.Connection, *, moment: str, valid_from: s
 
 
 def _seed_target(connection: sqlite3.Connection, *, moment: str) -> None:
-    target = data.TARGET_DEMO
+    # Dos objetivos, uno por alcance. La cohorte de fixture usa el suyo sin
+    # tenant; un sujeto real exige `scope='tenant'` con el suyo (SPEC 4.3).
+    for target in (data.TARGET_DEMO, data.TARGET_TENANT_A):
+        _insert_target(connection, target=target, moment=moment)
+
+
+def _insert_target(connection: sqlite3.Connection, *, target: dict[str, Any], moment: str) -> None:
     payload = {key: target[key] for key in sorted(target)}
     connection.execute(
         "INSERT OR IGNORE INTO target_definition_versions(target_definition_version, scope,"
         " tenant_id, question_es, severity_anchors_es, eligible_reporter_roles,"
         " eligible_source_mappings, effective_from, retired_at, evidence_basis,"
         " approval_status, clinical_review_id, content_sha256, ingested_at)"
-        " VALUES (?, 'demo_fixture', NULL, ?, ?, ?, ?, ?, NULL, ?, 'active', NULL, ?, ?)",
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, 'active', NULL, ?, ?)",
         (
             target["target_definition_version"],
+            target["scope"],
+            target.get("tenant_id"),
             target["question_es"],
             dump(target["severity_anchors_es"]),
             dump(target["eligible_reporter_roles"]),
