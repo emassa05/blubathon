@@ -1,11 +1,3 @@
-## Qué cambia
-
-<!-- Una o dos frases. Si toca el contrato (`packages/shared`), decilo. -->
-
-## Cómo se probó
-
-<!-- Comandos corridos localmente, o "cubierto por CI". -->
-
 ## Checklist
 
 - [ ] Pasa lint, tests y build (local o CI).
