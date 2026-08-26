@@ -1,0 +1,15 @@
+{
+  "status": "matched",
+  "risk_band": "high",
+  "recommendation_instance_id": "364adb48-2a43-52d6-a324-9236a1ee9771",
+  "action_text_es": "Anticipa la siguiente actividad con una señal breve.",
+  "purpose_es": "Facilitar una transición predecible.",
+  "citations": [
+    {
+      "document_title_es": "Guía ficticia de apoyo",
+      "locator": "p. 4",
+      "quote_es": "Mantener una rutina predecible puede facilitar las transiciones."
+    }
+  ],
+  "rating": null
+}

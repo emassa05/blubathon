@@ -1,7 +1,0 @@
-{
-  "error": {
-    "code": "forbidden",
-    "message_es": "No tienes autorización vigente para esta operación.",
-    "request_id": "d26b9ac7-59e4-43be-bfcc-7b1daca98f10"
-  }
-}

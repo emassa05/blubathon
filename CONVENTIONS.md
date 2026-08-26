@@ -83,8 +83,7 @@ faro/
 │   ├── p1/
 │   ├── p2/
 │   └── integration/
-├── data/
-└── fixtures/
+└── data/
 ```
 
 No se mueve código existente solo por estética. La migración a esta forma ocurre cuando una tarea

@@ -1,31 +1,15 @@
-"""The document, chunk, citation, review and activation domain (SPEC 9.2-9.6)."""
+"""Document, chunk, citation and text-safety domain tests."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import importlib.util
 
 import pytest
 
-from packages.shared.enums import (
-    AccreditationCapability,
-    AuthoringReviewDecision,
-    AuthoringReviewKind,
-    AuthoringReviewObjectType,
-    CatalogStatus,
-    DocumentStatus,
-    FieldCode,
-    StrategyStatus,
-)
-from rag.domain.activation import (
-    catalog_activation_decision,
-    set_activation_decision,
-    set_content_sha256,
-    strategy_activation_decision,
-    strategy_content_sha256,
-    suspended_by_dependency,
-)
+from packages.shared.domain.rag import StrategyCitation
+from packages.shared.enums import DocumentStatus
 from rag.domain.chunking import ChunkPlan, chunk_document, split_paragraphs
-from rag.domain.citations import verify_citation, verify_strategy_citations
+from rag.domain.citations import verify_citation
 from rag.domain.documents import (
     RightsNotDeclaredError,
     build_corpus_version,
@@ -33,7 +17,6 @@ from rag.domain.documents import (
     is_indexable,
 )
 from rag.domain.normalization import normalize_document_text
-from rag.domain.reviews import ReviewLedger, required_capability
 from rag.domain.text_guard import (
     FreeTextLeakError,
     assert_literature_only,
@@ -43,64 +26,22 @@ from rag.domain.text_guard import (
 from tests.p1 import rag_factories as rf
 from tests.p1.factories import ident
 
-EVIDENCE = frozenset({AccreditationCapability.EVIDENCE_REVIEW})
-CLINICAL = frozenset({AccreditationCapability.STRATEGY_REVIEW})
-ACTIVATION = frozenset({AccreditationCapability.CATALOG_ACTIVATION})
+
+def test_curated_runtime_package_no_longer_exists() -> None:
+    assert importlib.util.find_spec("rag.runtime") is None
 
 
-def _ledger(*, reviews, actors):
-    return ReviewLedger(reviews, actors, cutoff=rf.NOW)
-
-
-def _reviewed_strategy(
-    build, *, label="sleep", quote=None, action=None, claim=None, predicate=None
-):
-    """A strategy plus the two distinct approved reviews that activate it."""
-
-    from packages.shared.domain.rag import ScenarioPredicate
-
-    draft = rf.strategy(
-        label,
-        build=build,
-        quote=quote or rf.SLEEP_QUOTE,
-        action_text=action or rf.ACTION_TEXT_SLEEP,
-        claim_text=claim or rf.CLAIM_TEXT_SLEEP,
-        predicate=predicate or ScenarioPredicate(),
-        status=StrategyStatus.CLINICAL_REVIEWED,
+def _citation(build, quote: str = rf.SLEEP_QUOTE) -> StrategyCitation:
+    chunk = rf.chunk_containing(build, quote)
+    return StrategyCitation(
+        citation_id=ident("citation:literal"),
+        claim_id=ident("claim:literal"),
+        document_chunk_id=chunk.document_chunk_id,
+        locator=chunk.locator,
+        quoted_text=quote,
+        chunk_sha256=chunk.chunk_sha256,
+        canonical_url="https://example.invalid/fixtures/quoted",
     )
-    sealed = strategy_content_sha256(draft)
-    evidence = rf.review(
-        f"{label}-evidence",
-        actor_label="evidence-reviewer",
-        object_type=AuthoringReviewObjectType.STRATEGY,
-        object_version_id=draft.strategy_version_id,
-        review_kind=AuthoringReviewKind.EVIDENCE,
-        content_sha256=sealed,
-    )
-    clinical = rf.review(
-        f"{label}-clinical",
-        actor_label="clinical-reviewer",
-        object_type=AuthoringReviewObjectType.STRATEGY,
-        object_version_id=draft.strategy_version_id,
-        review_kind=AuthoringReviewKind.CLINICAL,
-        content_sha256=sealed,
-    )
-    active = rf.strategy(
-        label,
-        build=build,
-        quote=quote or rf.SLEEP_QUOTE,
-        action_text=action or rf.ACTION_TEXT_SLEEP,
-        claim_text=claim or rf.CLAIM_TEXT_SLEEP,
-        predicate=predicate or ScenarioPredicate(),
-        status=StrategyStatus.ACTIVE,
-        evidence_review_id=evidence.authoring_review_id,
-        clinical_review_id=clinical.authoring_review_id,
-    )
-    actors = (
-        rf.accreditation("evidence-reviewer", capabilities=EVIDENCE),
-        rf.accreditation("clinical-reviewer", capabilities=CLINICAL),
-    )
-    return active, (evidence, clinical), actors
 
 
 class TestNormalization:
@@ -109,7 +50,6 @@ class TestNormalization:
         assert composed == "niño\nsueno"
 
     def test_normalisation_does_not_collapse_whitespace(self) -> None:
-        # A citation that needs help to match is not literal (SPEC 9.5).
         assert normalize_document_text("dos  espacios") == "dos  espacios"
 
 
@@ -195,14 +135,15 @@ class TestDocumentRights:
 class TestCitations:
     def test_a_literal_quote_verifies(self) -> None:
         build = rf.fixture_build()
-        strategy, _, _ = _reviewed_strategy(build)
-        results = verify_strategy_citations(strategy, build.chunks)
-        assert all(result.verified for result in results)
+        citation = _citation(build)
+        result = verify_citation(
+            citation, {chunk.document_chunk_id: chunk for chunk in build.chunks}
+        )
+        assert result.verified
 
     def test_a_quote_that_is_not_in_the_chunk_fails(self) -> None:
         build = rf.fixture_build()
-        strategy, _, _ = _reviewed_strategy(build)
-        fabricated = strategy.citations[0].model_copy(
+        fabricated = _citation(build).model_copy(
             update={"quoted_text": "una frase que nadie escribio"}
         )
         result = verify_citation(
@@ -212,246 +153,11 @@ class TestCitations:
 
     def test_a_chunk_whose_hash_changed_fails(self) -> None:
         build = rf.fixture_build()
-        strategy, _, _ = _reviewed_strategy(build)
+        citation = _citation(build)
         chunks = {chunk.document_chunk_id: chunk for chunk in build.chunks}
-        target = chunks[strategy.citations[0].document_chunk_id]
+        target = chunks[citation.document_chunk_id]
         chunks[target.document_chunk_id] = target.model_copy(update={"chunk_sha256": "b" * 64})
-        assert verify_citation(strategy.citations[0], chunks).failure == "chunk_hash_mismatch"
-
-
-class TestReviewLedger:
-    def test_capability_is_never_substituted_between_review_kinds(self) -> None:
-        assert (
-            required_capability(AuthoringReviewObjectType.STRATEGY, AuthoringReviewKind.EVIDENCE)
-            is AccreditationCapability.EVIDENCE_REVIEW
-        )
-        assert (
-            required_capability(AuthoringReviewObjectType.STRATEGY, AuthoringReviewKind.CLINICAL)
-            is AccreditationCapability.STRATEGY_REVIEW
-        )
-
-    def test_a_review_without_the_capability_is_not_a_review(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, _ = _reviewed_strategy(build)
-        unaccredited = (
-            rf.accreditation("evidence-reviewer", capabilities=frozenset()),
-            rf.accreditation("clinical-reviewer", capabilities=CLINICAL),
-        )
-        ledger = _ledger(reviews=reviews, actors=unaccredited)
-        assert (
-            ledger.approved_review(
-                review_id=reviews[0].authoring_review_id,
-                object_type=AuthoringReviewObjectType.STRATEGY,
-                object_version_id=strategy.strategy_version_id,
-                review_kind=AuthoringReviewKind.EVIDENCE,
-                content_sha256=strategy_content_sha256(strategy),
-            )
-            is None
-        )
-
-    def test_a_review_of_another_hash_does_not_apply(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        ledger = _ledger(reviews=reviews, actors=actors)
-        assert (
-            ledger.approved_review(
-                review_id=reviews[0].authoring_review_id,
-                object_type=AuthoringReviewObjectType.STRATEGY,
-                object_version_id=strategy.strategy_version_id,
-                review_kind=AuthoringReviewKind.EVIDENCE,
-                content_sha256="c" * 64,
-            )
-            is None
-        )
-
-    def test_changes_requested_supersedes_an_earlier_approval(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        sealed = strategy_content_sha256(strategy)
-        correction = rf.review(
-            "sleep-evidence-correction",
-            actor_label="evidence-reviewer",
-            object_type=AuthoringReviewObjectType.STRATEGY,
-            object_version_id=strategy.strategy_version_id,
-            review_kind=AuthoringReviewKind.EVIDENCE,
-            content_sha256=sealed,
-            decision=AuthoringReviewDecision.CHANGES_REQUESTED,
-            reviewed_at=datetime(2026, 8, 21, tzinfo=UTC),
-        ).model_copy(update={"supersedes_id": reviews[0].authoring_review_id})
-        ledger = _ledger(reviews=(*reviews, correction), actors=actors)
-        assert (
-            ledger.approved_review(
-                review_id=reviews[0].authoring_review_id,
-                object_type=AuthoringReviewObjectType.STRATEGY,
-                object_version_id=strategy.strategy_version_id,
-                review_kind=AuthoringReviewKind.EVIDENCE,
-                content_sha256=sealed,
-            )
-            is None
-        )
-
-
-class TestActivation:
-    def test_a_fully_reviewed_strategy_activates(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        decision = strategy_activation_decision(
-            strategy,
-            chunks=build.chunks,
-            documents=build.documents,
-            ledger=_ledger(reviews=reviews, actors=actors),
-        )
-        assert decision.approved, decision.blockers
-
-    def test_one_person_cannot_perform_both_reviews(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, _ = _reviewed_strategy(build)
-        same_person = (
-            rf.accreditation("evidence-reviewer", capabilities=EVIDENCE | CLINICAL).model_copy(
-                update={"actor_id": ident("actor:evidence-reviewer")}
-            ),
-        )
-        clinical_by_same_actor = reviews[1].model_copy(
-            update={
-                "actor_id": ident("actor:evidence-reviewer"),
-                "accreditation_id": ident("accreditation:evidence-reviewer"),
-            }
-        )
-        decision = strategy_activation_decision(
-            strategy,
-            chunks=build.chunks,
-            documents=build.documents,
-            ledger=_ledger(reviews=(reviews[0], clinical_by_same_actor), actors=same_person),
-        )
-        assert "reviewers_not_distinct" in decision.blockers
-
-    def test_without_a_clinical_reviewer_activation_is_blocked_by_that_reason(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        no_clinical = strategy.model_copy(update={"clinical_review_id": None})
-        decision = strategy_activation_decision(
-            no_clinical,
-            chunks=build.chunks,
-            documents=build.documents,
-            ledger=_ledger(reviews=(reviews[0],), actors=actors),
-        )
-        assert decision.blockers == ("clinical_review_unavailable",)
-
-    def test_a_fabricated_citation_blocks_activation(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        fabricated = strategy.model_copy(
-            update={
-                "citations": (
-                    strategy.citations[0].model_copy(update={"quoted_text": "cita inventada"}),
-                )
-            }
-        )
-        decision = strategy_activation_decision(
-            fabricated,
-            chunks=build.chunks,
-            documents=build.documents,
-            ledger=_ledger(reviews=reviews, actors=actors),
-        )
-        assert "citation_not_verified" in decision.blockers
-
-    def test_a_retired_source_suspends_its_dependants(self) -> None:
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        withdrawn = tuple(
-            document.model_copy(update={"status": DocumentStatus.WITHDRAWN})
-            for document in build.documents
-        )
-        assert suspended_by_dependency(
-            strategy,
-            chunks={chunk.document_chunk_id: chunk for chunk in build.chunks},
-            documents={document.document_version_id: document for document in withdrawn},
-        )
-        decision = strategy_activation_decision(
-            strategy,
-            chunks=build.chunks,
-            documents=withdrawn,
-            ledger=_ledger(reviews=reviews, actors=actors),
-        )
-        assert "source_retired" in decision.blockers
-
-    def test_a_set_activates_only_when_its_predicate_implies_each_strategy(self) -> None:
-        from packages.shared.domain.rag import ScenarioPredicate
-
-        build = rf.fixture_build()
-        narrow = ScenarioPredicate(required_field_values={FieldCode.ALERTNESS: ("high",)})
-        strategy, reviews, actors = _reviewed_strategy(build, predicate=narrow)
-        loose = rf.recommendation_set(
-            "loose",
-            strategy_version_ids=(strategy.strategy_version_id,),
-            predicate=ScenarioPredicate(),
-            status=CatalogStatus.REVIEWED,
-            clinical_review_id=ident("review:set-clinical"),
-        )
-        set_review = rf.review(
-            "set-clinical",
-            actor_label="clinical-reviewer",
-            object_type=AuthoringReviewObjectType.RECOMMENDATION_SET,
-            object_version_id=loose.recommendation_set_id,
-            review_kind=AuthoringReviewKind.CLINICAL,
-            content_sha256=set_content_sha256(loose),
-        )
-        decision = set_activation_decision(
-            loose,
-            strategies={strategy.strategy_version_id: strategy},
-            ledger=_ledger(reviews=(*reviews, set_review), actors=actors),
-        )
-        assert "predicate_not_implied" in decision.blockers
-
-    def test_a_catalogue_needs_its_own_activation_review(self) -> None:
-        from packages.shared.domain.rag import ScenarioPredicate
-
-        build = rf.fixture_build()
-        strategy, reviews, actors = _reviewed_strategy(build)
-        version = rf.recommendation_set(
-            "primary",
-            strategy_version_ids=(strategy.strategy_version_id,),
-            predicate=ScenarioPredicate(),
-            status=CatalogStatus.ACTIVE,
-            clinical_review_id=ident("review:set-clinical"),
-        )
-        catalog = rf.catalog(
-            "demo",
-            build=build,
-            set_ids=(version.recommendation_set_id,),
-            status=CatalogStatus.DRAFT,
-        )
-        decision = catalog_activation_decision(
-            catalog,
-            sets={version.recommendation_set_id: version},
-            ledger=_ledger(reviews=reviews, actors=actors),
-        )
-        assert "catalog_activation_review_missing" in decision.blockers
-
-        activation = rf.review(
-            "catalog-activation",
-            actor_label="tenant-admin",
-            object_type=AuthoringReviewObjectType.CATALOG,
-            object_version_id=catalog.tenant_id,
-            review_kind=AuthoringReviewKind.CATALOG_ACTIVATION,
-            content_sha256=catalog.content_sha256,
-        )
-        approved = rf.catalog(
-            "demo",
-            build=build,
-            set_ids=(version.recommendation_set_id,),
-            status=CatalogStatus.ACTIVE,
-            activation_review_id=activation.authoring_review_id,
-        )
-        decision = catalog_activation_decision(
-            approved,
-            sets={version.recommendation_set_id: version},
-            ledger=_ledger(
-                reviews=(*reviews, activation),
-                actors=(*actors, rf.accreditation("tenant-admin", capabilities=ACTIVATION)),
-            ),
-        )
-        assert decision.approved, decision.blockers
+        assert verify_citation(citation, chunks).failure == "chunk_hash_mismatch"
 
 
 class TestFreeTextGuard:
@@ -462,10 +168,7 @@ class TestFreeTextGuard:
             (literature("un fragmento", next(iter(authorised))),), authorised=authorised
         )
         with pytest.raises(FreeTextLeakError):
-            assert_literature_only(
-                (rf_note(),),
-                authorised=authorised,
-            )
+            assert_literature_only((_clinical_note(),), authorised=authorised)
 
     def test_an_identifier_in_a_payload_stops_the_build(self) -> None:
         with pytest.raises(FreeTextLeakError):
@@ -475,7 +178,7 @@ class TestFreeTextGuard:
             )
 
 
-def rf_note():
+def _clinical_note():
     from rag.domain.text_guard import TextProvenance
 
     return TextProvenance(text="el nino durmio mal", kind="clinical_free_text")

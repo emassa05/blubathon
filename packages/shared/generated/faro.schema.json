@@ -28,19 +28,6 @@
       "title": "AbstentionBreakdown",
       "type": "object"
     },
-    "AccreditationCapability": {
-      "enum": [
-        "subject_care",
-        "target_review",
-        "strategy_review",
-        "evidence_review",
-        "privacy_review",
-        "catalog_activation",
-        "model_evaluation"
-      ],
-      "title": "AccreditationCapability",
-      "type": "string"
-    },
     "AnswerInteraction": {
       "description": "What the client declares. The server derives `EntryMode` from it.",
       "enum": [
@@ -51,6 +38,57 @@
       ],
       "title": "AnswerInteraction",
       "type": "string"
+    },
+    "AnswerItem": {
+      "additionalProperties": false,
+      "properties": {
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "interaction": {
+          "enum": [
+            "manual",
+            "accept_default",
+            "edit_default",
+            "unknown"
+          ],
+          "title": "Interaction",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "field_code",
+        "interaction"
+      ],
+      "title": "AnswerItem",
+      "type": "object"
     },
     "AnswerSubmission": {
       "additionalProperties": false,
@@ -117,14 +155,6 @@
         "retired"
       ],
       "title": "ApprovalStatus",
-      "type": "string"
-    },
-    "AuthoringBasisType": {
-      "enum": [
-        "consent",
-        "institutional_legal_basis"
-      ],
-      "title": "AuthoringBasisType",
       "type": "string"
     },
     "AuthoringBuildManifest": {
@@ -591,321 +621,6 @@
       "title": "AuthoringReviewObjectType",
       "type": "string"
     },
-    "AuthoringScope": {
-      "enum": [
-        "generalize_query_only"
-      ],
-      "title": "AuthoringScope",
-      "type": "string"
-    },
-    "AuthoringUseAuthorization": {
-      "additionalProperties": false,
-      "description": "Exporting a scenario to authoring needs its own basis; a grant is not one.",
-      "properties": {
-        "approved_at": {
-          "format": "date-time",
-          "title": "Approved At",
-          "type": "string"
-        },
-        "approved_by_privacy_reviewer": {
-          "format": "uuid",
-          "title": "Approved By Privacy Reviewer",
-          "type": "string"
-        },
-        "authoring_request_id": {
-          "format": "uuid",
-          "title": "Authoring Request Id",
-          "type": "string"
-        },
-        "authorization_id": {
-          "format": "uuid",
-          "title": "Authorization Id",
-          "type": "string"
-        },
-        "basis_type": {
-          "$ref": "#/$defs/AuthoringBasisType"
-        },
-        "consent_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Consent Id"
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "legal_basis_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Legal Basis Version"
-        },
-        "revoked_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Revoked At"
-        },
-        "scope": {
-          "$ref": "#/$defs/AuthoringScope",
-          "default": "generalize_query_only"
-        },
-        "status": {
-          "$ref": "#/$defs/AuthorizationStatus"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        },
-        "supersedes_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        },
-        "valid_from": {
-          "format": "date-time",
-          "title": "Valid From",
-          "type": "string"
-        },
-        "valid_until": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Valid Until"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "ingested_at",
-        "valid_from",
-        "status",
-        "authorization_id",
-        "subject_id",
-        "authoring_request_id",
-        "basis_type",
-        "approved_by_privacy_reviewer",
-        "approved_at"
-      ],
-      "title": "AuthoringUseAuthorization",
-      "type": "object"
-    },
-    "AuthorizationContext": {
-      "additionalProperties": false,
-      "description": "The authorisation a service resolved before calling any domain code.\n\nCarried explicitly so a pure function can state what it required, instead of\na route deciding and a formula assuming.",
-      "properties": {
-        "accreditation_capabilities": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/AccreditationCapability"
-          },
-          "title": "Accreditation Capabilities",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "actor_id": {
-          "format": "uuid",
-          "title": "Actor Id",
-          "type": "string"
-        },
-        "deployment_mode": {
-          "$ref": "#/$defs/DeploymentMode"
-        },
-        "evaluated_at": {
-          "format": "date-time",
-          "title": "Evaluated At",
-          "type": "string"
-        },
-        "grant_capabilities": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/GrantCapability"
-          },
-          "title": "Grant Capabilities",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "roles": {
-          "items": {
-            "$ref": "#/$defs/Role"
-          },
-          "title": "Roles",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "subject_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Subject Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "actor_id",
-        "roles",
-        "deployment_mode",
-        "evaluated_at"
-      ],
-      "title": "AuthorizationContext",
-      "type": "object"
-    },
-    "AuthorizationStatus": {
-      "enum": [
-        "active",
-        "revoked",
-        "expired"
-      ],
-      "title": "AuthorizationStatus",
-      "type": "string"
-    },
-    "CatalogStatus": {
-      "description": "Shared by `RecommendationSetVersion` and `CatalogVersion` (SPEC 9.6).",
-      "enum": [
-        "draft",
-        "reviewed",
-        "active",
-        "suspended",
-        "retired"
-      ],
-      "title": "CatalogStatus",
-      "type": "string"
-    },
-    "CatalogVersion": {
-      "additionalProperties": false,
-      "description": "At most one active, effective catalogue per tenant at any instant.",
-      "properties": {
-        "catalog_activation_review_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Catalog Activation Review Id"
-        },
-        "catalog_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Catalog Version",
-          "type": "string"
-        },
-        "content_sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Content Sha256",
-          "type": "string"
-        },
-        "corpus_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Corpus Version",
-          "type": "string"
-        },
-        "effective_from": {
-          "format": "date-time",
-          "title": "Effective From",
-          "type": "string"
-        },
-        "recommendation_set_version_ids": {
-          "items": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Recommendation Set Version Ids",
-          "type": "array"
-        },
-        "status": {
-          "$ref": "#/$defs/CatalogStatus"
-        },
-        "suspended_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Suspended At"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "catalog_version",
-        "tenant_id",
-        "corpus_version",
-        "recommendation_set_version_ids",
-        "status",
-        "effective_from",
-        "content_sha256"
-      ],
-      "title": "CatalogVersion",
-      "type": "object"
-    },
     "ChallengerTrainingProtocolVersion": {
       "additionalProperties": false,
       "description": "Optimiser settings fixed before a run, not per-run flags (SPEC 8.4).",
@@ -968,108 +683,37 @@
       "title": "ChallengerTrainingProtocolVersion",
       "type": "object"
     },
-    "CitationView": {
+    "ChildHistoryDay": {
       "additionalProperties": false,
       "properties": {
-        "canonical_url": {
-          "format": "uri",
-          "minLength": 1,
-          "title": "Canonical Url",
+        "local_date": {
+          "format": "date",
+          "title": "Local Date",
           "type": "string"
         },
-        "citation_id": {
-          "format": "uuid",
-          "title": "Citation Id",
-          "type": "string"
-        },
-        "claim_id": {
-          "format": "uuid",
-          "title": "Claim Id",
-          "type": "string"
-        },
-        "locator": {
-          "minLength": 1,
-          "title": "Locator",
-          "type": "string"
-        },
-        "quoted_text": {
-          "minLength": 1,
-          "title": "Quoted Text",
-          "type": "string"
-        }
-      },
-      "required": [
-        "citation_id",
-        "claim_id",
-        "locator",
-        "quoted_text",
-        "canonical_url"
-      ],
-      "title": "CitationView",
-      "type": "object"
-    },
-    "CohortKind": {
-      "enum": [
-        "real_subject",
-        "demo_fixture"
-      ],
-      "title": "CohortKind",
-      "type": "string"
-    },
-    "Consent": {
-      "additionalProperties": false,
-      "description": "One purpose, one consent. Purposes are never reused across each other.",
-      "properties": {
-        "consent_id": {
-          "format": "uuid",
-          "title": "Consent Id",
-          "type": "string"
-        },
-        "granted_at": {
-          "format": "date-time",
-          "title": "Granted At",
-          "type": "string"
-        },
-        "grantor_actor_id": {
-          "format": "uuid",
-          "title": "Grantor Actor Id",
-          "type": "string"
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "policy_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Policy Version",
-          "type": "string"
-        },
-        "purpose": {
-          "$ref": "#/$defs/ConsentPurpose"
-        },
-        "revoked_at": {
+        "outcome": {
           "anyOf": [
             {
-              "format": "date-time",
-              "type": "string"
+              "$ref": "#/$defs/ChildHistoryOutcome"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Revoked At"
+          "default": null
         },
-        "status": {
-          "$ref": "#/$defs/AuthorizationStatus"
+        "prediction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChildHistoryPrediction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        },
-        "supersedes_id": {
+        "prediction_episode_id": {
           "anyOf": [
             {
               "format": "uuid",
@@ -1080,19 +724,43 @@
             }
           ],
           "default": null,
-          "title": "Supersedes Id"
+          "title": "Prediction Episode Id"
         },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
+        "recommendation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChildHistoryRecommendation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
-        "valid_from": {
-          "format": "date-time",
-          "title": "Valid From",
-          "type": "string"
-        },
-        "valid_until": {
+        "submission_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Submission Id"
+        }
+      },
+      "required": [
+        "local_date"
+      ],
+      "title": "ChildHistoryDay",
+      "type": "object"
+    },
+    "ChildHistoryOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "reported_at": {
           "anyOf": [
             {
               "format": "date-time",
@@ -1103,84 +771,274 @@
             }
           ],
           "default": null,
-          "title": "Valid Until"
+          "title": "Reported At"
+        },
+        "status": {
+          "enum": [
+            "yes",
+            "no",
+            "unknown",
+            "conflicted",
+            "pending"
+          ],
+          "title": "Status",
+          "type": "string"
         }
       },
       "required": [
-        "tenant_id",
-        "ingested_at",
-        "valid_from",
-        "status",
-        "consent_id",
-        "subject_id",
-        "grantor_actor_id",
-        "purpose",
-        "policy_version",
-        "granted_at"
+        "status"
       ],
-      "title": "Consent",
+      "title": "ChildHistoryOutcome",
       "type": "object"
     },
-    "ConsentPurpose": {
-      "description": "Purposes are never substituted for one another (SPEC 13.1).",
-      "enum": [
-        "operational_support",
-        "secondary_model_use",
-        "authoring_generalization"
-      ],
-      "title": "ConsentPurpose",
-      "type": "string"
-    },
-    "ConsentRevocationImpact": {
+    "ChildHistoryPrediction": {
       "additionalProperties": false,
-      "description": "What a revocation does to artifacts that already used the data.\n\nA snapshot stays immutable for audit, but it can no longer feed a new run\n(SPEC 13.2).",
       "properties": {
-        "affects_synthetic_artifacts": {
-          "default": false,
-          "title": "Affects Synthetic Artifacts",
-          "type": "boolean"
+        "interval": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
         },
-        "blocks_new_runs": {
-          "default": true,
-          "title": "Blocks New Runs",
-          "type": "boolean"
+        "probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probability"
         },
-        "detail": {
-          "additionalProperties": true,
-          "title": "Detail",
-          "type": "object"
-        },
-        "keeps_existing_snapshots_immutable": {
-          "default": true,
-          "title": "Keeps Existing Snapshots Immutable",
-          "type": "boolean"
-        },
-        "purpose": {
-          "$ref": "#/$defs/ConsentPurpose"
-        },
-        "revoked_at": {
-          "format": "date-time",
-          "title": "Revoked At",
+        "status": {
+          "enum": [
+            "ok",
+            "abstained"
+          ],
+          "title": "Status",
           "type": "string"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        },
-        "suspends_dependent_real_artifacts": {
-          "default": true,
-          "title": "Suspends Dependent Real Artifacts",
-          "type": "boolean"
         }
       },
       "required": [
-        "subject_id",
-        "revoked_at",
-        "purpose"
+        "status"
       ],
-      "title": "ConsentRevocationImpact",
+      "title": "ChildHistoryPrediction",
       "type": "object"
+    },
+    "ChildHistoryRecommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "matched",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_instance_id",
+        "status"
+      ],
+      "title": "ChildHistoryRecommendation",
+      "type": "object"
+    },
+    "ChildHistoryResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "days": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ChildHistoryDay"
+          },
+          "title": "Days",
+          "type": "array"
+        }
+      },
+      "required": [
+        "child_id"
+      ],
+      "title": "ChildHistoryResponse",
+      "type": "object"
+    },
+    "ChildListItem": {
+      "additionalProperties": false,
+      "properties": {
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "display_label": {
+          "minLength": 1,
+          "title": "Display Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "child_id",
+        "display_label"
+      ],
+      "title": "ChildListItem",
+      "type": "object"
+    },
+    "ChildListResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ChildListItem"
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "title": "ChildListResponse",
+      "type": "object"
+    },
+    "ChildView": {
+      "additionalProperties": false,
+      "properties": {
+        "care_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Care Mode"
+        },
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "communication_support_tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Communication Support Tags",
+          "type": "array"
+        },
+        "contraindication_tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Contraindication Tags",
+          "type": "array"
+        },
+        "display_label": {
+          "minLength": 1,
+          "title": "Display Label",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "profile_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Version"
+        },
+        "sensory_profile_tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensory Profile Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "child_id",
+        "display_label"
+      ],
+      "title": "ChildView",
+      "type": "object"
+    },
+    "CohortKind": {
+      "enum": [
+        "real_subject",
+        "demo_fixture"
+      ],
+      "title": "CohortKind",
+      "type": "string"
     },
     "CorpusVersion": {
       "additionalProperties": false,
@@ -1481,39 +1339,21 @@
     },
     "DefaultSuggestion": {
       "additionalProperties": false,
-      "description": "A suggestion, not a value. The control stays empty until someone acts.",
+      "description": "Stateless default shown by the form plan.",
       "properties": {
-        "candidate_count": {
-          "minimum": 0,
-          "title": "Candidate Count",
-          "type": "integer"
-        },
-        "estimator_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Estimator Version",
+        "basis": {
+          "const": "personal_median",
+          "default": "personal_median",
+          "title": "Basis",
           "type": "string"
         },
-        "lower_bound": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Lower Bound",
-          "type": "number"
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
         },
-        "n_observations": {
+        "sample_size": {
           "minimum": 0,
-          "title": "N Observations",
+          "title": "Sample Size",
           "type": "integer"
-        },
-        "posterior_mean": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Posterior Mean",
-          "type": "number"
-        },
-        "presentation_id": {
-          "format": "uuid",
-          "title": "Presentation Id",
-          "type": "string"
         },
         "value": {
           "anyOf": [
@@ -1537,27 +1377,21 @@
             }
           ],
           "title": "Value"
+        },
+        "window_days": {
+          "minimum": 1,
+          "title": "Window Days",
+          "type": "integer"
         }
       },
       "required": [
-        "presentation_id",
+        "field_code",
         "value",
-        "candidate_count",
-        "posterior_mean",
-        "lower_bound",
-        "n_observations",
-        "estimator_version"
+        "window_days",
+        "sample_size"
       ],
       "title": "DefaultSuggestion",
       "type": "object"
-    },
-    "DeploymentMode": {
-      "enum": [
-        "demo",
-        "pilot"
-      ],
-      "title": "DeploymentMode",
-      "type": "string"
     },
     "DocumentChunk": {
       "additionalProperties": false,
@@ -2046,118 +1880,6 @@
       "title": "EvaluationReportStatus",
       "type": "string"
     },
-    "EvaluationResponse": {
-      "additionalProperties": false,
-      "description": "Every report says which data it came from and what it cannot show.",
-      "properties": {
-        "abstentions": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/AbstentionBreakdown"
-          },
-          "title": "Abstentions",
-          "type": "array"
-        },
-        "data_origin": {
-          "$ref": "#/$defs/DataOrigin"
-        },
-        "dataset_sha256": {
-          "minLength": 1,
-          "title": "Dataset Sha256",
-          "type": "string"
-        },
-        "decision_coverage": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MetricValue"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "group_metrics": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/GroupMetric"
-          },
-          "title": "Group Metrics",
-          "type": "array"
-        },
-        "intended_use": {
-          "$ref": "#/$defs/IntendedUse"
-        },
-        "limitations_es": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Limitations Es",
-          "type": "array"
-        },
-        "metrics": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/MetricValue"
-          },
-          "title": "Metrics",
-          "type": "array"
-        },
-        "model_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Model Version",
-          "type": "string"
-        },
-        "protocol_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Protocol Version",
-          "type": "string"
-        },
-        "source_metrics": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/SourceMetric"
-          },
-          "title": "Source Metrics",
-          "type": "array"
-        },
-        "status": {
-          "$ref": "#/$defs/EvaluationReportStatus"
-        },
-        "target_definition_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Target Definition Version",
-          "type": "string"
-        },
-        "track_id": {
-          "$ref": "#/$defs/TrackId"
-        }
-      },
-      "required": [
-        "model_version",
-        "track_id",
-        "status",
-        "data_origin",
-        "intended_use",
-        "dataset_sha256",
-        "target_definition_version",
-        "protocol_version",
-        "limitations_es"
-      ],
-      "title": "EvaluationResponse",
-      "type": "object"
-    },
-    "ExecutionStatus": {
-      "description": "Approval never proves application (SPEC 10.3).",
-      "enum": [
-        "applied",
-        "not_applied",
-        "unknown"
-      ],
-      "title": "ExecutionStatus",
-      "type": "string"
-    },
     "FeatureSnapshot": {
       "additionalProperties": false,
       "description": "The closed instant a prediction was made from.\n\nIt stores the exact projected IDs so it is never recomputed, and it refuses\nto mix origins: one synthetic row invalidates a real snapshot (SPEC 5.6).",
@@ -2248,6 +1970,67 @@
         "content_sha256"
       ],
       "title": "FeatureSnapshot",
+      "type": "object"
+    },
+    "FeedbackRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "note_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note Es"
+        },
+        "rating": {
+          "enum": [
+            "good",
+            "bad"
+          ],
+          "title": "Rating",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rating"
+      ],
+      "title": "FeedbackRequest",
+      "type": "object"
+    },
+    "FeedbackResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "feedback_id": {
+          "format": "uuid",
+          "title": "Feedback Id",
+          "type": "string"
+        },
+        "rating": {
+          "enum": [
+            "good",
+            "bad"
+          ],
+          "title": "Rating",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feedback_id",
+        "rating",
+        "attempt"
+      ],
+      "title": "FeedbackResponse",
       "type": "object"
     },
     "FieldCode": {
@@ -2427,40 +2210,107 @@
       "title": "FieldObservation",
       "type": "object"
     },
-    "FormAnswerRequest": {
+    "FormPlanRequest": {
       "additionalProperties": false,
-      "description": "The client declares an interaction; the server derives the entry mode.",
       "properties": {
-        "answer": {
-          "$ref": "#/$defs/AnswerSubmission"
+        "answers": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/FieldCode"
+          },
+          "title": "Answers",
+          "type": "object"
+        },
+        "source": {
+          "const": "caregiver_daily",
+          "title": "Source",
+          "type": "string"
         }
       },
       "required": [
-        "answer"
+        "source"
       ],
-      "title": "FormAnswerRequest",
+      "title": "FormPlanRequest",
+      "type": "object"
+    },
+    "FormPlanResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "defaults": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DefaultSuggestion"
+          },
+          "title": "Defaults",
+          "type": "array"
+        },
+        "questions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FormQuestion"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "voi_status": {
+          "const": "unavailable_model",
+          "default": "unavailable_model",
+          "title": "Voi Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "coverage"
+      ],
+      "title": "FormPlanResponse",
       "type": "object"
     },
     "FormQuestion": {
       "additionalProperties": false,
-      "description": "One field in the plan, with why it is there and what it may suggest.",
+      "description": "One field in the stateless plan.",
       "properties": {
-        "default": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DefaultSuggestion"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "field_code": {
           "$ref": "#/$defs/FieldCode"
         },
+        "highlighted": {
+          "title": "Highlighted",
+          "type": "boolean"
+        },
         "reason": {
-          "$ref": "#/$defs/QuestionReason"
+          "enum": [
+            "staleness",
+            "exploration",
+            "canonical_order"
+          ],
+          "title": "Reason",
+          "type": "string"
         },
         "voi_nats": {
           "anyOf": [
@@ -2478,6 +2328,7 @@
       },
       "required": [
         "field_code",
+        "highlighted",
         "reason"
       ],
       "title": "FormQuestion",
@@ -2585,30 +2436,6 @@
       "title": "FormSession",
       "type": "object"
     },
-    "FormSessionCreateRequest": {
-      "additionalProperties": false,
-      "description": "Audit mode, timestamps and policy version are the server's to decide.",
-      "properties": {
-        "session_kind": {
-          "$ref": "#/$defs/FormSessionKind"
-        },
-        "source": {
-          "$ref": "#/$defs/Source"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "subject_id",
-        "source",
-        "session_kind"
-      ],
-      "title": "FormSessionCreateRequest",
-      "type": "object"
-    },
     "FormSessionKind": {
       "description": "A professional observation session shows no defaults (SPEC 5.5).",
       "enum": [
@@ -2617,84 +2444,6 @@
       ],
       "title": "FormSessionKind",
       "type": "string"
-    },
-    "FormSessionResponse": {
-      "additionalProperties": false,
-      "description": "The session envelope of SPEC 11.3, recalculated after every answer.",
-      "properties": {
-        "audit_mode": {
-          "title": "Audit Mode",
-          "type": "boolean"
-        },
-        "data_quality": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DataQuality"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "form_policy_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Form Policy Version",
-          "type": "string"
-        },
-        "form_session_id": {
-          "format": "uuid",
-          "title": "Form Session Id",
-          "type": "string"
-        },
-        "highlighted": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/FormQuestion"
-          },
-          "title": "Highlighted",
-          "type": "array"
-        },
-        "opened_at": {
-          "format": "date-time",
-          "title": "Opened At",
-          "type": "string"
-        },
-        "session_kind": {
-          "$ref": "#/$defs/FormSessionKind"
-        },
-        "source": {
-          "$ref": "#/$defs/Source"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        },
-        "tail": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/FormQuestion"
-          },
-          "title": "Tail",
-          "type": "array"
-        },
-        "voi_status": {
-          "$ref": "#/$defs/VoiStatus"
-        }
-      },
-      "required": [
-        "form_session_id",
-        "subject_id",
-        "source",
-        "session_kind",
-        "opened_at",
-        "audit_mode",
-        "form_policy_version",
-        "voi_status"
-      ],
-      "title": "FormSessionResponse",
-      "type": "object"
     },
     "FormSessionStatus": {
       "enum": [
@@ -2706,16 +2455,39 @@
       "title": "FormSessionStatus",
       "type": "string"
     },
-    "FormSubmitResponse": {
+    "FormSubmissionRequest": {
       "additionalProperties": false,
-      "description": "Only `episode_created` creates a snapshot, outputs and an outcome request.",
       "properties": {
-        "form_session_id": {
-          "format": "uuid",
-          "title": "Form Session Id",
+        "answers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AnswerItem"
+          },
+          "title": "Answers",
+          "type": "array"
+        },
+        "local_date": {
+          "format": "date",
+          "title": "Local Date",
           "type": "string"
         },
-        "linked_prediction_episode_id": {
+        "source": {
+          "const": "caregiver_daily",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "local_date"
+      ],
+      "title": "FormSubmissionRequest",
+      "type": "object"
+    },
+    "FormSubmissionResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome_request_id": {
           "anyOf": [
             {
               "format": "uuid",
@@ -2726,7 +2498,7 @@
             }
           ],
           "default": null,
-          "title": "Linked Prediction Episode Id"
+          "title": "Outcome Request Id"
         },
         "prediction_episode_id": {
           "anyOf": [
@@ -2741,35 +2513,34 @@
           "default": null,
           "title": "Prediction Episode Id"
         },
+        "recommendation_instance_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommendation Instance Id"
+        },
         "status": {
           "$ref": "#/$defs/SubmitStatus"
         },
-        "submitted_at": {
-          "format": "date-time",
-          "title": "Submitted At",
+        "submission_id": {
+          "format": "uuid",
+          "title": "Submission Id",
           "type": "string"
         }
       },
       "required": [
-        "form_session_id",
-        "status",
-        "submitted_at"
+        "submission_id",
+        "status"
       ],
-      "title": "FormSubmitResponse",
+      "title": "FormSubmissionResponse",
       "type": "object"
-    },
-    "GrantCapability": {
-      "enum": [
-        "subject_read",
-        "daily_observation_write",
-        "form_submit",
-        "outcome_report",
-        "recommendation_review",
-        "execution_record",
-        "evaluation_read"
-      ],
-      "title": "GrantCapability",
-      "type": "string"
     },
     "GroupMetric": {
       "additionalProperties": false,
@@ -2820,172 +2591,6 @@
         "suppressed"
       ],
       "title": "GroupMetric",
-      "type": "object"
-    },
-    "HumanPlanItem": {
-      "additionalProperties": false,
-      "description": "A human plan never inherits the RAG citations (SPEC 10.2).",
-      "properties": {
-        "action_text_es": {
-          "minLength": 1,
-          "title": "Action Text Es",
-          "type": "string"
-        },
-        "citations": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/CitationView"
-          },
-          "title": "Citations",
-          "type": "array"
-        },
-        "human_plan_version_id": {
-          "format": "uuid",
-          "title": "Human Plan Version Id",
-          "type": "string"
-        },
-        "item_type": {
-          "const": "human_plan",
-          "default": "human_plan",
-          "title": "Item Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "human_plan_version_id",
-        "action_text_es"
-      ],
-      "title": "HumanPlanItem",
-      "type": "object"
-    },
-    "HumanPlanVersion": {
-      "additionalProperties": false,
-      "description": "A professional's substitution. It never inherits the RAG citations.",
-      "properties": {
-        "action_text_es": {
-          "minLength": 1,
-          "title": "Action Text Es",
-          "type": "string"
-        },
-        "allowed_executor_roles": {
-          "items": {
-            "$ref": "#/$defs/Role"
-          },
-          "title": "Allowed Executor Roles",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "author_actor_id": {
-          "format": "uuid",
-          "title": "Author Actor Id",
-          "type": "string"
-        },
-        "authored_at": {
-          "format": "date-time",
-          "title": "Authored At",
-          "type": "string"
-        },
-        "content_sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Content Sha256",
-          "type": "string"
-        },
-        "human_plan_version_id": {
-          "format": "uuid",
-          "title": "Human Plan Version Id",
-          "type": "string"
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "plan_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Plan Version",
-          "type": "string"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "substituted_strategy_version_id": {
-          "format": "uuid",
-          "title": "Substituted Strategy Version Id",
-          "type": "string"
-        },
-        "supersedes_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "ingested_at",
-        "human_plan_version_id",
-        "recommendation_instance_id",
-        "substituted_strategy_version_id",
-        "action_text_es",
-        "author_actor_id",
-        "authored_at",
-        "plan_version",
-        "allowed_executor_roles",
-        "content_sha256"
-      ],
-      "title": "HumanPlanVersion",
-      "type": "object"
-    },
-    "IdempotencyScope": {
-      "additionalProperties": false,
-      "description": "`(tenant, actor, method, concrete path, key)` (SPEC 11.2).\n\nThe concrete path includes every normalised ID, so the same key on two\ndifferent resources can never replay one another's response.",
-      "properties": {
-        "actor_id": {
-          "format": "uuid",
-          "title": "Actor Id",
-          "type": "string"
-        },
-        "idempotency_key": {
-          "minLength": 1,
-          "title": "Idempotency Key",
-          "type": "string"
-        },
-        "method": {
-          "title": "Method",
-          "type": "string"
-        },
-        "normalized_concrete_path": {
-          "title": "Normalized Concrete Path",
-          "type": "string"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "actor_id",
-        "method",
-        "normalized_concrete_path",
-        "idempotency_key"
-      ],
-      "title": "IdempotencyScope",
       "type": "object"
     },
     "IntakeChannel": {
@@ -3203,13 +2808,6 @@
       "title": "ModelVersion",
       "type": "object"
     },
-    "NonActionableReason": {
-      "enum": [
-        "dependency_suspended"
-      ],
-      "title": "NonActionableReason",
-      "type": "string"
-    },
     "NotTrainableReason": {
       "enum": [
         "not_trainable_single_class",
@@ -3220,35 +2818,17 @@
       "title": "NotTrainableReason",
       "type": "string"
     },
-    "OperationRequirement": {
+    "NotificationEvent": {
       "additionalProperties": false,
-      "description": "One row of the SPEC 13.1 minimum operation matrix.",
       "properties": {
-        "accreditation_capability": {
+        "abstention_reason": {
           "anyOf": [
             {
-              "$ref": "#/$defs/AccreditationCapability"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "allowed_roles": {
-          "items": {
-            "$ref": "#/$defs/Role"
-          },
-          "title": "Allowed Roles",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "grant_capability": {
-          "$ref": "#/$defs/GrantCapability"
-        },
-        "note": {
-          "anyOf": [
-            {
+              "enum": [
+                "no_indexed_match",
+                "draft_unavailable",
+                "draft_not_grounded"
+              ],
               "type": "string"
             },
             {
@@ -3256,19 +2836,105 @@
             }
           ],
           "default": null,
-          "title": "Note"
+          "title": "Abstention Reason"
         },
-        "operation": {
-          "title": "Operation",
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "attempt": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attempt"
+        },
+        "child_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Id"
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "matched",
+                "abstained"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "type": {
+          "enum": [
+            "recommendation.ready",
+            "recommendation.redrafted",
+            "feedback.recorded"
+          ],
+          "title": "Type",
           "type": "string"
         }
       },
       "required": [
-        "operation",
-        "allowed_roles",
-        "grant_capability"
+        "type",
+        "recommendation_instance_id",
+        "at"
       ],
-      "title": "OperationRequirement",
+      "title": "NotificationEvent",
       "type": "object"
     },
     "OutcomeAdjudication": {
@@ -4457,110 +4123,6 @@
       "title": "PredictionStatus",
       "type": "string"
     },
-    "ProfessionalAccreditation": {
-      "additionalProperties": false,
-      "description": "Organisational accreditation. Implementing the system never grants it.",
-      "properties": {
-        "accreditation_id": {
-          "format": "uuid",
-          "title": "Accreditation Id",
-          "type": "string"
-        },
-        "actor_id": {
-          "format": "uuid",
-          "title": "Actor Id",
-          "type": "string"
-        },
-        "capabilities": {
-          "items": {
-            "$ref": "#/$defs/AccreditationCapability"
-          },
-          "title": "Capabilities",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "credential_policy_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Credential Policy Version",
-          "type": "string"
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "issuer_actor_id": {
-          "format": "uuid",
-          "title": "Issuer Actor Id",
-          "type": "string"
-        },
-        "revoked_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Revoked At"
-        },
-        "status": {
-          "$ref": "#/$defs/AuthorizationStatus"
-        },
-        "supersedes_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        },
-        "valid_from": {
-          "format": "date-time",
-          "title": "Valid From",
-          "type": "string"
-        },
-        "valid_until": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Valid Until"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "ingested_at",
-        "valid_from",
-        "status",
-        "accreditation_id",
-        "actor_id",
-        "capabilities",
-        "credential_policy_version",
-        "issuer_actor_id"
-      ],
-      "title": "ProfessionalAccreditation",
-      "type": "object"
-    },
     "QuestionPresentation": {
       "additionalProperties": false,
       "description": "Proof that a field was highlighted, which is what \"asked\" means.\n\nAppearing in the tail is not being asked and does not reset the clock.",
@@ -4687,7 +4249,192 @@
       "title": "RecommendationAbstentionReason",
       "type": "string"
     },
-    "RecommendationInboxResponse": {
+    "RecommendationCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "document_title_es": {
+          "minLength": 1,
+          "title": "Document Title Es",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "quote_es": {
+          "minLength": 1,
+          "title": "Quote Es",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_title_es",
+        "locator",
+        "quote_es"
+      ],
+      "title": "RecommendationCitation",
+      "type": "object"
+    },
+    "RecommendationInstanceView": {
+      "additionalProperties": false,
+      "properties": {
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_indexed_match",
+                "draft_unavailable",
+                "draft_not_grounded"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        },
+        "action_text_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Text Es"
+        },
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "child_label": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Label"
+        },
+        "citations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationCitation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "local_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Date"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "purpose_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose Es"
+        },
+        "query_es": {
+          "title": "Query Es",
+          "type": "string"
+        },
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "risk_band": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "unknown"
+          ],
+          "title": "Risk Band",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "matched",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_instance_id",
+        "child_id",
+        "prediction_episode_id",
+        "created_at",
+        "risk_band",
+        "query_es",
+        "status",
+        "attempt"
+      ],
+      "title": "RecommendationInstanceView",
+      "type": "object"
+    },
+    "RecommendationListResponse": {
       "additionalProperties": false,
       "properties": {
         "items": {
@@ -4699,538 +4446,7 @@
           "type": "array"
         }
       },
-      "title": "RecommendationInboxResponse",
-      "type": "object"
-    },
-    "RecommendationInstance": {
-      "additionalProperties": false,
-      "description": "Written once, when the episode is created. Later GETs only read it.",
-      "properties": {
-        "abstention_reasons": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/RecommendationAbstentionReason"
-          },
-          "title": "Abstention Reasons",
-          "type": "array"
-        },
-        "catalog_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Catalog Version"
-        },
-        "corpus_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Corpus Version"
-        },
-        "created_at": {
-          "format": "date-time",
-          "title": "Created At",
-          "type": "string"
-        },
-        "non_actionable": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/NonActionableReason"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "prediction_episode_id": {
-          "format": "uuid",
-          "title": "Prediction Episode Id",
-          "type": "string"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "runtime_status": {
-          "$ref": "#/$defs/RuntimeStatus"
-        },
-        "scenario_hash": {
-          "minLength": 1,
-          "title": "Scenario Hash",
-          "type": "string"
-        },
-        "strategy_version_ids": {
-          "default": [],
-          "items": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "title": "Strategy Version Ids",
-          "type": "array"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "recommendation_instance_id",
-        "tenant_id",
-        "subject_id",
-        "prediction_episode_id",
-        "scenario_hash",
-        "runtime_status",
-        "created_at"
-      ],
-      "title": "RecommendationInstance",
-      "type": "object"
-    },
-    "RecommendationInstanceView": {
-      "additionalProperties": false,
-      "description": "One row of the professional inbox, filtered in SQL by tenant and grant.",
-      "properties": {
-        "catalog_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Catalog Version"
-        },
-        "corpus_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Corpus Version"
-        },
-        "created_at": {
-          "format": "date-time",
-          "title": "Created At",
-          "type": "string"
-        },
-        "prediction_episode_id": {
-          "format": "uuid",
-          "title": "Prediction Episode Id",
-          "type": "string"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "review_status": {
-          "$ref": "#/$defs/ReviewStatus"
-        },
-        "scenario_hash": {
-          "minLength": 1,
-          "title": "Scenario Hash",
-          "type": "string"
-        },
-        "strategy_version_ids": {
-          "default": [],
-          "items": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "title": "Strategy Version Ids",
-          "type": "array"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "recommendation_instance_id",
-        "prediction_episode_id",
-        "subject_id",
-        "scenario_hash",
-        "review_status",
-        "created_at"
-      ],
-      "title": "RecommendationInstanceView",
-      "type": "object"
-    },
-    "RecommendationResponse": {
-      "additionalProperties": false,
-      "description": "Matched, abstained, or waiting for a professional. Never a raw draft.",
-      "properties": {
-        "catalog_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Catalog Version"
-        },
-        "corpus_version": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Corpus Version"
-        },
-        "items": {
-          "default": [],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/StrategyItem"
-              },
-              {
-                "$ref": "#/$defs/HumanPlanItem"
-              }
-            ]
-          },
-          "title": "Items",
-          "type": "array"
-        },
-        "reasons": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/RecommendationAbstentionReason"
-          },
-          "title": "Reasons",
-          "type": "array"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/$defs/RecommendationResponseStatus"
-        }
-      },
-      "required": [
-        "status",
-        "recommendation_instance_id"
-      ],
-      "title": "RecommendationResponse",
-      "type": "object"
-    },
-    "RecommendationResponseStatus": {
-      "description": "What the caller sees; `awaiting_professional_review` hides pending items.",
-      "enum": [
-        "matched",
-        "abstained",
-        "awaiting_professional_review"
-      ],
-      "title": "RecommendationResponseStatus",
-      "type": "string"
-    },
-    "RecommendationReview": {
-      "additionalProperties": false,
-      "description": "One decision about exactly one strategy version, never a whole set.",
-      "properties": {
-        "decision": {
-          "$ref": "#/$defs/ReviewDecision"
-        },
-        "human_plan_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Human Plan Version Id"
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "review_id": {
-          "format": "uuid",
-          "title": "Review Id",
-          "type": "string"
-        },
-        "reviewed_at": {
-          "format": "date-time",
-          "title": "Reviewed At",
-          "type": "string"
-        },
-        "reviewed_by": {
-          "format": "uuid",
-          "title": "Reviewed By",
-          "type": "string"
-        },
-        "reviewer_role": {
-          "$ref": "#/$defs/Role"
-        },
-        "strategy_version_id": {
-          "format": "uuid",
-          "title": "Strategy Version Id",
-          "type": "string"
-        },
-        "supersedes_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "ingested_at",
-        "review_id",
-        "recommendation_instance_id",
-        "strategy_version_id",
-        "decision",
-        "reviewed_by",
-        "reviewer_role",
-        "reviewed_at"
-      ],
-      "title": "RecommendationReview",
-      "type": "object"
-    },
-    "RecommendationReviewRequest": {
-      "additionalProperties": false,
-      "description": "One decision, one strategy version. Substitution carries its plan text.",
-      "properties": {
-        "decision": {
-          "$ref": "#/$defs/ReviewDecision"
-        },
-        "human_plan_action_text_es": {
-          "anyOf": [
-            {
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Human Plan Action Text Es"
-        },
-        "human_plan_allowed_executor_roles": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/Role"
-              },
-              "type": "array",
-              "uniqueItems": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Human Plan Allowed Executor Roles"
-        },
-        "strategy_version_id": {
-          "format": "uuid",
-          "title": "Strategy Version Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "strategy_version_id",
-        "decision"
-      ],
-      "title": "RecommendationReviewRequest",
-      "type": "object"
-    },
-    "RecommendationReviewResponse": {
-      "additionalProperties": false,
-      "properties": {
-        "decision": {
-          "$ref": "#/$defs/ReviewDecision"
-        },
-        "human_plan_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Human Plan Version Id"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "review_id": {
-          "format": "uuid",
-          "title": "Review Id",
-          "type": "string"
-        },
-        "reviewed_at": {
-          "format": "date-time",
-          "title": "Reviewed At",
-          "type": "string"
-        },
-        "strategy_version_id": {
-          "format": "uuid",
-          "title": "Strategy Version Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "review_id",
-        "recommendation_instance_id",
-        "strategy_version_id",
-        "decision",
-        "reviewed_at"
-      ],
-      "title": "RecommendationReviewResponse",
-      "type": "object"
-    },
-    "RecommendationSetVersion": {
-      "additionalProperties": false,
-      "description": "An ordered, reviewed set of strategies with its own predicate.",
-      "properties": {
-        "applicability_predicate": {
-          "$ref": "#/$defs/ScenarioPredicate"
-        },
-        "clinical_review_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Clinical Review Id"
-        },
-        "content_sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Content Sha256",
-          "type": "string"
-        },
-        "effective_from": {
-          "format": "date-time",
-          "title": "Effective From",
-          "type": "string"
-        },
-        "ordered_strategy_version_ids": {
-          "items": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Ordered Strategy Version Ids",
-          "type": "array"
-        },
-        "recommendation_set_id": {
-          "format": "uuid",
-          "title": "Recommendation Set Id",
-          "type": "string"
-        },
-        "recommendation_set_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Recommendation Set Version",
-          "type": "string"
-        },
-        "reviewed_priority": {
-          "minimum": 0,
-          "title": "Reviewed Priority",
-          "type": "integer"
-        },
-        "status": {
-          "$ref": "#/$defs/CatalogStatus"
-        },
-        "suspended_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Suspended At"
-        }
-      },
-      "required": [
-        "recommendation_set_id",
-        "recommendation_set_version",
-        "applicability_predicate",
-        "ordered_strategy_version_ids",
-        "reviewed_priority",
-        "status",
-        "effective_from",
-        "content_sha256"
-      ],
-      "title": "RecommendationSetVersion",
+      "title": "RecommendationListResponse",
       "type": "object"
     },
     "ReleaseManifest": {
@@ -5295,30 +4511,6 @@
         "lexical_only"
       ],
       "title": "RetrievalMode",
-      "type": "string"
-    },
-    "ReviewDecision": {
-      "enum": [
-        "approved",
-        "rejected",
-        "human_plan_substituted",
-        "not_applicable",
-        "deferred"
-      ],
-      "title": "ReviewDecision",
-      "type": "string"
-    },
-    "ReviewStatus": {
-      "description": "Absence of an active review means pending; it is never stored (SPEC 10.1).",
-      "enum": [
-        "pending",
-        "approved",
-        "rejected",
-        "human_plan_substituted",
-        "not_applicable",
-        "deferred"
-      ],
-      "title": "ReviewStatus",
       "type": "string"
     },
     "Role": {
@@ -5542,80 +4734,6 @@
         "builder_version"
       ],
       "title": "ScenarioBuildResult",
-      "type": "object"
-    },
-    "ScenarioPredicate": {
-      "additionalProperties": false,
-      "description": "Fail-closed applicability. Used unchanged by sets and strategies.",
-      "properties": {
-        "contraindication_tags": {
-          "default": [],
-          "items": {
-            "maxLength": 64,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "type": "string"
-          },
-          "title": "Contraindication Tags",
-          "type": "array"
-        },
-        "excluded_context_tags": {
-          "default": [],
-          "items": {
-            "maxLength": 64,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "type": "string"
-          },
-          "title": "Excluded Context Tags",
-          "type": "array"
-        },
-        "excluded_field_values": {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "propertyNames": {
-            "$ref": "#/$defs/FieldCode"
-          },
-          "title": "Excluded Field Values",
-          "type": "object"
-        },
-        "required_context_tags": {
-          "default": [],
-          "items": {
-            "maxLength": 64,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "type": "string"
-          },
-          "title": "Required Context Tags",
-          "type": "array"
-        },
-        "required_field_values": {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "propertyNames": {
-            "$ref": "#/$defs/FieldCode"
-          },
-          "title": "Required Field Values",
-          "type": "object"
-        },
-        "required_profile_tags": {
-          "default": [],
-          "items": {
-            "maxLength": 96,
-            "pattern": "^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$",
-            "type": "string"
-          },
-          "title": "Required Profile Tags",
-          "type": "array"
-        }
-      },
-      "title": "ScenarioPredicate",
       "type": "object"
     },
     "ScenarioV1": {
@@ -5846,390 +4964,6 @@
       "title": "StrategyClaim",
       "type": "object"
     },
-    "StrategyExecution": {
-      "additionalProperties": false,
-      "description": "Whether it was applied, recorded separately from whether it was approved.",
-      "properties": {
-        "actor_id": {
-          "format": "uuid",
-          "title": "Actor Id",
-          "type": "string"
-        },
-        "actor_role": {
-          "$ref": "#/$defs/Role"
-        },
-        "applied_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Applied At"
-        },
-        "human_plan_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Human Plan Version Id"
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "recorded_at": {
-          "format": "date-time",
-          "title": "Recorded At",
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/$defs/ExecutionStatus"
-        },
-        "strategy_execution_id": {
-          "format": "uuid",
-          "title": "Strategy Execution Id",
-          "type": "string"
-        },
-        "strategy_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Strategy Version Id"
-        },
-        "supersedes_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "ingested_at",
-        "strategy_execution_id",
-        "recommendation_instance_id",
-        "status",
-        "actor_id",
-        "actor_role",
-        "recorded_at"
-      ],
-      "title": "StrategyExecution",
-      "type": "object"
-    },
-    "StrategyExecutionRequest": {
-      "additionalProperties": false,
-      "description": "Applied, not applied or unknown, for exactly one strategy or plan.",
-      "properties": {
-        "applied_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Applied At"
-        },
-        "human_plan_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Human Plan Version Id"
-        },
-        "status": {
-          "$ref": "#/$defs/ExecutionStatus"
-        },
-        "strategy_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Strategy Version Id"
-        }
-      },
-      "required": [
-        "status"
-      ],
-      "title": "StrategyExecutionRequest",
-      "type": "object"
-    },
-    "StrategyExecutionResponse": {
-      "additionalProperties": false,
-      "properties": {
-        "applied_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Applied At"
-        },
-        "recommendation_instance_id": {
-          "format": "uuid",
-          "title": "Recommendation Instance Id",
-          "type": "string"
-        },
-        "recorded_at": {
-          "format": "date-time",
-          "title": "Recorded At",
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/$defs/ExecutionStatus"
-        },
-        "strategy_execution_id": {
-          "format": "uuid",
-          "title": "Strategy Execution Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "strategy_execution_id",
-        "recommendation_instance_id",
-        "status",
-        "recorded_at"
-      ],
-      "title": "StrategyExecutionResponse",
-      "type": "object"
-    },
-    "StrategyItem": {
-      "additionalProperties": false,
-      "properties": {
-        "action_text_es": {
-          "minLength": 1,
-          "title": "Action Text Es",
-          "type": "string"
-        },
-        "citations": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/CitationView"
-          },
-          "title": "Citations",
-          "type": "array"
-        },
-        "item_type": {
-          "const": "strategy",
-          "default": "strategy",
-          "title": "Item Type",
-          "type": "string"
-        },
-        "review_status": {
-          "$ref": "#/$defs/ReviewStatus"
-        },
-        "strategy_version_id": {
-          "format": "uuid",
-          "title": "Strategy Version Id",
-          "type": "string"
-        }
-      },
-      "required": [
-        "strategy_version_id",
-        "review_status",
-        "action_text_es"
-      ],
-      "title": "StrategyItem",
-      "type": "object"
-    },
-    "StrategyStatus": {
-      "enum": [
-        "draft",
-        "evidence_reviewed",
-        "clinical_reviewed",
-        "active",
-        "suspended",
-        "retired"
-      ],
-      "title": "StrategyStatus",
-      "type": "string"
-    },
-    "StrategyVersion": {
-      "additionalProperties": false,
-      "description": "Runtime serves `action_text_es` verbatim; it never recomposes text.",
-      "properties": {
-        "action_text_es": {
-          "minLength": 1,
-          "title": "Action Text Es",
-          "type": "string"
-        },
-        "allowed_executor_roles": {
-          "items": {
-            "$ref": "#/$defs/Role"
-          },
-          "title": "Allowed Executor Roles",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "applicability_predicate": {
-          "$ref": "#/$defs/ScenarioPredicate"
-        },
-        "citations": {
-          "items": {
-            "$ref": "#/$defs/StrategyCitation"
-          },
-          "minItems": 1,
-          "title": "Citations",
-          "type": "array"
-        },
-        "claims": {
-          "items": {
-            "$ref": "#/$defs/StrategyClaim"
-          },
-          "minItems": 1,
-          "title": "Claims",
-          "type": "array"
-        },
-        "clinical_review_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Clinical Review Id"
-        },
-        "content_sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Content Sha256",
-          "type": "string"
-        },
-        "corpus_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Corpus Version",
-          "type": "string"
-        },
-        "effective_from": {
-          "format": "date-time",
-          "title": "Effective From",
-          "type": "string"
-        },
-        "evidence_review_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Evidence Review Id"
-        },
-        "purpose_es": {
-          "minLength": 1,
-          "title": "Purpose Es",
-          "type": "string"
-        },
-        "required_approver_role": {
-          "$ref": "#/$defs/Role"
-        },
-        "status": {
-          "$ref": "#/$defs/StrategyStatus"
-        },
-        "strategy_id": {
-          "format": "uuid",
-          "title": "Strategy Id",
-          "type": "string"
-        },
-        "strategy_version_id": {
-          "format": "uuid",
-          "title": "Strategy Version Id",
-          "type": "string"
-        },
-        "supersedes_version_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Version Id"
-        }
-      },
-      "required": [
-        "strategy_id",
-        "strategy_version_id",
-        "purpose_es",
-        "action_text_es",
-        "claims",
-        "citations",
-        "applicability_predicate",
-        "required_approver_role",
-        "allowed_executor_roles",
-        "corpus_version",
-        "effective_from",
-        "status",
-        "content_sha256"
-      ],
-      "title": "StrategyVersion",
-      "type": "object"
-    },
     "Subject": {
       "additionalProperties": false,
       "description": "Cohort membership decides which tracks may ever see this subject.",
@@ -6254,110 +4988,6 @@
         "cohort_kind"
       ],
       "title": "Subject",
-      "type": "object"
-    },
-    "SubjectAccessGrant": {
-      "additionalProperties": false,
-      "description": "Per-subject authorisation. Belonging to a tenant grants nothing.",
-      "properties": {
-        "actor_id": {
-          "format": "uuid",
-          "title": "Actor Id",
-          "type": "string"
-        },
-        "capabilities": {
-          "items": {
-            "$ref": "#/$defs/GrantCapability"
-          },
-          "title": "Capabilities",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "ingested_at": {
-          "format": "date-time",
-          "title": "Ingested At",
-          "type": "string"
-        },
-        "issuer_actor_id": {
-          "format": "uuid",
-          "title": "Issuer Actor Id",
-          "type": "string"
-        },
-        "revoked_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Revoked At"
-        },
-        "status": {
-          "$ref": "#/$defs/AuthorizationStatus"
-        },
-        "subject_access_grant_id": {
-          "format": "uuid",
-          "title": "Subject Access Grant Id",
-          "type": "string"
-        },
-        "subject_id": {
-          "format": "uuid",
-          "title": "Subject Id",
-          "type": "string"
-        },
-        "supersedes_id": {
-          "anyOf": [
-            {
-              "format": "uuid",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Supersedes Id"
-        },
-        "tenant_id": {
-          "format": "uuid",
-          "title": "Tenant Id",
-          "type": "string"
-        },
-        "valid_from": {
-          "format": "date-time",
-          "title": "Valid From",
-          "type": "string"
-        },
-        "valid_until": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Valid Until"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "ingested_at",
-        "valid_from",
-        "status",
-        "subject_access_grant_id",
-        "subject_id",
-        "actor_id",
-        "capabilities",
-        "issuer_actor_id"
-      ],
-      "title": "SubjectAccessGrant",
       "type": "object"
     },
     "SubjectProfile": {
@@ -6657,6 +5287,124 @@
       "title": "TimingStatus",
       "type": "string"
     },
+    "TodayRecommendationResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_indexed_match",
+                "draft_unavailable",
+                "draft_not_grounded"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        },
+        "action_text_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Text Es"
+        },
+        "citations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationCitation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "purpose_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose Es"
+        },
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommendation Instance Id"
+        },
+        "risk_band": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Risk Band"
+        },
+        "status": {
+          "enum": [
+            "no_submission_today",
+            "pending",
+            "matched",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TodayRecommendationResponse",
+      "type": "object"
+    },
     "TrackId": {
       "enum": [
         "synthetic_reference_v021",
@@ -6875,11 +5623,11 @@
       "type": "string"
     }
   },
-  "$id": "https://faro.local/schema/faro-contract-0.3.0.json",
+  "$id": "https://faro.local/schema/faro-contract-0.4.0.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Generated by `python -m tools.contracts.generate`. Do not edit by hand.",
   "title": "Faro contract",
-  "x-faro-contract-version": "faro-contract-0.3.0",
+  "x-faro-contract-version": "faro-contract-0.4.0",
   "x-faro-published-models": [
     "AbstentionBreakdown",
     "AnswerSubmission",
@@ -6887,13 +5635,11 @@
     "AuthoringRequest",
     "AuthoringRequestIntent",
     "AuthoringReview",
-    "AuthoringUseAuthorization",
-    "AuthorizationContext",
-    "CatalogVersion",
     "ChallengerTrainingProtocolVersion",
-    "CitationView",
-    "Consent",
-    "ConsentRevocationImpact",
+    "ChildHistoryDay",
+    "ChildHistoryResponse",
+    "ChildListResponse",
+    "ChildView",
     "CorpusVersion",
     "DataQuality",
     "DatasetSnapshot",
@@ -6905,22 +5651,20 @@
     "ErrorResponse",
     "EvaluationProtocolVersion",
     "EvaluationReport",
-    "EvaluationResponse",
     "FeatureSnapshot",
+    "FeedbackRequest",
+    "FeedbackResponse",
     "FieldObservation",
-    "FormAnswerRequest",
+    "FormPlanRequest",
+    "FormPlanResponse",
     "FormQuestion",
     "FormSession",
-    "FormSessionCreateRequest",
-    "FormSessionResponse",
-    "FormSubmitResponse",
+    "FormSubmissionRequest",
+    "FormSubmissionResponse",
     "GroupMetric",
-    "HumanPlanItem",
-    "HumanPlanVersion",
-    "IdempotencyScope",
     "MetricValue",
     "ModelVersion",
-    "OperationRequirement",
+    "NotificationEvent",
     "OutcomeAdjudication",
     "OutcomeReport",
     "OutcomeReportRequest",
@@ -6936,38 +5680,25 @@
     "PredictionEpisodeResponse",
     "PredictionOutput",
     "PredictionOutputView",
-    "ProfessionalAccreditation",
     "QuestionPresentation",
-    "RecommendationInboxResponse",
-    "RecommendationInstance",
     "RecommendationInstanceView",
-    "RecommendationResponse",
-    "RecommendationReview",
-    "RecommendationReviewRequest",
-    "RecommendationReviewResponse",
-    "RecommendationSetVersion",
+    "RecommendationListResponse",
     "ReleaseManifest",
     "RuntimeDecision",
     "RuntimeStrategyMatch",
     "ScenarioBuildResult",
-    "ScenarioPredicate",
     "ScenarioV1",
     "SourceMapping",
     "SourceMetric",
     "StrategyCitation",
     "StrategyClaim",
-    "StrategyExecution",
-    "StrategyExecutionRequest",
-    "StrategyExecutionResponse",
-    "StrategyItem",
-    "StrategyVersion",
     "Subject",
-    "SubjectAccessGrant",
     "SubjectProfile",
     "TargetDefinitionVersion",
     "TargetSelection",
+    "TodayRecommendationResponse",
     "TrainingRun",
     "VoiEstimate"
   ],
-  "x-faro-spec-version": "0.3.0"
+  "x-faro-spec-version": "0.4.0"
 }

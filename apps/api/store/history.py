@@ -113,18 +113,6 @@ def resolutions_for_episodes(
     )
 
 
-def active_consent_subject_ids(
-    connection: sqlite3.Connection, *, tenant_id: str, purpose: str, cutoff: str
-) -> tuple[str, ...]:
-    rows = connection.execute(
-        "SELECT subject_id FROM consents WHERE tenant_id = ? AND purpose = ?"
-        " AND status = 'active' AND granted_at <= ?"
-        " AND (revoked_at IS NULL OR revoked_at > ?)",
-        (tenant_id, purpose, cutoff, cutoff),
-    ).fetchall()
-    return tuple(str(row["subject_id"]) for row in rows)
-
-
 def shadow_model_version(
     connection: sqlite3.Connection, *, tenant_id: str, track_id: str
 ) -> sqlite3.Row | None:
@@ -136,56 +124,33 @@ def shadow_model_version(
     ).fetchone()
 
 
-def catalog_version_row(
-    connection: sqlite3.Connection, *, tenant_id: str, catalog_version: str
-) -> sqlite3.Row | None:
-    return connection.execute(
-        "SELECT * FROM catalog_versions WHERE tenant_id = ? AND catalog_version = ?",
-        (tenant_id, catalog_version),
-    ).fetchone()
-
-
-def recommendation_set_rows(
-    connection: sqlite3.Connection, *, recommendation_set_version_ids: tuple[str, ...]
+def child_submission_days(
+    connection: sqlite3.Connection,
+    *,
+    tenant_id: str,
+    subject_id: str,
+    limit: int,
 ) -> list[sqlite3.Row]:
-    if not recommendation_set_version_ids:
-        return []
-    placeholders = ",".join("?" for _ in recommendation_set_version_ids)
     return list(
         connection.execute(
-            "SELECT * FROM recommendation_set_versions"
-            f" WHERE recommendation_set_version_id IN ({placeholders})",
-            recommendation_set_version_ids,
-        ).fetchall()
-    )
-
-
-def strategy_version_rows(
-    connection: sqlite3.Connection, *, strategy_version_ids: tuple[str, ...]
-) -> list[sqlite3.Row]:
-    if not strategy_version_ids:
-        return []
-    placeholders = ",".join("?" for _ in strategy_version_ids)
-    return list(
-        connection.execute(
-            f"SELECT * FROM strategy_versions WHERE strategy_version_id IN ({placeholders})",
-            strategy_version_ids,
-        ).fetchall()
-    )
-
-
-def citations_for_strategies(
-    connection: sqlite3.Connection, *, strategy_version_ids: tuple[str, ...]
-) -> list[sqlite3.Row]:
-    if not strategy_version_ids:
-        return []
-    placeholders = ",".join("?" for _ in strategy_version_ids)
-    return list(
-        connection.execute(
-            "SELECT c.*, k.chunk_sha256 FROM strategy_citations AS c"
-            " JOIN document_chunks AS k ON k.document_chunk_id = c.document_chunk_id"
-            f" WHERE c.strategy_version_id IN ({placeholders})"
-            " ORDER BY c.strategy_version_id, c.citation_id",
-            strategy_version_ids,
+            "SELECT f.local_date, f.form_session_id AS submission_id,"
+            " e.prediction_episode_id, p.status AS prediction_status, p.probability,"
+            " p.interval_low, p.interval_high, i.recommendation_instance_id,"
+            " i.status AS recommendation_status, r.status AS outcome_status,"
+            " r.resolved_at AS outcome_reported_at"
+            " FROM form_sessions AS f"
+            " LEFT JOIN prediction_episodes AS e ON e.form_session_id = f.form_session_id"
+            " LEFT JOIN prediction_outputs AS p"
+            "  ON p.prediction_episode_id = e.prediction_episode_id"
+            "  AND p.track_id = 'real_personal_baseline_v1'"
+            " LEFT JOIN recommendation_instances AS i"
+            "  ON i.prediction_episode_id = e.prediction_episode_id"
+            " LEFT JOIN outcome_resolutions AS r"
+            "  ON r.prediction_episode_id = e.prediction_episode_id"
+            "  AND NOT EXISTS (SELECT 1 FROM outcome_resolutions AS newer"
+            "                  WHERE newer.supersedes_id = r.outcome_resolution_id)"
+            " WHERE f.tenant_id = ? AND f.subject_id = ? AND f.status = 'submitted'"
+            " ORDER BY f.local_date DESC, f.submitted_at DESC LIMIT ?",
+            (tenant_id, subject_id, limit),
         ).fetchall()
     )

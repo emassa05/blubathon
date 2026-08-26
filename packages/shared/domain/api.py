@@ -1,4 +1,4 @@
-"""Request and response contracts for the eleven v0.3 routes (SPEC 11).
+"""Request and response contracts for the Faro HTTP API.
 
 Every response has an explicit model; no route returns a bare dictionary. An
 abstention is HTTP 200 with its own envelope, never the error envelope, and the
@@ -7,6 +7,7 @@ error envelope never carries clinical payload.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Literal, Self
 from uuid import UUID
 
@@ -47,7 +48,6 @@ from packages.shared.enums import (
     OutcomeResolutionStatus,
     PredictionAbstentionReason,
     PredictionStatus,
-    QuestionReason,
     RecommendationAbstentionReason,
     RecommendationItemType,
     RecommendationResponseStatus,
@@ -76,29 +76,97 @@ class ErrorResponse(FaroModel):
 
 
 class DefaultSuggestion(FaroModel):
-    """A suggestion, not a value. The control stays empty until someone acts."""
+    """Stateless default shown by the form plan."""
 
-    presentation_id: UUID
+    field_code: FieldCode
     value: FieldValue
-    candidate_count: int = Field(ge=0)
-    posterior_mean: Probability
-    lower_bound: Probability
-    n_observations: int = Field(ge=0)
-    estimator_version: VersionLabel
+    basis: Literal["personal_median"] = "personal_median"
+    window_days: int = Field(ge=1)
+    sample_size: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _value_is_legal(self) -> Self:
+        validate_field_value(self.field_code, self.value)
+        return self
 
 
 class FormQuestion(FaroModel):
-    """One field in the plan, with why it is there and what it may suggest."""
+    """One field in the stateless plan."""
 
     field_code: FieldCode
-    reason: QuestionReason
+    highlighted: bool
+    reason: Literal["staleness", "exploration", "canonical_order"]
     voi_nats: NonNegativeFloat | None = None
-    default: DefaultSuggestion | None = None
+
+
+class AnswerItem(FaroModel):
+    field_code: FieldCode
+    value: FieldValue | None = None
+    interaction: Literal["manual", "accept_default", "edit_default", "unknown"]
 
     @model_validator(mode="after")
-    def _suggested_value_is_legal(self) -> Self:
-        if self.default is not None:
-            validate_field_value(self.field_code, self.default.value)
+    def _interaction_matches_value(self) -> Self:
+        if self.interaction == "unknown":
+            if self.value is not None:
+                raise ValueError("unknown assigns no value")
+        elif self.value is None:
+            raise ValueError("a known answer carries a value")
+        else:
+            validate_field_value(self.field_code, self.value)
+        return self
+
+
+class FormPlanRequest(FaroModel):
+    source: Literal["caregiver_daily"]
+    answers: dict[FieldCode, FieldValue] = Field(default_factory=dict)
+
+
+class FormPlanResponse(FaroModel):
+    questions: tuple[FormQuestion, ...] = ()
+    defaults: tuple[DefaultSuggestion, ...] = ()
+    voi_status: Literal["unavailable_model"] = "unavailable_model"
+    coverage: Probability
+
+
+class FormSubmissionRequest(FaroModel):
+    source: Literal["caregiver_daily"]
+    local_date: date
+    answers: tuple[AnswerItem, ...] = ()
+
+
+class FormSubmissionResponse(FaroModel):
+    submission_id: UUID
+    status: SubmitStatus
+    prediction_episode_id: UUID | None = None
+    recommendation_instance_id: UUID | None = None
+    outcome_request_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def _status_matches_references(self) -> Self:
+        if self.status is SubmitStatus.EPISODE_CREATED:
+            if any(
+                value is None
+                for value in (
+                    self.prediction_episode_id,
+                    self.recommendation_instance_id,
+                    self.outcome_request_id,
+                )
+            ):
+                raise ValueError("episode_created returns every created resource")
+        elif self.status is SubmitStatus.EPISODE_LINKED:
+            if self.prediction_episode_id is None:
+                raise ValueError("episode_linked names the open episode")
+            if self.recommendation_instance_id is not None or self.outcome_request_id is not None:
+                raise ValueError("episode_linked creates no recommendation or outcome request")
+        elif any(
+            value is not None
+            for value in (
+                self.prediction_episode_id,
+                self.recommendation_instance_id,
+                self.outcome_request_id,
+            )
+        ):
+            raise ValueError("target_definition_unavailable creates nothing")
         return self
 
 
@@ -351,6 +419,63 @@ class OutcomeReportResponse(FaroModel):
     resolution: OutcomeResolutionView
 
 
+class ChildListItem(FaroModel):
+    child_id: UUID
+    display_label: SpanishText
+
+
+class ChildListResponse(FaroModel):
+    children: tuple[ChildListItem, ...] = ()
+
+
+class ChildView(FaroModel):
+    child_id: UUID
+    display_label: SpanishText
+    sensory_profile_tags: tuple[str, ...] = ()
+    communication_support_tags: tuple[str, ...] = ()
+    contraindication_tags: tuple[str, ...] = ()
+    care_mode: str | None = None
+    profile_version: VersionLabel | None = None
+    prediction_episode_id: UUID | None = None
+
+
+class ChildHistoryPrediction(FaroModel):
+    status: Literal["ok", "abstained"]
+    probability: Probability | None = None
+    interval: tuple[Probability, Probability] | None = None
+
+
+class ChildHistoryRecommendation(FaroModel):
+    recommendation_instance_id: UUID
+    status: Literal["pending", "matched", "abstained"]
+    rating: Literal["good", "bad"] | None = None
+
+
+class ChildHistoryOutcome(FaroModel):
+    status: Literal["yes", "no", "unknown", "conflicted", "pending"]
+    reported_at: UtcDatetime | None = None
+
+
+class ChildHistoryDay(FaroModel):
+    local_date: date
+    submission_id: UUID | None = None
+    prediction_episode_id: UUID | None = None
+    prediction: ChildHistoryPrediction | None = None
+    recommendation: ChildHistoryRecommendation | None = None
+    outcome: ChildHistoryOutcome | None = None
+
+
+class ChildHistoryResponse(FaroModel):
+    child_id: UUID
+    days: tuple[ChildHistoryDay, ...] = ()
+
+
+class RecommendationCitation(FaroModel):
+    document_title_es: SpanishText
+    locator: str = Field(min_length=1)
+    quote_es: str = Field(min_length=1)
+
+
 class CitationView(FaroModel):
     citation_id: UUID
     claim_id: UUID
@@ -411,17 +536,86 @@ class RecommendationResponse(FaroModel):
 
 
 class RecommendationInstanceView(FaroModel):
-    """One row of the professional inbox, filtered in SQL by tenant and grant."""
-
     recommendation_instance_id: UUID
+    child_id: UUID
+    child_label: SpanishText | None = None
     prediction_episode_id: UUID
-    subject_id: UUID
-    scenario_hash: str = Field(min_length=1)
-    catalog_version: VersionLabel | None = None
-    corpus_version: VersionLabel | None = None
-    strategy_version_ids: tuple[UUID, ...] = ()
-    review_status: ReviewStatus
+    local_date: date | None = None
     created_at: UtcDatetime
+    risk_band: Literal["low", "medium", "high", "unknown"]
+    query_es: str
+    status: Literal["pending", "matched", "abstained"]
+    action_text_es: SpanishText | None = None
+    purpose_es: SpanishText | None = None
+    citations: tuple[RecommendationCitation, ...] = ()
+    abstention_reason: (
+        Literal["no_indexed_match", "draft_unavailable", "draft_not_grounded"] | None
+    ) = None
+    attempt: int = Field(ge=1)
+    rating: Literal["good", "bad"] | None = None
+
+    @model_validator(mode="after")
+    def _status_matches_content(self) -> Self:
+        if self.status == "pending":
+            if self.action_text_es is not None or self.purpose_es is not None:
+                raise ValueError("pending has no draft")
+            if self.citations or self.abstention_reason is not None:
+                raise ValueError("pending has no citations or abstention")
+        elif self.status == "matched":
+            if self.action_text_es is None or self.purpose_es is None:
+                raise ValueError("matched carries its draft")
+            if not self.citations:
+                raise ValueError("matched carries at least one verified citation")
+            if self.abstention_reason is not None:
+                raise ValueError("matched is not abstained")
+        else:
+            if self.abstention_reason is None:
+                raise ValueError("abstained states a reason")
+            if self.action_text_es is not None or self.purpose_es is not None or self.citations:
+                raise ValueError("abstained carries no draft")
+        return self
+
+
+class TodayRecommendationResponse(FaroModel):
+    status: Literal["no_submission_today", "pending", "matched", "abstained"]
+    risk_band: Literal["low", "medium", "high", "unknown"] | None = None
+    recommendation_instance_id: UUID | None = None
+    action_text_es: SpanishText | None = None
+    purpose_es: SpanishText | None = None
+    citations: tuple[RecommendationCitation, ...] = ()
+    abstention_reason: (
+        Literal["no_indexed_match", "draft_unavailable", "draft_not_grounded"] | None
+    ) = None
+    rating: Literal["good", "bad"] | None = None
+
+
+class RecommendationListResponse(FaroModel):
+    items: tuple[RecommendationInstanceView, ...] = ()
+
+
+class FeedbackRequest(FaroModel):
+    rating: Literal["good", "bad"]
+    note_es: SpanishText | None = None
+
+
+class FeedbackResponse(FaroModel):
+    feedback_id: UUID
+    rating: Literal["good", "bad"]
+    attempt: int = Field(ge=1)
+
+
+class NotificationEvent(FaroModel):
+    type: Literal["recommendation.ready", "recommendation.redrafted", "feedback.recorded"]
+    child_id: UUID | None = None
+    prediction_episode_id: UUID | None = None
+    recommendation_instance_id: UUID
+    attempt: int | None = Field(default=None, ge=1)
+    status: Literal["matched", "abstained"] | None = None
+    abstention_reason: (
+        Literal["no_indexed_match", "draft_unavailable", "draft_not_grounded"] | None
+    ) = None
+    rating: Literal["good", "bad"] | None = None
+    at: UtcDatetime
 
 
 class RecommendationInboxResponse(FaroModel):

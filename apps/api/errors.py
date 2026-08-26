@@ -42,7 +42,6 @@ ERROR_MESSAGES_ES: dict[str, str] = {
     "human_plan_roles_not_subset": "El plan humano no puede ampliar los roles de ejecución.",
     "cohort_not_allowed": "Este modo de despliegue solo acepta la cohorte de demostración.",
     "pilot_requires_postgresql": "El modo piloto no arranca sobre SQLite.",
-    "evaluation_not_found": "No hay reporte de evaluación para esa versión de modelo.",
     "internal_error": "Ocurrió un error inesperado. El equipo quedó notificado.",
 }
 

@@ -1,26 +1,9 @@
-"""What a document, chunk, citation, review and activation gate mean (SPEC 9.2-9.6).
+"""Document, chunk, citation and text-safety rules for RAG authoring.
 
-Nothing in this package retrieves, ranks or drafts. It answers the questions the
-authoring pipeline and the runtime both have to agree on: is this document
-indexable, is this quote literal, did two distinct accredited people review it,
-and may this version be served at all.
+Nothing in this package retrieves, ranks or drafts. It answers whether a document
+is indexable, whether a quote is literal and whether text is safe to author.
 """
 
-from rag.domain.activation import (
-    ActivationDecision,
-    catalog_activation_decision,
-    catalog_content_payload,
-    catalog_content_sha256,
-    catalog_review_subject,
-    predicate_payload,
-    set_activation_decision,
-    set_content_payload,
-    set_content_sha256,
-    strategy_activation_decision,
-    strategy_content_payload,
-    strategy_content_sha256,
-    suspended_by_dependency,
-)
 from rag.domain.chunking import (
     CHUNKER_VERSION,
     ChunkPlan,
@@ -59,7 +42,6 @@ from rag.domain.normalization import (
     normalize_document_text,
     normalize_quote,
 )
-from rag.domain.reviews import REQUIRED_CAPABILITY, ReviewLedger, required_capability
 from rag.domain.text_guard import (
     FREE_TEXT_FIELDS,
     FreeTextLeakError,
@@ -80,16 +62,13 @@ __all__ = [
     "MANIFEST_ARTIFACT",
     "NORMALIZATION_VERSION",
     "RAG_SCHEMA_VERSION",
-    "REQUIRED_CAPABILITY",
     "RETIRED_DOCUMENT_STATUSES",
     "SET_ARTIFACT",
     "STRATEGY_ARTIFACT",
-    "ActivationDecision",
     "ChunkPlan",
     "CitationVerification",
     "FreeTextLeakError",
     "Paragraph",
-    "ReviewLedger",
     "RightsNotDeclaredError",
     "SourceDocument",
     "TextProvenance",
@@ -97,27 +76,14 @@ __all__ = [
     "assert_no_clinical_text",
     "build_corpus_version",
     "build_document_version",
-    "catalog_activation_decision",
-    "catalog_content_payload",
-    "catalog_content_sha256",
-    "catalog_review_subject",
     "chunk_document",
     "citations_are_verified",
     "is_indexable",
     "literature",
     "normalize_document_text",
     "normalize_quote",
-    "predicate_payload",
-    "required_capability",
     "seal",
-    "set_activation_decision",
-    "set_content_payload",
-    "set_content_sha256",
     "split_paragraphs",
-    "strategy_activation_decision",
-    "strategy_content_payload",
-    "strategy_content_sha256",
-    "suspended_by_dependency",
     "verify_citation",
     "verify_strategy_citations",
 ]

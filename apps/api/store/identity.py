@@ -17,19 +17,11 @@ def subject(connection: sqlite3.Connection, subject_id: str) -> sqlite3.Row | No
     ).fetchone()
 
 
-def subjects_for_actor(
-    connection: sqlite3.Connection,
-    *,
-    tenant_id: str,
-    subject_ids: tuple[str, ...],
-) -> list[sqlite3.Row]:
-    if not subject_ids:
-        return []
-    placeholders = ",".join("?" for _ in subject_ids)
+def subjects_for_tenant(connection: sqlite3.Connection, *, tenant_id: str) -> list[sqlite3.Row]:
     return connection.execute(
         "SELECT subject_id, tenant_id, display_label, cohort_kind FROM subjects"
-        f" WHERE tenant_id = ? AND subject_id IN ({placeholders}) ORDER BY display_label",
-        (tenant_id, *subject_ids),
+        " WHERE tenant_id = ? ORDER BY display_label",
+        (tenant_id,),
     ).fetchall()
 
 

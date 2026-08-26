@@ -1,17 +1,10 @@
 {
   "name": "faro",
   "private": true,
-  "version": "0.3.0",
-  "description": "Faro v0.3.0 - demo local. Frontend y tooling de P2.",
+  "version": "0.4.0",
+  "description": "Faro v0.4.0 - API y aplicación móvil de demostración.",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20.9.0"
-  },
-  "scripts": {
-    "lint": "pnpm --dir apps/web lint",
-    "typecheck": "pnpm --dir apps/web typecheck",
-    "test": "pnpm --dir apps/web test",
-    "build": "pnpm --dir apps/web build",
-    "dev": "pnpm --dir apps/web dev"
   }
 }

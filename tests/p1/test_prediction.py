@@ -7,13 +7,7 @@ from datetime import timedelta
 import pytest
 from scipy.stats import beta as beta_dist
 
-from ml.adapters.bluba import (
-    MAPPING_VERSION,
-    SEVERE_INTENSITY_BAND,
-    map_value,
-    source_vocabulary,
-)
-from ml.errors import CohortViolationError, UnmappedSourceValueError
+from ml.errors import CohortViolationError
 from ml.prediction import (
     BaselineCandidate,
     ChallengerRow,
@@ -503,71 +497,3 @@ def test_a_trainable_dataset_produces_a_candidate_and_nothing_more() -> None:
     assert result.fit is not None and result.fit.converged
     assert result.model_version == "real-logit-challenger-0.3.0"
     assert not hasattr(result, "deployed")
-
-
-# --- the Bluba adapter ----------------------------------------------------
-
-
-def test_the_adapter_maps_categories_to_categories() -> None:
-    mapped = map_value(FieldCode.DAILY_REGULATION_STATE, "Estable con Apoyo")
-    assert mapped.value == "stable_with_support"
-    assert mapped.raw_value == "Estable con Apoyo"
-    assert mapped.mapping_version == MAPPING_VERSION
-
-
-def test_the_adapter_never_turns_a_category_into_a_count_or_a_scale() -> None:
-    """INV-35."""
-
-    for field_code, raw in (
-        (FieldCode.DAILY_REGULATION_STATE, "Desregulación Frecuente"),
-        (FieldCode.SLEEP_QUALITY, "Reparador"),
-        (FieldCode.ATTENDANCE_STATUS, "Presente"),
-        (FieldCode.ALERTNESS, "Óptimo (Regulado)"),
-    ):
-        mapped = map_value(field_code, raw)
-        assert isinstance(mapped.value, str)
-        assert not isinstance(mapped.value, bool)
-
-
-def test_an_unknown_source_value_fails_instead_of_becoming_null() -> None:
-    with pytest.raises(UnmappedSourceValueError, match="no mapping"):
-        map_value(FieldCode.SLEEP_QUALITY, "Excelente")
-    with pytest.raises(UnmappedSourceValueError, match="empty"):
-        map_value(FieldCode.SLEEP_QUALITY, "   ")
-
-
-def test_every_export_category_of_a_mapped_field_is_covered() -> None:
-    """The vocabulary comes from the committed evidence manifest."""
-
-    import json
-    from pathlib import Path
-
-    manifest = json.loads(
-        (Path(__file__).resolve().parents[2] / "data" / "source-evidence.manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    columns = {
-        column["name"]: column.get("distinct_values", [])
-        for entry in manifest["files"]
-        for column in entry.get("columns", [])
-    }
-    pairs = {
-        FieldCode.SLEEP_QUALITY: "calidad_sueno",
-        FieldCode.WAKE_STATE: "modo_despertar",
-        FieldCode.GI_STATUS: "estado_gastrointestinal",
-        FieldCode.MEDICATION_ADHERENCE: "adherencia_medicacion",
-        FieldCode.DAILY_REGULATION_STATE: "nivel_regulacion_general_dia",
-    }
-    for field_code, column in pairs.items():
-        for raw in columns.get(column, []):
-            assert map_value(field_code, raw).value
-        assert set(columns.get(column, [])) <= set(source_vocabulary(field_code))
-
-
-def test_the_severe_intensity_band_is_exposed_but_is_not_a_target() -> None:
-    """SPEC 4.3: the label proves a category exists; it does not define a target."""
-
-    assert SEVERE_INTENSITY_BAND == "Severa (8-10)"
-    with pytest.raises(UnmappedSourceValueError):
-        map_value(FieldCode.RELEVANT_EVENT_FLAG, SEVERE_INTENSITY_BAND)

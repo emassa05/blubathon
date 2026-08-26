@@ -15,7 +15,7 @@ from apps.api.adapters import build_ports
 from apps.api.adapters.mock import MOCK_SOURCE
 from apps.api.adapters.p1 import MISSING_FACADES, REAL_SOURCE, P1FacadesUnavailable
 from apps.api.store.db import Database
-from tests.p2.test_episodes_and_outcomes import complete_session
+from tests.p2.conftest import submit_form
 from tools.seed import ids
 
 SELECTED = os.environ.get("FARO_P1_ADAPTERS", "mock")
@@ -48,7 +48,7 @@ def test_the_real_set_wires_the_published_domain(settings, clock) -> None:
     try:
         ports = build_ports("real", database=database)
         assert ports.source == REAL_SOURCE
-        for port in (ports.defaults, ports.form, ports.prediction, ports.rag):
+        for port in (ports.defaults, ports.form, ports.prediction):
             assert type(port).__module__.startswith("apps.api.adapters.p1")
     finally:
         database.close()
@@ -56,8 +56,8 @@ def test_the_real_set_wires_the_published_domain(settings, clock) -> None:
 
 def test_no_output_carries_a_number_without_a_status_that_allows_it(caregiver) -> None:
     """SPEC 8.5 y 11.5, en cualquier conjunto de adaptadores."""
-    result = complete_session(caregiver, ids.SUBJECT_ANA)
-    episode = caregiver.get(f"/api/v1/prediction-episodes/{result['prediction_episode_id']}").json()
+    result = submit_form(caregiver, str(ids.SUBJECT_ANA)).json()
+    episode = caregiver.get(f"/v1/prediction-episodes/{result['prediction_episode_id']}").json()
     tracks = {output["track_id"]: output for output in episode["outputs"]}
 
     # SPEC 8.5: el challenger en sombra nunca se expone.
