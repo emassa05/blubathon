@@ -34,6 +34,11 @@ dependencies = [
     # Application surface owned by P2.
     "fastapi>=0.116,<1",
     "uvicorn[standard]>=0.34,<1",
+    # Redacción del borrador RAG. Único punto del sistema con acceso a un LLM.
+    "anthropic>=0.40",
+    # Extracción de texto de PDF para la ingesta local del corpus. Pure-python:
+    # el pipeline sigue leyendo texto, esto solo lo produce.
+    "pypdf>=5,<7",
 ]
 
 [project.optional-dependencies]

@@ -27,8 +27,15 @@ describe("TarjetaFactores", () => {
 
     expect(wrapper.get("h2").text()).toBe("Lo más importante hoy");
     expect(wrapper.get(".factores__subtitulo").text()).toBe(
-      "Variables que más pueden influir en el riesgo de hoy.",
+      "Lo que el formulario de hoy pregunta primero.",
     );
+  });
+
+  it("sin factores dice que no hay nada en vez de dejar la tarjeta muda", () => {
+    const wrapper = mount(TarjetaFactores, { props: { factores: [] } });
+
+    expect(wrapper.get(".factores__vacio").text()).toBe("Todavía no hay nada que mostrar.");
+    expect(wrapper.find("ul").exists()).toBe(false);
   });
 
   it("lista un elemento por factor con su icono y su etiqueta de prioridad", () => {

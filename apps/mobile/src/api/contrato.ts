@@ -41,7 +41,7 @@ export { FARO_CONSTANTS } from "@contrato/constants";
 export const ORIGEN_CUIDADOR = "caregiver_daily" as const;
 
 /** Valor de una respuesta, tal y como viaja en el contrato. */
-export type ValorCampo = boolean | number | string | readonly string[];
+export type ValorCampo = boolean | number | string | string[];
 
 /** Cómo declara el cliente la interacción; el servidor deriva el `entry_mode`. */
 export type Interaccion = "manual" | "accept_default" | "edit_default" | "unknown";

@@ -31,7 +31,7 @@ AUDIT_BUCKET_CUTOFF = 100  # 10% de SPEC 6.8 / C10 expresado en milésimas.
 
 
 class MockDefaults:
-    def __init__(self, *, secret: bytes = b"faro-demo-audit-secret") -> None:
+    def __init__(self, *, secret: bytes = b"blubathon-demo-audit-secret") -> None:
         self._secret = secret
         self._suggestions: dict[str, dict[str, Any]] = json.loads(
             (FIXTURES / "defaults.json").read_text(encoding="utf-8")

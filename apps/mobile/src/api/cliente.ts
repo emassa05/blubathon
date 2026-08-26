@@ -15,10 +15,11 @@
  *   preflight en un fallo.
  */
 
+import { BASE_API } from "@/api/config";
 import { FARO_TEXTS_ES, type ErrorResponse } from "@/api/contrato";
 
 /** Base de la API, con el prefijo `/v1` que declara la constante C02. */
-export const API_BASE = import.meta.env.VITE_FARO_API ?? "http://127.0.0.1:8000/v1";
+export const API_BASE = BASE_API;
 
 /** Milisegundos antes de dar la petición por perdida. */
 const TIEMPO_LIMITE = 10_000;

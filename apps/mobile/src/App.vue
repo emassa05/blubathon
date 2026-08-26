@@ -30,19 +30,27 @@ const { ninoId } = useNino();
 const { cargar: cargarHistorial } = useHistorial();
 const { cargar: cargarRecomendacion } = useRecomendacionHoy();
 
+// Salud trae sus datos por su cuenta, así que se le pide el refresco a ella.
+const salud = ref<{ recargar: () => Promise<void> } | null>(null);
+
 function abrirCuestionario(fecha: string): void {
   cuestionario.value = fecha;
 }
 
 async function alEnviar(): Promise<void> {
   if (ninoId.value === null) return;
-  await Promise.all([cargarHistorial(ninoId.value, true), cargarRecomendacion(ninoId.value, true)]);
+  await Promise.all([
+    cargarHistorial(ninoId.value, true),
+    cargarRecomendacion(ninoId.value, true),
+    salud.value?.recargar() ?? Promise.resolve(),
+  ]);
 }
 </script>
 
 <template>
   <SaludView
     v-if="vista === 'salud'"
+    ref="salud"
     @ver-historial="vista = 'historial'"
     @abrir-cuestionario="abrirCuestionario"
   />

@@ -1,6 +1,6 @@
 """Adaptadores reales sobre el dominio publicado por P1.
 
-`FARO_P1_ADAPTERS=real` selecciona este conjunto. Cada clase traduce entre el
+`BLUBATHON_P1_ADAPTERS=real` selecciona este conjunto. Cada clase traduce entre el
 puerto de P2 y la API que P1 publica de verdad; la traducción vive aquí, y ni
 los puertos ni los servicios ni el store cambian de forma para acomodarla.
 
@@ -42,11 +42,11 @@ class P1FacadesUnavailable(RuntimeError):
 
 
 def build_real_ports(
-    *, database: Database | None = None, secret: bytes = b"faro-demo-audit-secret"
+    *, database: Database | None = None, secret: bytes = b"blubathon-demo-audit-secret"
 ) -> Ports:
     if database is None:
         raise P1FacadesUnavailable(
-            "FARO_P1_ADAPTERS=real necesita la base: `ml` y `rag` son funciones puras "
+            "BLUBATHON_P1_ADAPTERS=real necesita la base: `ml` y `rag` son funciones puras "
             "sobre filas ya cargadas y el adaptador es quien las carga"
         )
     return Ports(

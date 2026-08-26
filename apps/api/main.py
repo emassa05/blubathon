@@ -1,4 +1,4 @@
-"""Faro v0.4 FastAPI application.
+"""Blubathon v0.4 FastAPI application.
 
 Única frontera de traducción HTTP. La abstención es HTTP 200 con estado
 explícito y nunca usa el sobre de error (SPEC 11.7, CONVENTIONS 12.2).
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -29,7 +30,31 @@ from apps.api.services import Services, build_registry
 from apps.api.settings import Settings, load_settings
 from apps.api.store.db import Database
 
-logger = logging.getLogger("faro.api")
+logger = logging.getLogger("blubathon.api")
+
+
+def _draft_transport_from_env() -> Any | None:
+    """`BLUBATHON_DRAFT_LLM` habilita la redacción real del RAG.
+
+    Sin esto no hay LLM y toda recomendación abstiene con `draft_unavailable`,
+    que es la respuesta honesta y no una falla.
+    """
+
+    chosen = os.environ.get("BLUBATHON_DRAFT_LLM")
+    if chosen is None:
+        return None
+    if chosen == "anthropic":
+        from rag.authoring.transports import AnthropicDraftTransport
+
+        return AnthropicDraftTransport()
+    if chosen == "ollama":
+        from rag.authoring.transports import OLLAMA_MODEL, OLLAMA_URL, OllamaDraftTransport
+
+        return OllamaDraftTransport(
+            model=os.environ.get("BLUBATHON_OLLAMA_MODEL", OLLAMA_MODEL),
+            base_url=os.environ.get("BLUBATHON_OLLAMA_URL", OLLAMA_URL),
+        )
+    raise ValueError(f"BLUBATHON_DRAFT_LLM desconocido: {chosen}")
 
 
 def create_app(
@@ -49,7 +74,7 @@ def create_app(
         database=database,
         ports=build_ports(secret=resolved.audit_secret, database=database),
         clock=clock,
-        draft_transport=draft_transport,
+        draft_transport=draft_transport or _draft_transport_from_env(),
     )
     event_broker = EventBroker()
 
@@ -60,7 +85,7 @@ def create_app(
         database.close()
 
     app = FastAPI(
-        title="Faro API",
+        title="Blubathon API",
         version=SPEC_VERSION,
         lifespan=lifespan,
         # CONVENTIONS 15: la documentación OpenAPI se deshabilita en piloto.

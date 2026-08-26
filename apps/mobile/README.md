@@ -1,9 +1,9 @@
 # Faro móvil — pantalla Salud
 
-Interfaz visual de Faro en **Vue 3 + Vite + TypeScript**. Es una página
-responsive de una sola vista, `Salud`, implementada contra una especificación
-cerrada de diseño. No hay router, ni store, ni más pantallas: no es un
-descuido, es el alcance.
+Interfaz visual de Faro en **Vue 3 + Vite + TypeScript**, conectada a la API de
+`apps/api`. Es una página responsive de una sola vista, `Salud`, implementada
+contra una especificación cerrada de diseño. No hay router, ni store, ni más
+pantallas: no es un descuido, es el alcance.
 
 Sin librerías de UI, sin librería de iconos y **sin un solo archivo de imagen**.
 Todo el estilo son `<style scoped>` y variables CSS; los iconos y el horizonte del panel son SVG inline en componentes propios; la animación son `@keyframes`, no JavaScript.
@@ -12,7 +12,13 @@ Todo el estilo son `<style scoped>` y variables CSS; los iconos y el horizonte d
 
 ## 1. Cómo correrlo
 
-Desde la raíz del repositorio (pnpm workspace):
+Hacen falta las dos mitades. Primero el backend, desde la raíz del repositorio:
+
+```bash
+uvicorn apps.api.main:_default_app --factory --port 8000
+```
+
+Y después la interfaz (pnpm workspace):
 
 ```bash
 pnpm install
@@ -31,6 +37,10 @@ pnpm lint         # ESLint (vue + vuejs-accessibility), 0 warnings
 pnpm format       # Prettier
 ```
 
+Sin backend la pantalla no queda rota: muestra el mensaje de error del sobre y
+el panel en gris. Con backend pero sin datos —una base recién sembrada— muestra
+el día sin estimación, que es un estado real, no un fallo.
+
 No hay marco de prototipo ni barra de estado simulada: es una página. El
 contenido va en una columna que se adapta:
 
@@ -48,27 +58,41 @@ ancho: el ajuste sale de `max-width`, `min(100dvh, ...)` y `flex`. El único
 
 ---
 
-## 2. Las tres bandas
+## 2. Las cuatro bandas
 
 El riesgo del día no solo cambia una cifra: cambia el color de la pantalla.
 
-| Banda   | Riesgo   | Tono            |
-| ------- | -------- | --------------- |
-| `bajo`  | 0 – 24   | celeste pastel  |
-| `medio` | 25 – 50  | amarillo pastel |
-| `alto`  | 51 – 100 | rojo pastel     |
+| Banda         | Riesgo    | Tono            |
+| ------------- | --------- | --------------- |
+| `desconocido` | sin cifra | gris            |
+| `bajo`        | 0 – 19    | celeste pastel  |
+| `medio`       | 20 – 49   | amarillo pastel |
+| `alto`        | 50 – 100  | rojo pastel     |
+
+Los cortes son los del backend (`p ≥ 0.5 → high`, `0.2 ≤ p < 0.5 → medium`).
+Tienen que serlo: cuando la API declara la banda, la pantalla usa la suya, y dos
+juegos de cortes harían que el color se contradijera con el dato.
+
+**`desconocido` no es un cuarto nivel de riesgo: es la ausencia de estimación.**
+El modelo se abstiene cuando no tiene resultados verificados suficientes
+(SPEC 8.5), y entonces la pantalla escribe `—` en vez de una cifra, esconde la
+pastilla de confianza y se pone gris. Pintar la abstención de celeste la leería
+como riesgo bajo, que es justo lo que el backend no dijo.
 
 `theme/riesgo.ts` es el único sitio donde viven los cortes. Traduce el riesgo en
-una banda, y la banda en una clase (`faro-banda--bajo`, `--medio`, `--alto`).
-Esa clase la pone `SaludView` en la columna y **lleva la paleta entera** —panel,
-horizonte, textos y tarjeta de recomendación— desde `styles/tokens.css`.
+una banda, y la banda en una clase (`faro-banda--desconocido`, `--bajo`,
+`--medio`, `--alto`). Esa clase la pone `SaludView` en la columna y **lleva la
+paleta entera** —panel, horizonte, textos y tarjeta de recomendación— desde
+`styles/tokens.css`.
 
 Ningún componente conoce las bandas. Todos consumen los mismos
 `var(--faro-panel)`, `var(--faro-texto-fuerte)`, `var(--faro-rec-hoja)`… y el
-color correcto les llega por herencia. Añadir una cuarta banda es añadir su
-corte en `riesgo.ts` y su paleta en `tokens.css`: cero cambios en componentes.
+color correcto les llega por herencia. Añadir otra banda es añadir su corte en
+`riesgo.ts` y su paleta en `tokens.css`: cero cambios en componentes. La cuarta
+—`desconocido`— entró así, sin tocar ni un componente salvo la cabecera, que
+tuvo que aprender a no escribir cifra.
 
-Las tres siguen el mismo patrón, para que los tres estados se vean de una pieza:
+Todas siguen el mismo patrón, para que los estados se vean de una pieza:
 
 - un pastel para el panel,
 - tres tonos cada vez más profundos para las capas del horizonte,
@@ -76,16 +100,8 @@ Las tres siguen el mismo patrón, para que los tres estados se vean de una pieza
 - y el tono dos pasos más claro para la tarjeta de recomendación, que acompaña
   al estado sin competir con él.
 
-### El botón de prueba
-
-Abajo a la izquierda del panel hay una pastilla blanca `PRUEBA · BAJO` que
-recorre las tres bandas al pulsarla. Es **temporal**, y está marcada con
-`TODO(spec)` en `SaludView.vue` y en `riesgo.ts`.
-
-Vive en el hueco que el panel deja por debajo del texto, así que no le cuesta ni
-un píxel de alto a la composición: al quitarlo, la pantalla queda exactamente
-igual. Cambia el riesgo mostrado a uno representativo de cada banda
-(`RIESGO_DE_PRUEBA`), sin tocar el mock.
+`desconocido` lo sigue con un gris de croma casi nulo, y reusa las siluetas de
+`bajo`: son las más planas, y sin estimación no hay agitación que dibujar.
 
 ---
 
@@ -159,6 +175,12 @@ src/
   main.ts                      monta la app y carga fuentes, reset y tokens
   App.vue                      raíz: solo monta la vista
   views/SaludView.vue          la página: dueña de los datos, del layout y de la banda
+  api/config.ts                origen, niño y timeout, todo por variables de entorno
+  api/http.ts                  el único `fetch` del frontend
+  api/errores.ts               `ErrorFaro`: el sobre del backend, ya traducido
+  api/faro.ts                  un envoltorio tipado por ruta de `apps/api`
+  api/eventos.ts               el canal WebSocket de recomendaciones
+  adaptadores/resumenSalud.ts  de las respuestas de la API al contrato de la pantalla
   components/salud/            NavegadorFecha, CabeceraRiesgo, FondoRiesgo,
                                TarjetaRecomendacion, FondoRecomendacion,
                                TarjetaFactores, TarjetaFormularios,
@@ -166,14 +188,14 @@ src/
   components/icons/            IconoLuna, IconoRombo, IconoPortapapeles,
                                IconoInfo, IconoEscudo, IconoDestello,
                                IconoChevron
-  composables/                 useDiaSeleccionado
-  data/saludMock.ts            los datos ficticios
+  composables/                 useDiaSeleccionado, useResumenSalud
   types/salud.ts               el contrato de la pantalla
-  theme/riesgo.ts              cortes de banda, clases y riesgos de prueba
+  theme/riesgo.ts              cortes de banda y clases
   theme/tokens.ts              tokens que necesita la lógica (animación, rango)
   styles/tokens.css            tokens CSS: paleta por banda, escala, medidas
   styles/reset.css             reset mínimo
-tests/                         un test por componente + composable + axe
+tests/                         un test por componente + composable + adaptador +
+                               transporte + axe, sobre `servidorFalso.ts`
 ```
 
 Los componentes de `components/` son presentacionales puros: reciben `props`
@@ -192,29 +214,113 @@ esquina, fuera de la caja del texto, en vez de pasar por detrás de las palabras
 
 ---
 
-## 5. Qué es mock y dónde entra la API real
+## 5. La API
 
-Todo lo que se ve son datos ficticios de `src/data/saludMock.ts`, detrás del
-tipo `ResumenSalud` (`src/types/salud.ts`).
+Cuatro capas, y cada una sabe una cosa sola:
 
-**`SaludView.vue` es el único punto de entrada de datos:**
-
-```ts
-// src/views/SaludView.vue
-const resumen = RESUMEN_SALUD_MOCK;
+```text
+componentes      props tipadas. No saben que existe una red.
+  ↑
+SaludView        pide un día, pinta carga / error / datos
+  ↑
+useResumenSalud  el día visible como estado reactivo: cancela, reintenta, falla
+  ↑
+adaptadores/     traduce la API al contrato de la pantalla
+  ↑
+api/faro.ts      un envoltorio tipado por ruta
+  ↑
+api/http.ts      el único `fetch`: URL, cabeceras, sobre de error
 ```
 
-Sustituir esa línea por la respuesta del endpoint —o por un store— es todo lo
-que hay que tocar para conectar la API: si respeta `ResumenSalud`, ningún
-componente cambia, y el color de la pantalla sale solo del `riesgo`.
+### Los tipos salen del backend
 
-Tres puntos de conexión, marcados en el código con `TODO(spec)`:
+`@faro/contract` es el contrato ejecutable que genera
+`python -m tools.contracts.generate` desde el mismo esquema que valida
+`apps/api`. El frontend lo importa como dependencia del workspace, así que
+**cambiar el contrato rompe la compilación de la interfaz**, no el navegador de
+alguien. Los rótulos de campo y los textos genéricos vienen del mismo sitio
+(`FARO_TEXTS_ES`): ningún componente inventa copy que el backend ya publica.
 
-| Qué                          | Dónde                         | Estado                                 |
-| ---------------------------- | ----------------------------- | -------------------------------------- |
-| Popup del riesgo (icono `!`) | `SaludView.masInfo()`         | vacío: solo existe el disparador       |
-| Abrir el formulario del día  | `SaludView.abrirFormulario()` | vacío: no hay navegación en el alcance |
-| Ver todos los formularios    | `SaludView.verMas()`          | vacío: ídem                            |
+Solo se importan los tipos y las tablas (`@faro/contract/contract`,
+`/texts`, `/constants`), no los esquemas Zod. No hay validación en tiempo de
+ejecución a propósito: los esquemas generados son `.strict()` y las vistas HTTP
+añaden campos sobre el modelo base, así que validar rechazaría respuestas
+correctas. El contrato es la puerta.
+
+### CORS y el proxy
+
+En desarrollo el navegador ve **un solo origen**: `/v1` y `/health` salen de
+`localhost:5173` y el proxy de `vite.config.ts` los lleva al backend. Ni
+preflight ni allowlist que mantener en dos sitios. Para producción,
+`VITE_FARO_API_URL` apunta al backend directamente y ese origen tiene que estar
+en `BLUBATHON_CORS_ORIGINS`.
+
+Ver `.env.example` para las cuatro variables. Ninguna es obligatoria.
+
+### Qué mapea a qué
+
+| Lo que muestra la pantalla | De dónde sale                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Cifra de riesgo            | `history[dia].prediction.probability × 100`, track `real_personal_baseline_v1` |
+| Nivel de confianza         | ancho del intervalo 5-95 del posterior Beta: `(1 − (sup − inf)) × 100`         |
+| Recomendación de hoy       | `GET /recommendations/today`; otros días, la del episodio                      |
+| Lo más importante hoy      | preguntas `highlighted` de `POST /form-plan`                                   |
+| Últimos formularios        | calendario de 4 días, cruzado con los envíos de `GET /history`                 |
+| Aviso "Pendiente"          | el día visible no tiene `submission_id`                                        |
+
+Dos decisiones que conviene conocer antes de tocar el adaptador:
+
+- **La confianza es derivada, no un campo.** El backend no publica un "nivel de
+  confianza"; publica un intervalo. Un intervalo estrecho es exactamente lo que
+  esa frase quiere decir, y sin intervalo la pastilla desaparece en vez de
+  mostrar un número por defecto.
+- **"Lo más importante hoy" no son causas del riesgo.** El track visible es una
+  tasa observada y no pondera predictores, así que no hay importancias que
+  mostrar. Lo que se lista es lo que el formulario prioriza preguntar
+  (SPEC 6.9), y el subtítulo de la tarjeta lo dice con esas palabras. Solo
+  aplica al día de hoy: para un día pasado la tarjeta queda vacía, porque el
+  plan de hoy no describe aquel día.
+
+### Estados que el diseño no cubría
+
+| Estado                 | Qué se ve                                               |
+| ---------------------- | ------------------------------------------------------- |
+| Cargando               | tarjeta con "Cargando…", panel gris, `role="status"`    |
+| Error                  | tarjeta con el `message_es` del backend, `role="alert"` |
+| El modelo se abstiene  | `—` en vez de cifra, sin pastilla de confianza, gris    |
+| Sin formulario ese día | la recomendación lo dice, y el aviso naranja aparece    |
+| El RAG se abstiene     | la tarjeta dice **por qué** (los tres motivos del SPEC) |
+
+Cambiar de día cancela la petición anterior: al pulsar el chevron varias veces
+seguidas, una respuesta que llegue tarde no puede pisar al día que se está
+mirando. Y al fallar, el resumen se vacía en vez de quedarse con el del día
+anterior — una cifra de riesgo bajo la fecha equivocada es peor que no mostrar
+cifra.
+
+### Llamadas listas sin pantalla que las use
+
+La pantalla Salud solo lee. `api/faro.ts` cubre **todas** las rutas de
+`apps/api/routes/v1.py`, tenga o no la interfaz un destino todavía:
+
+| Llamada                                                   | Estado                                   |
+| --------------------------------------------------------- | ---------------------------------------- |
+| `planFormulario`, `enviarFormulario`                      | listas; falta la pantalla del formulario |
+| `valorarRecomendacion`                                    | lista; falta el control de pulgar        |
+| `listarSolicitudesDeResultado`, `reportarResultado`       | listas; falta la pantalla de resultado   |
+| `obtenerNino`, `obtenerEpisodio`, `listarRecomendaciones` | listas; sin vista que las pida           |
+| `conectarEventos` (WebSocket)                             | lista; el RAG avisa cuando termina       |
+
+El WebSocket importa más de lo que parece: el RAG corre **después** de guardar
+el formulario, así que la recomendación no viaja en la respuesta del `POST`.
+Llega por `recommendation.ready`.
+
+Tres puntos de navegación siguen vacíos, marcados con `TODO(spec)`:
+
+| Qué                          | Dónde                         | Estado                             |
+| ---------------------------- | ----------------------------- | ---------------------------------- |
+| Popup del riesgo (icono `!`) | `SaludView.masInfo()`         | vacío: solo existe el disparador   |
+| Abrir el formulario del día  | `SaludView.abrirFormulario()` | falta el destino, no el transporte |
+| Ver todos los formularios    | `SaludView.verMas()`          | ídem                               |
 
 ---
 
@@ -245,19 +351,21 @@ Lo que la pantalla garantiza:
 
 - `<button>` para todo lo pulsable, `<h1>`/`<h2>` para la jerarquía real,
   `<ul>/<li>` en las dos listas, `<header>` para la cabecera del riesgo.
-- Área táctil de 44 × 44 en chevrons, el icono `!`, `ver más`, el botón naranja
-  y la pastilla de prueba: el padding crece y un margen negativo devuelve el
-  espacio, así que el diseño no se mueve. En el icono `!` el margen es
-  asimétrico, para que en la línea ocupe lo mismo que su glifo más el hueco de 6
-  y no descoloque el sobretítulo.
-- `aria-label` en los chevrons, el icono `!`, `ver más`, el CTA —que nombra el
-  día— y la pastilla de prueba, que dice a qué banda va a cambiar.
+- Área táctil de 44 × 44 en chevrons, el icono `!`, `ver más` y el botón
+  naranja: el padding crece y un margen negativo devuelve el espacio, así que el
+  diseño no se mueve. En el icono `!` el margen es asimétrico, para que en la
+  línea ocupe lo mismo que su glifo más el hueco de 6 y no descoloque el
+  sobretítulo.
+- `aria-label` en los chevrons, el icono `!`, `ver más` y el CTA, que nombra el
+  día.
 - El riesgo se anuncia una sola vez: `role="group"` con
   `aria-label="Riesgo de desregulación: 18 por ciento"` y las partes visuales
-  en `aria-hidden`. El icono `!` queda **fuera** de ese `aria-hidden`: es un
-  control con su propio nombre.
+  en `aria-hidden`. Sin estimación la etiqueta lo dice —"sin estimación
+  todavía"— en vez de leer el guion. El icono `!` queda **fuera** de ese
+  `aria-hidden`: es un control con su propio nombre.
 - El color no informa solo: la banda cambia el tono, pero el dato sigue siendo
-  la cifra y el sobretítulo, que se leen igual en las tres.
+  la cifra y el sobretítulo, que se leen igual en las cuatro.
+- Carga y error se anuncian: `role="status"` y `role="alert"`.
 - SVG decorativos con `aria-hidden="true"` y `focusable="false"`; en la tarjeta
   de recomendación el `aria-hidden` está en el envoltorio del fondo, y el test
   comprueba que ningún dibujo quede expuesto, esté donde esté el atributo.
@@ -286,14 +394,18 @@ El fondo es un gradiente, así que los ratios se calculan, no se miden. Se
 reportan **contra la onda más profunda**, que es lo más oscuro que puede quedar
 debajo de una letra, y contra la parte más oscura del gradiente.
 
-| Par                                    | bajo   | medio  | alto   | Mínimo AA |
-| -------------------------------------- | ------ | ------ | ------ | --------- |
-| La cifra sobre la onda más profunda    | 6.02:1 | 6.30:1 | 5.96:1 | 3:1       |
-| Fecha y sobretítulo sobre el gradiente | 7.70:1 | 7.32:1 | 8.43:1 | 4.5:1     |
-| Sobretítulo sobre el panel             | 6.17:1 | 6.20:1 | 6.34:1 | 4.5:1     |
-| La confianza sobre su pastilla         | 6.81:1 | 6.60:1 | 7.38:1 | 4.5:1     |
-| `RECOMENDACIÓN DE HOY` sobre blanco    | 8.38:1 | 7.85:1 | 9.28:1 | 4.5:1     |
-| El destello sobre su insignia          | 5.92:1 | 5.83:1 | 6.50:1 | 3:1       |
+| Par                                    | bajo   | medio  | alto   | descon. | Mínimo AA |
+| -------------------------------------- | ------ | ------ | ------ | ------- | --------- |
+| La cifra sobre la onda más profunda    | 6.02:1 | 6.30:1 | 5.96:1 | 6.11:1  | 3:1       |
+| Fecha y sobretítulo sobre el gradiente | 7.70:1 | 7.32:1 | 8.43:1 | 7.22:1  | 4.5:1     |
+| Sobretítulo sobre el panel             | 6.17:1 | 6.20:1 | 6.34:1 | 5.85:1  | 4.5:1     |
+| La confianza sobre su pastilla         | 6.81:1 | 6.60:1 | 7.38:1 | —       | 4.5:1     |
+| `RECOMENDACIÓN DE HOY` sobre blanco    | 8.38:1 | 7.85:1 | 9.28:1 | 7.76:1  | 4.5:1     |
+| El destello sobre su insignia          | 5.92:1 | 5.83:1 | 6.50:1 | 5.58:1  | 3:1       |
+
+La columna `desconocido` sale del mismo cálculo sobre los `oklch()` de la banda.
+La pastilla de confianza no tiene número porque en esa banda no se dibuja: sin
+estimación no hay confianza que dar.
 
 Dos piezas quedan **fuera de las bandas**, con el mismo valor siempre, porque no
 hablan del riesgo del día: la pastilla de prioridad (6.02:1 sobre su fondo) y el
@@ -325,21 +437,26 @@ automática no ve un fallo de contraste, hay que mirarlo a mano.
 
 ## 8. Lo que falta para producción
 
-- **Datos reales.** Conectar `ResumenSalud` a la API y decidir estados de carga
-  y de error, que el diseño no cubre.
-- **Quitar el botón de prueba** y `RIESGO_DE_PRUEBA` cuando el riesgo venga de
-  la API. Los dos están marcados con `TODO(spec)`.
+- **La pantalla del formulario.** Es lo que falta para cerrar el círculo: hoy la
+  pantalla lee, pero nadie puede escribir. `planFormulario` y `enviarFormulario`
+  ya están, tipadas y probadas; falta la vista.
+- **Reaccionar al WebSocket.** `conectarEventos` existe pero nadie se suscribe:
+  cuando el RAG termina, la pantalla no se entera hasta que se recarga.
+- **Reintentar desde la tarjeta de error.** `useResumenSalud` expone `recargar`,
+  pero la tarjeta no ofrece el botón; hoy hay que recargar la página.
 - **Borrar `public/`.** `HeroNoRisk.png` y `RecomendacionHoy.png` son de la
   versión anterior y ya no los usa nadie; siguen entrando en el build.
 - **El popup del riesgo.** El icono `!` ya está, con su área táctil y su nombre
   accesible, pero `masInfo()` está vacío: falta el contenido y el patrón de
-  diálogo (foco atrapado, `Esc`, retorno del foco).
+  diálogo (foco atrapado, `Esc`, retorno del foco). Es el sitio donde va el
+  `intendedUseEs` del contrato, que hoy no se muestra en ninguna parte.
 - **Navegación.** `abrirFormulario` y `verMas` están vacíos: hoy no hay router
   ni destino.
-- **El día no cambia los datos.** Los chevrons mueven la fecha, pero el resumen
-  sigue siendo el mismo: falta el fetch por día.
 - **Navegación de los formularios.** Cada fila ya es un botón y emite
-  `abrirRegistro(id)`, pero `SaludView` no tiene adónde llevarla.
+  `abrirRegistro(id)` con la fecha ISO del día, pero `SaludView` no tiene adónde
+  llevarla.
+- **Selector de niño.** Sin `VITE_FARO_CHILD_ID` se toma el primero de
+  `GET /v1/children`. Con más de uno, hace falta elegir.
 - **Verificación con lectores de pantalla reales** (VoiceOver / TalkBack) y en
   dispositivo, no solo axe en jsdom.
 - **CI.** El gate del repositorio (`.github/workflows/p2.yml`) todavía solo

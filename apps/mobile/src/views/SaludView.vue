@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { FARO_TEXTS_ES } from "@faro/contract/texts";
+import { computed } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
@@ -10,55 +11,29 @@ import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
 import { useDiaSeleccionado } from "@/composables/useDiaSeleccionado";
 import { useResumenSalud } from "@/composables/useResumenSalud";
-import { hoyIso } from "@/dominio/semana";
-import { useNino } from "@/estado/nino";
-import {
-  CLASE_BANDA,
-  ETIQUETA_BANDA,
-  RIESGO_DE_PRUEBA,
-  bandaRiesgo,
-  bandaSiguiente,
-} from "@/theme/riesgo";
+import { CLASE_BANDA, bandaRiesgo } from "@/theme/riesgo";
 
 const emitir = defineEmits<{
   verHistorial: [];
   abrirCuestionario: [fecha: string];
 }>();
 
-const { ninoId, cargar: cargarNino } = useNino();
+// Único punto de la pantalla donde entran los datos. Los componentes reciben
+// `props` ya traducidas y no saben que existe una API.
+const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado();
+const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 
-// La pantalla abre en el día de hoy y los chevrones mueven la fecha; el resumen
-// se recalcula con ella.
-const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } =
-  useDiaSeleccionado(hoyIso());
-
-/*
- * Único punto de la pantalla donde entran los datos, igual que antes: lo que
- * cambia es que `useResumenSalud` los trae de la API y solo cae al mock en lo
- * que la API todavía no publica. Ningún componente de abajo se entera.
- */
-const { resumen, cargar } = useResumenSalud(ninoId, fechaIso);
-
-onMounted(async () => {
-  await cargarNino();
-  await cargar();
-});
-
-// TODO(spec): control de prueba. Mientras el riesgo no venga de la API, permite
-// ver las tres bandas sin tocar el mock. Se va junto con `RIESGO_DE_PRUEBA`.
-const riesgoDePrueba = ref<number | null>(null);
-
-const riesgo = computed(() => riesgoDePrueba.value ?? resumen.value.riesgo);
-const banda = computed(() => bandaRiesgo(riesgo.value));
-
-function probarBandaSiguiente(): void {
-  riesgoDePrueba.value = RIESGO_DE_PRUEBA[bandaSiguiente(banda.value)];
-}
+// Mientras se carga o cuando falla no hay estimación, y eso es exactamente la
+// banda `desconocido`: gris, no celeste. Pintar de "riesgo bajo" un día del que
+// todavía no se sabe nada sería afirmar algo que la API no dijo.
+const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
 function masInfo(): void {
-  // TODO(spec): abrir el popup que explica el riesgo de desregulación. Sigue
-  // fuera de alcance: el disparador existe y el contenido no está definido.
+  // TODO(spec): abrir el popup que explica el riesgo de desregulación.
 }
+
+// El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
+defineExpose({ recargar });
 </script>
 
 <template>
@@ -78,40 +53,41 @@ function masInfo(): void {
 
           <CabeceraRiesgo
             class="pantalla__riesgo"
-            :riesgo="riesgo"
-            :confianza="resumen.confianza"
+            :riesgo="resumen?.riesgo ?? null"
+            :confianza="resumen?.confianza ?? null"
             @mas-info="masInfo"
           />
         </div>
       </div>
 
       <div class="pantalla__contenido">
-        <TarjetaRecomendacion :recomendacion="resumen.recomendacion" />
-        <TarjetaFactores :factores="resumen.factores" />
-        <!-- "ver más" abre el calendario semanal; cada fila abre el
-             cuestionario de su día. El id de la fila es su fecha ISO. -->
-        <TarjetaFormularios
-          :registros="resumen.formularios"
-          @ver-mas="emitir('verHistorial')"
-          @abrir-registro="(id) => emitir('abrirCuestionario', id)"
-        />
-        <AvisoPendiente
-          v-if="resumen.formularioPendiente"
-          :dia="etiquetaAccesible"
-          @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
-        />
-      </div>
+        <!-- Carga y error ocupan el sitio de las tarjetas, no se superponen a
+             ellas: el contenido de un día nunca se lee bajo el de otro. -->
+        <p v-if="cargando" class="pantalla__aviso" role="status">
+          {{ FARO_TEXTS_ES.loadingEs }}
+        </p>
 
-      <!-- TODO(spec): temporal, para revisar el diseño de las tres bandas. -->
-      <button
-        type="button"
-        class="pantalla__prueba"
-        :aria-label="`Prueba: cambiar a riesgo ${ETIQUETA_BANDA[bandaSiguiente(banda)].toLowerCase()}`"
-        :title="`Prueba: riesgo ${ETIQUETA_BANDA[banda].toLowerCase()}`"
-        @click="probarBandaSiguiente"
-      >
-        <span class="pantalla__prueba-punto" aria-hidden="true"></span>
-      </button>
+        <p v-else-if="error" class="pantalla__aviso" role="alert">
+          {{ error.mensajeEs }}
+        </p>
+
+        <template v-else-if="resumen">
+          <TarjetaRecomendacion :recomendacion="resumen.recomendacion" />
+          <TarjetaFactores :factores="resumen.factores" />
+          <!-- "ver más" abre el calendario semanal; cada fila abre el
+               cuestionario de su día. El id de la fila es su fecha ISO. -->
+          <TarjetaFormularios
+            :registros="resumen.formularios"
+            @ver-mas="emitir('verHistorial')"
+            @abrir-registro="(id) => emitir('abrirCuestionario', id)"
+          />
+          <AvisoPendiente
+            v-if="resumen.formularioPendiente"
+            :dia="etiquetaAccesible"
+            @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
+          />
+        </template>
+      </div>
     </div>
   </main>
 </template>
@@ -207,35 +183,22 @@ function masInfo(): void {
 }
 
 /*
- * Control de prueba. Flota en una esquina y fuera del flujo: no le cuesta ni un
- * píxel de alto a la composición, y al quitarlo la pantalla queda exactamente
- * igual. Redondo y sin rótulo porque el estado ya lo dice el color de toda la
- * pantalla; el nombre accesible sí dice a qué banda cambia.
+ * Carga y error. Una tarjeta más del mismo sistema —misma superficie, mismo
+ * radio, misma elevación— y no un bloque aparte: el sitio donde iban a estar
+ * las tarjetas no cambia de aspecto según qué haya pasado con la red.
+ *
+ * `margin-bottom: auto` se come el espacio libre por debajo, así que el aviso
+ * queda arriba del todo pese al `space-between` de la columna: justo donde el
+ * ojo ya estaba buscando la recomendación.
  */
-.pantalla__prueba {
-  position: fixed;
-  bottom: calc(var(--faro-esp-12) + env(safe-area-inset-bottom, 0px));
-  left: var(--faro-esp-12);
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: var(--faro-toque);
-  height: var(--faro-toque);
+.pantalla__aviso {
+  margin-bottom: auto;
+  padding: var(--faro-esp-18) var(--faro-esp-16);
+  font-size: var(--faro-fs-135);
+  color: var(--faro-gris-texto);
+  text-align: center;
   background: var(--faro-superficie);
-  border-radius: 50%;
+  border-radius: var(--faro-radio-24);
   box-shadow: var(--faro-sombra-tarjeta);
-}
-
-.pantalla__prueba:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
-}
-
-.pantalla__prueba-punto {
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
-  background: var(--faro-panel);
-  border: 1px solid var(--faro-onda-3);
-  border-radius: 50%;
 }
 </style>

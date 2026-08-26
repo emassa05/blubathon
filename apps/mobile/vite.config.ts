@@ -1,30 +1,45 @@
 import { fileURLToPath, URL } from "node:url";
 
 import vue from "@vitejs/plugin-vue";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-      // El contrato ejecutable de `packages/shared/generated`: tipos, catálogo
-      // de campos, textos y constantes. Se importa por alias en vez de
-      // copiarse, porque nada del contrato se declara dos veces.
-      "@contrato": fileURLToPath(new URL("../../packages/shared/generated", import.meta.url)),
+/**
+ * En desarrollo el navegador ve un solo origen: `/v1` y `/health` salen del
+ * mismo `localhost:5173` y el proxy los lleva al backend. Así no hay preflight
+ * ni allowlist de CORS que mantener en dos sitios (`apps/api/settings.py`).
+ *
+ * `VITE_FARO_API_URL` apunta al backend directamente y desactiva el proxy: es
+ * el camino del build, donde ya no hay servidor de desarrollo.
+ */
+const BACKEND_POR_DEFECTO = "http://127.0.0.1:8000";
+
+export default defineConfig(({ mode }) => {
+  // Sin prefijo `VITE_`: esto lo usa el servidor de desarrollo, no el cliente,
+  // y no tiene por qué acabar en el bundle.
+  const env = loadEnv(mode, process.cwd(), "FARO_");
+  const backend = env.FARO_BACKEND_URL || BACKEND_POR_DEFECTO;
+
+  return {
+    plugins: [vue()],
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
+        // El contrato ejecutable de `packages/shared/generated`: tipos, catálogo
+        // de campos, textos y constantes. Se importa por alias en vez de
+        // copiarse, porque nada del contrato se declara dos veces.
+        "@contrato": fileURLToPath(new URL("../../packages/shared/generated", import.meta.url)),
+      },
     },
-  },
-  server: {
-    /*
-     * La API acepta CORS solo desde una allowlist explícita y su valor por
-     * defecto es el puerto 3000 (`apps/api/settings.py: DEFAULT_CORS_ORIGINS`).
-     * Servir aquí en 3000 evita tocar el backend; la alternativa es arrancar la
-     * API con `FARO_CORS_ORIGINS=http://localhost:5173`.
-     */
-    port: 3000,
-  },
-  test: {
-    environment: "jsdom",
-    include: ["tests/**/*.test.ts"],
-  },
+    server: {
+      proxy: {
+        "/v1": { target: backend, changeOrigin: true, ws: true },
+        "/health": { target: backend, changeOrigin: true },
+      },
+    },
+    test: {
+      environment: "jsdom",
+      include: ["tests/**/*.test.ts"],
+    },
+  };
 });

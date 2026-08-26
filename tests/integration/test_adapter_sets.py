@@ -1,6 +1,6 @@
 """El camino real existe y respeta los mismos invariantes que el mock.
 
-`FARO_P1_ADAPTERS` elige el conjunto. Estos tests corren en los dos y afirman lo
+`BLUBATHON_P1_ADAPTERS` elige el conjunto. Estos tests corren en los dos y afirman lo
 que no depende del conjunto: qué adaptadores quedaron cableados, y que ninguna
 salida rompe SPEC 8.5 ni SPEC 11.5 venga de donde venga.
 """
@@ -18,7 +18,7 @@ from apps.api.store.db import Database
 from tests.p2.conftest import submit_form
 from tools.seed import ids
 
-SELECTED = os.environ.get("FARO_P1_ADAPTERS", "mock")
+SELECTED = os.environ.get("BLUBATHON_P1_ADAPTERS", "mock")
 
 
 def test_every_declared_facade_is_wired() -> None:
@@ -39,7 +39,7 @@ def test_the_selected_set_is_the_one_the_environment_asked_for(app) -> None:
 
 
 def test_the_real_set_wires_the_published_domain(settings, clock) -> None:
-    """Cada puerto queda cableado a `apps/api/adapters/p1`, sin `FARO_P1_ADAPTERS`.
+    """Cada puerto queda cableado a `apps/api/adapters/p1`, sin `BLUBATHON_P1_ADAPTERS`.
 
     Se construye explícitamente para que la afirmación no dependa de qué
     conjunto eligió el entorno de esta corrida.

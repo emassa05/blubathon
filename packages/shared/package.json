@@ -7,7 +7,11 @@
   "main": "./generated/index.ts",
   "types": "./generated/index.ts",
   "exports": {
-    ".": "./generated/index.ts"
+    ".": "./generated/index.ts",
+    "./contract": "./generated/contract.ts",
+    "./constants": "./generated/constants.ts",
+    "./field-catalog": "./generated/field-catalog.ts",
+    "./texts": "./generated/texts.ts"
   },
   "dependencies": {
     "zod": "3.24.1"

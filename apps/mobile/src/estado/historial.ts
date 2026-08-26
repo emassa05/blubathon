@@ -17,7 +17,7 @@ import { computed, ref } from "vue";
 
 import type { ChildHistoryDay } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { historialDelNino } from "@/api/faro";
+import { historialNino } from "@/api/faro";
 
 const dias = ref<readonly ChildHistoryDay[]>([]);
 const cargando = ref(false);
@@ -37,7 +37,7 @@ async function pedir(ninoId: string): Promise<void> {
   cargando.value = true;
   error.value = null;
   try {
-    const respuesta = await historialDelNino(ninoId);
+    const respuesta = await historialNino(ninoId);
     dias.value = respuesta.days ?? [];
     cargado.value = true;
     ninoCargado = ninoId;

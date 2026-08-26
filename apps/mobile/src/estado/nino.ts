@@ -13,6 +13,7 @@
 
 import { computed, ref } from "vue";
 
+import { ID_NINO } from "@/api/config";
 import type { ChildListItem } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
 import { listarNinos } from "@/api/faro";
@@ -26,8 +27,8 @@ async function pedir(): Promise<void> {
   cargando.value = true;
   error.value = null;
   try {
-    const respuesta = await listarNinos();
-    nino.value = respuesta.children?.[0] ?? null;
+    const lista = (await listarNinos()).children ?? [];
+    nino.value = lista.find((candidato) => candidato.child_id === ID_NINO) ?? lista[0] ?? null;
   } catch (fallo) {
     error.value = mensajeDeError(fallo);
   } finally {

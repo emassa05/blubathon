@@ -32,7 +32,7 @@ import type {
 } from "@/api/contrato";
 import { ORIGEN_CUIDADOR } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { enviarFormulario, planDelFormulario } from "@/api/faro";
+import { enviarFormulario, planFormulario } from "@/api/faro";
 import { CAMPOS_DE_CASA, ordenCanonico } from "@/dominio/campos";
 import { variablesCriticas, type DiaConRespuestas } from "@/dominio/criticas";
 
@@ -125,7 +125,10 @@ export function useCuestionario(opciones: Opciones) {
     cargando.value = true;
     error.value = null;
     try {
-      plan.value = await planDelFormulario(opciones.ninoId, respondidas.value);
+      plan.value = await planFormulario(opciones.ninoId, {
+        source: ORIGEN_CUIDADOR,
+        answers: respondidas.value,
+      });
     } catch (fallo) {
       error.value = mensajeDeError(fallo);
     } finally {

@@ -1,4 +1,4 @@
-"""Faro v0.4 HTTP and WebSocket surface."""
+"""Blubathon v0.4 HTTP and WebSocket surface."""
 
 from __future__ import annotations
 

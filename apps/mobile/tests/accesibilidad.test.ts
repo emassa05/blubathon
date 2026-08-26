@@ -3,11 +3,23 @@ import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DialogoCuestionario from "@/components/cuestionario/DialogoCuestionario.vue";
+import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import HistorialView from "@/views/HistorialView.vue";
 import SaludView from "@/views/SaludView.vue";
 
+import {
+  ID_NINO_FALSO,
+  diaFalso,
+  historialFalso,
+  instalarServidorFalso,
+  planFalso,
+} from "./servidorFalso";
+
+const HOY = fechaDeHoy();
+const CHILD = `/v1/children/${ID_NINO_FALSO}`;
+
 /**
- * Pase de axe sobre cada pantalla montada.
+ * Pase de axe sobre cada pantalla montada, ya con los datos de la API.
  *
  * En jsdom no hay layout, así que axe desactiva por su cuenta las reglas que
  * necesitan píxeles (`color-contrast` entre ellas). Los contrastes se verifican
@@ -15,44 +27,23 @@ import SaludView from "@/views/SaludView.vue";
  */
 const REGLAS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"];
 
-function responder(cuerpo: unknown) {
-  return { ok: true, status: 200, json: async () => cuerpo } as unknown as Response;
-}
-
 beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string) => {
-      if (url.includes("/children") && url.endsWith("/children")) {
-        return responder({ children: [{ child_id: "nino-1", display_label: "Ana" }] });
-      }
-      if (url.includes("/history")) return responder({ child_id: "nino-1", days: [] });
-      if (url.endsWith("/form-plan")) {
-        return responder({
-          questions: [
-            { field_code: "sleep_hours", highlighted: true, reason: "staleness", voi_nats: null },
-            {
-              field_code: "sleep_quality",
-              highlighted: false,
-              reason: "canonical_order",
-              voi_nats: null,
-            },
-            {
-              field_code: "relevant_event_flag",
-              highlighted: false,
-              reason: "canonical_order",
-              voi_nats: null,
-            },
-            { field_code: "notes", highlighted: false, reason: "canonical_order", voi_nats: null },
-          ],
-          defaults: [{ field_code: "sleep_hours", value: 9, window_days: 60, sample_size: 20 }],
-          voi_status: "unavailable_model",
-          coverage: 0,
-        });
-      }
-      return responder({ status: "no_submission_today" });
-    }),
-  );
+  instalarServidorFalso({
+    "/v1/children": { children: [{ child_id: ID_NINO_FALSO, display_label: "Niña demo 1" }] },
+    [`${CHILD}/history`]: historialFalso([
+      diaFalso({ fecha: HOY, probabilidad: 0.18, intervalo: [0.1, 0.25] }),
+    ]),
+    [`${CHILD}/form-plan`]: planFalso(["sleep_quality"]),
+    [`${CHILD}/recommendations/today`]: {
+      status: "matched",
+      risk_band: "low",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      action_text_es: "Mantener la rutina de sueño.",
+      citations: [],
+      abstention_reason: null,
+      rating: null,
+    },
+  });
 });
 
 afterEach(() => {
@@ -83,8 +74,8 @@ describe("accesibilidad", () => {
   });
 
   it("el diálogo del cuestionario no deja violaciones de axe", async () => {
-    expect(
-      await violaciones(DialogoCuestionario, { ninoId: "nino-1", fecha: "2026-08-25" }),
-    ).toEqual([]);
+    expect(await violaciones(DialogoCuestionario, { ninoId: ID_NINO_FALSO, fecha: HOY })).toEqual(
+      [],
+    );
   });
 });
