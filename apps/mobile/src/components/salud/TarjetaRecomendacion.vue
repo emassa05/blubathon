@@ -1,101 +1,88 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
+import IconoDestello from "@/components/icons/IconoDestello.vue";
 import type { Recomendacion } from "@/types/salud";
 
-const props = defineProps<{
+defineProps<{
   recomendacion: Recomendacion;
 }>();
 
 const SOBRETITULO = "Recomendación de hoy";
-
-const hayFoto = computed(() => props.recomendacion.imagen !== null);
-
-const fondo = computed(() =>
-  props.recomendacion.imagen === null
-    ? {}
-    : { backgroundImage: `url("${props.recomendacion.imagen}")` },
-);
 </script>
 
 <template>
   <section class="recomendacion">
-    <!-- TODO(spec): placeholder. La foto familiar a sangre la aporta el equipo;
-         en cuanto `recomendacion.imagen` traiga una URL, esta capa la pinta. -->
-    <div
-      class="recomendacion__foto"
-      :class="{ 'recomendacion__foto--placeholder': !hayFoto }"
-      :style="fondo"
-      aria-hidden="true"
-    ></div>
-    <div class="recomendacion__velo" aria-hidden="true"></div>
+    <h2 class="recomendacion__marca">
+      <span class="recomendacion__insignia" aria-hidden="true">
+        <IconoDestello class="recomendacion__destello" />
+      </span>
+      <span>{{ SOBRETITULO }}</span>
+    </h2>
 
-    <div class="recomendacion__texto">
-      <h2 class="recomendacion__sobretitulo">{{ SOBRETITULO }}</h2>
-      <p class="recomendacion__frase">{{ recomendacion.texto }}</p>
-    </div>
+    <p class="recomendacion__frase">{{ recomendacion.texto }}</p>
   </section>
 </template>
 
 <style scoped>
+/*
+ * Es una tarjeta del mismo sistema que las otras dos: superficie blanca, mismo
+ * radio, misma elevación. Antes era un bloque de color justo debajo de un panel
+ * de color, y se leía como un trozo del panel que se hubiera caído.
+ *
+ * Lo que la distingue es el acento, no la superficie: un lavado del tono de la
+ * banda que entra por la esquina de arriba a la izquierda y muere antes de
+ * llegar al texto, y la insignia. Con eso sigue diciendo en qué estado está sin
+ * salirse del sistema.
+ */
 .recomendacion {
-  position: relative;
   display: flex;
-  min-height: var(--faro-recomendacion-alto);
-  overflow: hidden;
-  border-radius: var(--faro-radio-26);
-  box-shadow: var(--faro-sombra-tarjeta);
-}
-
-.recomendacion__foto,
-.recomendacion__velo {
-  position: absolute;
-  inset: 0;
-}
-
-.recomendacion__foto {
-  background-position: center;
-  background-size: cover;
-}
-
-/* Marca deliberada de "aquí falta la foto": bandas suaves, nunca una foto de
-   archivo que pueda colarse en una demo. */
-.recomendacion__foto--placeholder {
-  background-image: repeating-linear-gradient(
-    135deg,
-    oklch(0.62 0.06 168) 0 14px,
-    oklch(0.55 0.07 168) 14px 28px
-  );
-}
-
-.recomendacion__velo {
-  background: var(--faro-velo-foto);
-}
-
-.recomendacion__texto {
-  position: relative;
-  display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: var(--faro-esp-6);
   justify-content: center;
-  padding: var(--faro-esp-20);
-  text-align: center;
+  min-height: var(--faro-recomendacion-alto);
+  padding: var(--faro-esp-16);
+  background:
+    radial-gradient(120% 130% at 0% 0%, var(--faro-rec-tinte), transparent 62%),
+    var(--faro-superficie);
+  border-radius: var(--faro-radio-24);
+  box-shadow: var(--faro-elev-1);
 }
 
-.recomendacion__sobretitulo {
+/*
+ * Alineado a la izquierda, no centrado: una frase de dos líneas centrada obliga
+ * a buscar el principio de cada una, y aquí lo que se lee es la frase.
+ */
+.recomendacion__marca {
+  display: flex;
+  align-items: center;
+  gap: var(--faro-esp-10);
   font-size: var(--faro-fs-11);
   font-weight: 700;
   letter-spacing: var(--faro-track-014);
   text-transform: uppercase;
-  color: rgb(255 255 255 / 0.88);
+  color: var(--faro-rec-sobretitulo);
+}
+
+.recomendacion__insignia {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--faro-insignia);
+  height: var(--faro-insignia);
+  background: var(--faro-rec-insignia);
+  border-radius: 50%;
+}
+
+.recomendacion__destello {
+  width: var(--faro-icono-14);
+  height: var(--faro-icono-14);
 }
 
 .recomendacion__frase {
+  margin-top: var(--faro-esp-12);
   font-size: var(--faro-fs-17);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
-  color: #fff;
-  text-shadow: var(--faro-sombra-texto);
+  /* El mismo oscuro que los títulos de las otras tarjetas: sobre blanco, lo que
+     manda es el sistema, no la banda. */
+  color: var(--faro-verde-profundo);
 }
 </style>

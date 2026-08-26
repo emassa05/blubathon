@@ -29,6 +29,20 @@ describe("TarjetaFormularios", () => {
     expect(puntos[1]?.classes()).toContain("formulario__punto--sin-responder");
   });
 
+  it("cada día es un botón que nombra su destino y emite abrirRegistro", async () => {
+    const wrapper = mount(TarjetaFormularios, { props: { registros: REGISTROS } });
+
+    const filas = wrapper.findAll(".formulario__fila");
+    expect(filas).toHaveLength(2);
+    expect(filas[0]?.attributes("aria-label")).toBe("Abrir el formulario de Lunes 24, respondido");
+    expect(filas[1]?.attributes("aria-label")).toBe(
+      "Abrir el formulario de Domingo 23, sin responder",
+    );
+
+    await filas[1]?.trigger("click");
+    expect(wrapper.emitted("abrirRegistro")).toEqual([["2026-08-23"]]);
+  });
+
   it("la acción es un botón con nombre accesible y emite verMas", async () => {
     const wrapper = mount(TarjetaFormularios, { props: { registros: REGISTROS } });
 

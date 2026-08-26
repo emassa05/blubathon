@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, type CSSProperties } from "vue";
 
+import IconoChevron from "@/components/icons/IconoChevron.vue";
 import IconoPortapapeles from "@/components/icons/IconoPortapapeles.vue";
 import {
   ANIMACION_AVISO_POR_DEFECTO,
@@ -43,33 +44,82 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
 </script>
 
 <template>
-  <div class="aviso" :class="clases" :style="estilo">
-    <div class="aviso__texto">
-      <p class="aviso__etiqueta">Pendiente</p>
-      <p class="aviso__titulo">Tienes un formulario este día</p>
-    </div>
-
-    <button
-      type="button"
-      class="aviso__boton"
-      :aria-label="etiquetaBoton"
-      @click="$emit('abrirFormulario')"
-    >
+  <button
+    type="button"
+    class="aviso"
+    :class="clases"
+    :style="estilo"
+    :aria-label="etiquetaBoton"
+    @click="$emit('abrirFormulario')"
+  >
+    <span class="aviso__insignia" aria-hidden="true">
       <IconoPortapapeles class="aviso__icono" />
-    </button>
-  </div>
+    </span>
+
+    <span class="aviso__texto">
+      <span class="aviso__etiqueta">Pendiente</span>
+      <span class="aviso__titulo">Tienes un formulario este día</span>
+    </span>
+
+    <IconoChevron class="aviso__chevron" />
+  </button>
 </template>
 
 <style scoped>
+/*
+ * El aviso entero es el botón. Antes el texto quedaba suelto sobre el fondo de
+ * la página y solo se pulsaba un cuadrado naranja al lado: había que adivinar
+ * que las dos cosas eran la misma. Ahora es una pieza sola, con su superficie,
+ * y se pulsa donde se lee. (El comentario vive aquí y no en la plantilla porque
+ * un comentario suelto en la raíz convierte el componente en fragmento y deja
+ * de heredar clases y estilos.)
+ *
+ * Fuera de las bandas a propósito: el naranja es siempre el mismo porque no
+ * habla del riesgo del día, sino de algo que le falta por hacer al usuario. Si
+ * cambiara de color con la banda, se leería como parte del estado.
+ *
+ * Es la única acción de la pantalla, así que es lo único en elevación 2. El
+ * resto del contenido informa; esto pide que hagas algo.
+ */
 .aviso {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--faro-esp-14);
+  width: 100%;
+  padding: var(--faro-esp-12);
+  text-align: left;
+  background: var(--faro-aviso-fondo);
+  border-radius: var(--faro-radio-24);
+  box-shadow: var(--faro-elev-2);
+}
+
+.aviso:focus-visible {
+  outline: var(--faro-foco-grosor) solid var(--faro-aviso-titulo);
+  outline-offset: var(--faro-foco-offset);
+}
+
+.aviso__insignia {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--faro-toque);
+  height: var(--faro-toque);
+  color: #fff;
+  background: var(--faro-aviso-insignia);
+  border-radius: var(--faro-radio-18);
+}
+
+.aviso__icono {
+  width: var(--faro-icono-26);
+  height: var(--faro-icono-26);
 }
 
 .aviso__texto {
-  text-align: right;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--faro-esp-4);
+  min-width: 0;
 }
 
 .aviso__etiqueta {
@@ -77,36 +127,21 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
   font-weight: 700;
   letter-spacing: var(--faro-track-012);
   text-transform: uppercase;
-  color: var(--faro-naranja-etiqueta);
+  color: var(--faro-aviso-etiqueta);
 }
 
 .aviso__titulo {
   font-size: var(--faro-fs-155);
   font-weight: 700;
-  line-height: 1.3;
-  color: var(--faro-naranja-titulo);
+  line-height: 1.25;
+  color: var(--faro-aviso-titulo);
 }
 
-.aviso__boton {
-  display: grid;
+.aviso__chevron {
   flex: none;
-  place-items: center;
-  width: var(--faro-boton-aviso);
-  height: var(--faro-boton-aviso);
-  color: #fff;
-  background: var(--faro-naranja-boton);
-  border-radius: var(--faro-radio-18);
-  box-shadow: var(--faro-sombra-boton);
-}
-
-.aviso__boton:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
-}
-
-.aviso__icono {
-  width: var(--faro-icono-26);
-  height: var(--faro-icono-26);
+  width: var(--faro-icono-16);
+  height: var(--faro-icono-16);
+  color: var(--faro-aviso-chevron);
 }
 
 .aviso--animado {
@@ -127,6 +162,9 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
   animation-name: deslizamiento;
 }
 
+/* Con la pieza a todo el ancho el pulso tiene que ser más corto que cuando era
+   un botón suelto: el mismo 1.4% de escala en 342px se convierte en 5px de
+   vaivén y se vuelve ruido. */
 @keyframes pulso {
   0%,
   100% {
@@ -134,7 +172,7 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
   }
 
   50% {
-    transform: translateY(-3px) scale(1.014);
+    transform: translateY(-2px) scale(1.006);
   }
 }
 
@@ -156,7 +194,7 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
   }
 
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-4px);
   }
 }
 

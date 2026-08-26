@@ -27,16 +27,16 @@ export interface RegistroFormulario {
 
 export interface Recomendacion {
   readonly texto: string;
-  /** URL de la foto a sangre. `null` mientras el equipo no aporte la imagen. */
-  readonly imagen: string | null;
 }
 
 /** Lo que la pantalla necesita saber de un día. Es el contrato con la API. */
 export interface ResumenSalud {
   /** Fecha ISO 8601 (YYYY-MM-DD) del día que abre la pantalla. */
   readonly fecha: string;
-  /** Porcentaje de bienestar, 0-100. */
-  readonly bienestar: number;
+  /** Riesgo de desregulación del día, 0-100. Elige la ilustración de cabecera. */
+  readonly riesgo: number;
+  /** Confianza del modelo en ese riesgo, 0-100. */
+  readonly confianza: number;
   readonly recomendacion: Recomendacion;
   readonly factores: readonly FactorRiesgo[];
   readonly formularios: readonly RegistroFormulario[];

@@ -31,13 +31,21 @@ const ICONOS: Record<IconoFactor, Component> = {
           <span class="factor__detalle">{{ factor.detalle }}</span>
         </span>
 
-        <span class="factor__prioridad">{{ ETIQUETA_PRIORIDAD[factor.prioridad] }}</span>
+        <span class="factor__prioridad">
+          <span class="factor__punto" aria-hidden="true"></span>
+          {{ ETIQUETA_PRIORIDAD[factor.prioridad] }}
+        </span>
       </li>
     </ul>
   </section>
 </template>
 
 <style scoped>
+/*
+ * Esta tarjeta es la que explica la cifra del panel, así que es la principal de
+ * las tres: título un cuerpo por encima de las otras. La jerarquía se ve en el
+ * título, no en el color ni en la sombra, que son iguales en todas.
+ */
 .factores {
   padding: var(--faro-esp-18) var(--faro-esp-16);
   background: var(--faro-superficie);
@@ -46,28 +54,35 @@ const ICONOS: Record<IconoFactor, Component> = {
 }
 
 .factores__titulo {
-  font-size: var(--faro-fs-15);
+  font-size: var(--faro-fs-17);
   font-weight: 700;
   color: var(--faro-verde-profundo);
 }
 
 .factores__subtitulo {
   margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-12);
+  font-size: var(--faro-fs-125);
   color: var(--faro-gris-texto);
 }
 
 .factores__lista {
-  display: flex;
-  flex-direction: column;
-  gap: var(--faro-esp-12);
-  margin-top: var(--faro-esp-14);
+  margin-top: var(--faro-esp-10);
 }
 
+/*
+ * Filete entre filas, no `gap`: separa igual y no dibuja una caja dentro de la
+ * caja. Lo lleva la fila de abajo, así que ni la primera ni la última cortan
+ * el acolchado de la tarjeta.
+ */
 .factor {
   display: flex;
   align-items: center;
   gap: var(--faro-esp-12);
+  padding-block: var(--faro-esp-10);
+}
+
+.factor + .factor {
+  border-top: 1px solid var(--faro-linea);
 }
 
 .factor__caja {
@@ -101,17 +116,32 @@ const ICONOS: Record<IconoFactor, Component> = {
 }
 
 .factor__detalle {
-  font-size: var(--faro-fs-12);
+  font-size: var(--faro-fs-125);
   color: var(--faro-gris-texto);
 }
 
+/*
+ * La prioridad es una señal de severidad, no del día: por eso su color no entra
+ * en las bandas y es siempre el mismo. El punto la hace reconocible de un
+ * vistazo sin subir el peso del texto.
+ */
 .factor__prioridad {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: var(--faro-esp-6);
   padding: var(--faro-esp-4) var(--faro-esp-9);
   font-size: var(--faro-fs-11);
   font-weight: 700;
   color: var(--faro-alerta-texto);
   background: var(--faro-alerta-fondo);
   border-radius: var(--faro-radio-pastilla);
+}
+
+.factor__punto {
+  width: var(--faro-esp-6);
+  height: var(--faro-esp-6);
+  background: currentcolor;
+  border-radius: 50%;
 }
 </style>

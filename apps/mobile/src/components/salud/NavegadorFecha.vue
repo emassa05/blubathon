@@ -41,12 +41,12 @@ defineEmits<{
   align-items: center;
   justify-content: center;
   gap: var(--faro-esp-22);
-  color: #fff;
 }
 
 .fecha__etiqueta {
   font-size: var(--faro-fs-20);
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--faro-texto-fuerte);
 }
 
 .fecha__chevron {
@@ -59,12 +59,12 @@ defineEmits<{
   margin-inline: calc((var(--faro-toque) - var(--faro-fs-26)) / -2);
   font-size: var(--faro-fs-26);
   line-height: 1;
-  opacity: 0.72;
+  color: var(--faro-texto-suave);
   border-radius: var(--faro-radio-10);
 }
 
 .fecha__chevron:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-claro);
+  outline: var(--faro-foco-grosor) solid var(--faro-foco-panel);
   outline-offset: var(--faro-foco-offset);
 }
 </style>

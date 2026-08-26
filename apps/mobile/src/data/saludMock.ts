@@ -9,12 +9,13 @@ import type { ResumenSalud } from "@/types/salud";
  */
 export const RESUMEN_SALUD_MOCK: ResumenSalud = {
   fecha: "2026-08-25",
-  bienestar: 86,
+  // Cae en la banda "bajo" (< 25). Subir este número por encima de 25 o de 50
+  // es lo único que hace falta para ver las otras dos paletas; el botón de
+  // prueba de `SaludView` hace lo mismo sin tocar el mock.
+  riesgo: 18,
+  confianza: 85,
   recomendacion: {
     texto: "Mantener la rutina de sueño y un momento tranquilo antes de dormir.",
-    // TODO(spec): la foto familiar la aporta el equipo. Hasta entonces se pinta
-    // el placeholder marcado de `TarjetaRecomendacion`.
-    imagen: null,
   },
   factores: [
     {
