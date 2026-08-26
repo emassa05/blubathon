@@ -140,7 +140,18 @@ Lo que la pantalla garantiza:
 - El color nunca informa solo: junto al punto verde/gris va siempre
   `Respondido` / `Sin responder`.
 - Tipografía en `rem`, para que el zoom de texto funcione. El contenedor de
-  contenido desplaza (`overflow-y: auto`) antes que recortar.
+  contenido desplaza (`overflow-y: auto`) antes que recortar; en horizontal
+  recorta (`overflow-x: clip`), porque no hay nada que desplazar y así no
+  aparece la barra que provocarían los pocos píxeles que el `scale()` del aviso
+  añade al área desbordada.
+
+  Con **zoom de página** al 200% (el habitual) todo escala junto y la pantalla
+  se ve igual. Con **zoom solo de texto** al 200%, el contenido sigue completo y
+  desplazable, pero la banda superior se solapa: el navegador de fecha, el
+  sobretítulo y la cifra están anclados a `top: 66 / 104 / 236`, que es lo que
+  fija el diseño. Despegarlos de esas coordenadas cambiaría la pantalla al 100%,
+  así que queda anotado en vez de corregido.
+
 - `pnpm lint` incluye `eslint-plugin-vuejs-accessibility` con 0 warnings, y
   `tests/accesibilidad.test.ts` corre axe-core sobre la pantalla montada
   (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `best-practice`): 0 violaciones.

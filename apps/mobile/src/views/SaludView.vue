@@ -90,7 +90,10 @@ function verMas(): void {
   /* `gap` es un mínimo, no un reparto: con espacio libre, `space-between` sigue
      distribuyéndolo igual. Con zoom al 200% evita que los bloques se toquen. */
   gap: var(--faro-esp-12);
-  /* Antes de recortar contenido, que desplace. */
+  /* Antes de recortar contenido, que desplace. En horizontal no hay nada que
+     desplazar: `clip` evita la barra que provocarían los pocos píxeles que el
+     `scale()` del aviso añade al área desbordada. */
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
