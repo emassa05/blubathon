@@ -11,7 +11,8 @@ monitorea emergencias (`SPEC 2.27`).
 Los documentos normativos son `SPEC.md`, `CONVENTIONS.md`, `TAREAS.md` y
 `FUNDAMENTOS.md`. Ante contradicción manda `SPEC.md`. Este README documenta
 solo el backend (`apps/api`, `ml`, `rag`, `packages/shared`, `tools`); el
-frontend (`apps/web`) tiene su propia documentación.
+frontend (`apps/web`, y la interfaz visual en `apps/mobile`) tiene su propia
+documentación.
 
 ---
 
