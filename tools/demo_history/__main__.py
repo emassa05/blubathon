@@ -32,6 +32,16 @@ def main() -> int:
             "Si hubo crisis lo decide un sorteo reproducible, no el perfil"
         ),
     )
+    parser.add_argument(
+        "--perfil",
+        choices=("mixto", "sueno"),
+        default="mixto",
+        help=(
+            "que campos vienen mal en un dia dificil. mixto: sueno, digestivo, "
+            "medicacion y regulacion a la vez. sueno: solo el sueno, el resto "
+            "bien, para que la recomendacion salga sobre sueno"
+        ),
+    )
     parser.add_argument("--db", help="ruta de la base SQLite")
     parser.add_argument(
         "--adapters",
@@ -47,6 +57,7 @@ def main() -> int:
         child_id=args.child,
         days=args.days,
         dificiles=args.dificiles,
+        perfil=args.perfil,
         settings=load_settings(),
         adapters=args.adapters,
     )

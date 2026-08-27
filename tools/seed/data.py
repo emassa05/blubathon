@@ -118,6 +118,20 @@ SUBJECTS = (
         "contraindication_tags": [],
     },
     {
+        # Solo el sueño viene mal; lo demás se responde bien. Sirve para ver la
+        # recomendación de sueño aislada: con el perfil mixto la consulta trae
+        # vocabulario de GI, medicación y rutina, y el fragmento que gana no es
+        # el de sueño. Se siembra con `--perfil sueno` (tools.demo_history).
+        "subject_id": ids.SUBJECT_SUENO,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niña demo 6 (solo sueño)",
+        "care_mode": "home_only",
+        "sensory_profile_tags": ["auditory_hypersensitive"],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
         "subject_id": ids.SUBJECT_TENANT_B,
         "cohort_kind": "demo_fixture",
         "tenant_id": ids.TENANT_B,
@@ -151,10 +165,12 @@ GRANTS = (
     (ids.CAREGIVER_A, ids.SUBJECT_BETO, CAREGIVER_CAPABILITIES),
     (ids.CAREGIVER_A, ids.SUBJECT_REAL, CAREGIVER_CAPABILITIES),
     (ids.CAREGIVER_A, ids.SUBJECT_REAL_B, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_SUENO, CAREGIVER_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_ANA, PROFESSIONAL_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_BETO, PROFESSIONAL_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_REAL, PROFESSIONAL_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_REAL_B, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_SUENO, PROFESSIONAL_CAPABILITIES),
     (ids.UNACCREDITED_PROFESSIONAL_A, ids.SUBJECT_ANA, PROFESSIONAL_CAPABILITIES),
     (ids.CAREGIVER_B, ids.SUBJECT_TENANT_B, CAREGIVER_CAPABILITIES),
     (ids.PROFESSIONAL_B, ids.SUBJECT_TENANT_B, PROFESSIONAL_CAPABILITIES),
