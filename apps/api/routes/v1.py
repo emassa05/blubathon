@@ -7,7 +7,6 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, Query, WebSocket, WebSocketDisconnect
 
 from apps.api.canonical import parse_timestamp
-from apps.api.services.local_time import local_date as reference_date
 from apps.api.contracts.constants import API_PREFIX
 from apps.api.contracts.models import (
     AnswerItem,
@@ -31,6 +30,7 @@ from apps.api.contracts.models import (
 from apps.api.events import EventBroker
 from apps.api.routes.dependencies import Broker, Context, Registry
 from apps.api.services import ServiceRegistry
+from apps.api.services.local_time import local_date as reference_date
 
 router = APIRouter(prefix=API_PREFIX)
 
