@@ -27,7 +27,7 @@ from packages.shared.domain.rag import DocumentChunk
 from rag.domain.text_guard import assert_literature_only, assert_no_clinical_text, literature
 
 PROMPT_PACKAGE: Final = "rag.authoring.prompts"
-AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_3_0.json"
+AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_4_0.json"
 
 logger = logging.getLogger("blubathon.rag")
 

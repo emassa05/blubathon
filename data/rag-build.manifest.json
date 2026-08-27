@@ -27,8 +27,8 @@
     "lexical_top_k": 20,
     "normalization_version": "normalize-nfc-lf-0.3.0",
     "ocr_version": null,
-    "prompt_sha256": "0ef509be901c82cff9045ab3c278a39273cb79f9975e8f3e8c62d5f95037a14b",
-    "prompt_version": "authoring-draft-0.3.0",
+    "prompt_sha256": "9ba5afd6910478a73e36d9a7c6d15b644987a6552444207f3437894f7a1ac5af",
+    "prompt_version": "authoring-draft-0.4.0",
     "rrf_k": 60,
     "tokenizer_version": "tokenizer-unicode-word-0.3.0"
   },
