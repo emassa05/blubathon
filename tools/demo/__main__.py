@@ -15,6 +15,29 @@ from tools.demo.montaje import DIAS_POR_DEFECTO, montar_demo
 from tools.rag_authoring.load_local import export_corpus, restore_corpus
 
 
+def _borrar(ruta: Path) -> bool:
+    """Borra la base y sus archivos WAL. `False` si algo la tiene abierta.
+
+    En Windows no se puede borrar un archivo que otro proceso tiene abierto, y
+    el que la tiene abierta casi siempre es la API. Sin este aviso el fallo sale
+    como un `WinError 32` a media traza y es fácil leerlo como que la semilla
+    está rota, cuando lo único que hace falta es parar el servidor.
+    """
+
+    for sufijo in ("", "-shm", "-wal"):
+        objetivo = Path(str(ruta) + sufijo)
+        try:
+            objetivo.unlink(missing_ok=True)
+        except PermissionError:
+            print(f"no se puede borrar {objetivo}: otro proceso la tiene abierta.")
+            print("Pará la API y volvé a correr esto:")
+            print("  taskkill /F /IM python.exe     (o Ctrl+C en la consola de uvicorn)")
+            print()
+            print("Sin --reset, la semilla escribe sobre lo que ya hay y duplica días.")
+            return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tools.demo",
