@@ -14,9 +14,13 @@ un modelo que parafrasea una cita produce una abstención, no una recomendación
 from __future__ import annotations
 
 import json
+import logging
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Final
+
+logger = logging.getLogger("blubathon.rag")
 
 MODEL_ID: Final = "claude-opus-5"
 MAX_TOKENS: Final = 4096
@@ -60,6 +64,7 @@ class AnthropicDraftTransport:
         return f"api-served:{self._model}"
 
     def complete(self, prompt: str) -> str:
+        started = time.monotonic()
         response = self._client.messages.create(
             model=self._model,
             max_tokens=MAX_TOKENS,
@@ -68,8 +73,11 @@ class AnthropicDraftTransport:
             messages=[{"role": "user", "content": prompt}],
             output_config={"format": {"type": "json_schema", "schema": self._output_schema}},
         )
+        elapsed = time.monotonic() - started
         if response.stop_reason == "refusal":
+            logger.warning("anthropic refusal model=%s elapsed_s=%.2f", self._model, elapsed)
             raise DraftRefusedError("el modelo declinó redactar este borrador")
+        logger.info("anthropic completado model=%s elapsed_s=%.2f", self._model, elapsed)
         return next(block.text for block in response.content if block.type == "text")
 
 
@@ -146,10 +154,26 @@ class OllamaDraftTransport:
                 {"role": "user", "content": prompt},
             ],
         }
-        body = self._post_json("/api/chat", payload)
+        logger.info("ollama request model=%s base_url=%s", self._model, self._base_url)
+        started = time.monotonic()
+        try:
+            body = self._post_json("/api/chat", payload)
+        except (urllib.error.URLError, TimeoutError):
+            logger.exception(
+                "ollama error model=%s elapsed_s=%.2f", self._model, time.monotonic() - started
+            )
+            raise
+        elapsed = time.monotonic() - started
         content = body.get("message", {}).get("content", "")
         if not content.strip():
+            logger.warning("ollama respuesta vacía model=%s elapsed_s=%.2f", self._model, elapsed)
             raise DraftRefusedError(f"{self._model} devolvió una respuesta vacía")
+        logger.info(
+            "ollama completado model=%s elapsed_s=%.2f output_chars=%d",
+            self._model,
+            elapsed,
+            len(content),
+        )
         return content
 
     def _post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:

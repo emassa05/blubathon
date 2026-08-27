@@ -136,11 +136,13 @@ function irASemana(cantidad: number): void {
   flex-direction: column;
   gap: var(--faro-esp-14);
   width: 100%;
-  max-width: var(--faro-ancho-max);
   min-height: 100dvh;
-  padding: calc(var(--faro-esp-18) + env(safe-area-inset-top, 0px)) var(--faro-esp-24)
+  /* El acolchado lateral es el de siempre mientras la ventana no pase del ancho
+     de lectura, y a partir de ahí es lo que sobra repartido a los dos lados.
+     En un teléfono la resta es negativa y gana el 24 de siempre. */
+  padding: calc(var(--faro-esp-18) + env(safe-area-inset-top, 0px))
+    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2)
     calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
-  margin-inline: auto;
   /* Las burbujas se dimensionan contra esta caja, igual que en Salud. */
   background: var(--faro-fondo-pagina);
 }
@@ -253,8 +255,9 @@ function irASemana(cantidad: number): void {
 
 @media (min-width: 900px) {
   .historial {
-    max-width: var(--faro-ancho-amplio);
-    padding-inline: var(--faro-esp-32);
+    /* El 32 sustituye al 24 como suelo del acolchado; el ancho de lectura ya
+       vale 1040 y el resto de la cuenta no cambia. */
+    padding-inline: max(var(--faro-esp-32), (100% - var(--faro-ancho-lectura)) / 2);
     gap: var(--faro-esp-20);
   }
 

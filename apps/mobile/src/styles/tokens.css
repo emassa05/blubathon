@@ -275,6 +275,21 @@
 :root {
   /* Medidas de las pantallas anchas. La columna de 480 sigue mandando en móvil. */
   --faro-ancho-amplio: 1040px;
+  /* El brazo de contenido, que es lo que queda del ancho amplio al descontar el
+     rail y el hueco entre los dos. */
+  --faro-ancho-principal: 648px;
+  /* El paso intermedio: tableta, o una ventana de escritorio a media pantalla. */
+  --faro-ancho-medio: 660px;
+
+  /*
+   * El ancho de lectura de la franja en la que estemos. Vale 480 —la columna de
+   * siempre—, 660 a partir de 600 y 1040 a partir de 900, y es lo único que
+   * cambia de un punto de corte al siguiente: el acolchado lateral de las
+   * pantallas se calcula contra este valor, así que crecer es cambiarlo aquí.
+   */
+  --faro-ancho-lectura: var(--faro-ancho-max);
+  /* La cabecera del riesgo no crece con la columna: ver `SaludView`. */
+  --faro-ancho-cabecera: 480px;
   --faro-ancho-dialogo: 560px;
   --faro-rail-ancho: 372px;
 
@@ -309,4 +324,91 @@
   --faro-critica-alta-texto: var(--faro-alerta-texto);
   --faro-critica-media-fondo: var(--faro-aviso-fondo);
   --faro-critica-media-texto: var(--faro-aviso-etiqueta);
+}
+
+/* Lo que llegó con el aviso obligatorio y la versión de escritorio de la
+ * pantalla de Salud.
+ *
+ * Sigue sin cambiar ni un valor de arriba: todo lo de aquí es nuevo, y lo que
+ * ya existía se reutiliza en vez de duplicarse con otro número.
+ */
+
+:root {
+  /*
+   * El velo del diálogo obligatorio.
+   *
+   * El velo normal deja reconocer lo de debajo, que es justo lo que distingue
+   * un diálogo de un cambio de pantalla. Este no: mientras la pregunta esté sin
+   * contestar no hay pantalla debajo con la que se pueda hacer nada, y el velo
+   * lo dice antes de que se lea el título.
+   */
+  --faro-velo-obligatorio: oklch(0.28 0.03 235 / 0.72);
+
+  /*
+   * El movimiento de los diálogos.
+   *
+   * La curva es la de una hoja de iOS: arranca rápido y frena muy largo, que es
+   * lo que hace que una superficie parezca que se posa en vez de que se
+   * teletransporta. La salida no la usa —sale con `ease-in`, más corta— porque
+   * una despedida lenta se lee como lentitud de la aplicación.
+   *
+   * Las duraciones no están aquí: las pone `DialogoModal` en línea, porque la
+   * de salida es además lo que espera antes de desmontarse y las dos cifras
+   * tienen que ser la misma. Estos son el suelo por si el diálogo se usara sin
+   * ellas.
+   */
+  --faro-curva-hoja: cubic-bezier(0.32, 0.72, 0, 1);
+  --faro-dur-entrada: 340ms;
+  --faro-dur-salida: 240ms;
+
+  /*
+   * Salud en pantalla ancha. La columna de 480 sigue siendo la de móvil; a
+   * partir de 900 la pantalla usa el mismo ancho amplio y el mismo rail que ya
+   * usaba el historial, para que las dos pantallas de escritorio tengan la
+   * misma retícula y no dos anchos parecidos pero distintos.
+   */
+  --faro-cupula-amplia: 64px;
+  /*
+   * Más bajo que en el teléfono, no más alto. La cabecera ocupa un tercio de un
+   * móvil porque debajo solo cabe una tarjeta y media; en una ventana de
+   * escritorio debajo caben las cinco, y gastar ahí la misma proporción dejaría
+   * la mitad de la pantalla en un panel casi vacío.
+   */
+  --faro-panel-alto-amplio: 264px;
+}
+
+/*
+ * El paso intermedio, y el único sitio donde se cambia una medida ya existente.
+ *
+ * Entre 480 y 900 no había nada: la aplicación seguía siendo la misma columna
+ * de teléfono con dos franjas de fondo a los lados. Eso es lo que se ve como
+ * "no es responsive" en una tableta, en una ventana a media pantalla o en un
+ * portátil con las herramientas de desarrollo abiertas, que es donde más se
+ * mira. La columna crece, y con ella crecen de una vez la pantalla de Salud, el
+ * historial y las hojas: las tres la usan.
+ *
+ * La condición tiene dos ramas y las dos hacen falta.
+ *
+ * `min-width: 600px` sola alcanzaría también a un teléfono en horizontal —844 o
+ * 932 px de ancho—, y ahí sigue siendo un teléfono: el diseño de móvil tiene
+ * que quedarse como está. El mínimo de alto los deja fuera a todos, porque
+ * ninguno pasa de 430 en esa orientación.
+ *
+ * Pero el mínimo de alto solo se lleva por delante una ventana de escritorio
+ * ancha y baja —un portátil con las herramientas de desarrollo abajo—, que
+ * volvería a la columna de teléfono en un monitor. De ahí la segunda rama: a
+ * partir de 1100 px de ancho ya no hay teléfono posible y el alto deja de
+ * importar.
+ */
+@media (min-width: 600px) and (min-height: 500px), (min-width: 1100px) {
+  :root {
+    --faro-ancho-max: var(--faro-ancho-medio);
+  }
+}
+
+/* Y a partir de 900, el ancho amplio: el de la rejilla de dos brazos. */
+@media (min-width: 900px) {
+  :root {
+    --faro-ancho-lectura: var(--faro-ancho-amplio);
+  }
 }

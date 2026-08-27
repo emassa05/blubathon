@@ -4,16 +4,16 @@ import { computed, onMounted } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
+import DialogoDesregulacion from "@/components/salud/DialogoDesregulacion.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
 import TarjetaResultado from "@/components/salud/TarjetaResultado.vue";
+import { useDesregulacion } from "@/composables/useDesregulacion";
 import { useDiaSeleccionado } from "@/composables/useDiaSeleccionado";
 import { useResumenSalud } from "@/composables/useResumenSalud";
-import { useNino } from "@/estado/nino";
-import { useResultados } from "@/estado/resultados";
 import { CLASE_BANDA, bandaRiesgo } from "@/theme/riesgo";
 
 const emitir = defineEmits<{
@@ -26,26 +26,35 @@ const emitir = defineEmits<{
 const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado();
 const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 
-// El resultado pendiente no depende del día que se esté mirando: es la pregunta
-// que el sistema dejó abierta y que hay que contestar antes de que venza.
-const { ninoId } = useNino();
+/*
+ * La pregunta de cierre —¿hubo un evento de desregulación?— no depende del día
+ * que se esté mirando: es la que el sistema dejó abierta y hay que contestar
+ * antes de que venza.
+ *
+ * Llega de dos maneras, y cuál toca lo decide `useDesregulacion`, no esta
+ * pantalla:
+ *
+ * - **Obligatoria**, en un diálogo delante de todo, cuando ya se puede
+ *   contestar que sí y que no. Hasta que no se responde no hay pantalla.
+ * - **Informativa**, en la tarjeta de siempre, mientras la ventana de 24 h
+ *   sigue abierta y un "no ocurrió" todavía no resolvería nada. Exigirla ahí
+ *   dejaría "sí, ocurrió" como única salida y ese falso positivo se escribiría
+ *   en los datos de los que sale la estimación siguiente.
+ */
 const {
+  obligatoria,
+  informativa,
   error: errorResultado,
   enviando,
-  pendienteDe,
-  reportar,
+  responder,
   cargar: cargarResultados,
-} = useResultados();
-
-const resultadoPendiente = computed(() => pendienteDe(ninoId.value));
+} = useDesregulacion();
 
 onMounted(cargarResultados);
 
 /** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
 async function alReportar(valor: "yes" | "no"): Promise<void> {
-  const solicitud = resultadoPendiente.value;
-  if (solicitud === null) return;
-  if (await reportar(solicitud, valor)) await recargar();
+  if (await responder(valor)) await recargar();
 }
 
 // Mientras se carga o cuando falla no hay estimación, y eso es exactamente la
@@ -96,32 +105,57 @@ defineExpose({ recargar });
           {{ error.mensajeEs }}
         </p>
 
+        <!--
+          Las clases `pantalla__zona--*` no pintan nada en móvil: son solo el
+          nombre de la casilla que ocupa cada pieza en la retícula de
+          escritorio. En un teléfono el contenido sigue siendo una columna y
+          estas piezas siguen apiladas en este mismo orden.
+        -->
         <template v-else-if="resumen">
-          <TarjetaRecomendacion :recomendacion="resumen.recomendacion" />
-          <TarjetaFactores :factores="resumen.factores" />
+          <TarjetaRecomendacion
+            class="pantalla__zona--recomendacion"
+            :recomendacion="resumen.recomendacion"
+          />
+          <TarjetaFactores class="pantalla__zona--factores" :factores="resumen.factores" />
           <!-- "ver más" abre el calendario semanal; cada fila abre el
                cuestionario de su día. El id de la fila es su fecha ISO. -->
           <TarjetaFormularios
+            class="pantalla__zona--formularios"
             :registros="resumen.formularios"
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
           />
           <TarjetaResultado
-            v-if="resultadoPendiente"
-            :solicitud="resultadoPendiente"
-            :enviando="enviando !== null"
+            v-if="informativa"
+            class="pantalla__zona--resultado"
+            :solicitud="informativa"
+            :enviando="enviando"
             :error="errorResultado"
             @reportar="alReportar"
           />
 
           <AvisoPendiente
             v-if="resumen.formularioPendiente"
+            class="pantalla__zona--pendiente"
             :dia="etiquetaAccesible"
             @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
           />
         </template>
       </div>
     </div>
+
+    <!--
+      El diálogo obligatorio va el último y fuera de la columna: es `fixed`, así
+      que su sitio en el DOM no decide dónde se ve, y el último es el único que
+      no obliga a leer la pantalla entera para encontrarlo.
+    -->
+    <DialogoDesregulacion
+      v-if="obligatoria"
+      :solicitud="obligatoria"
+      :enviando="enviando"
+      :error="errorResultado"
+      @responder="alReportar"
+    />
   </main>
 </template>
 
@@ -140,19 +174,21 @@ defineExpose({ recargar });
 }
 
 /*
- * La columna de contenido. El ancho es flexible, así que la página se comporta
- * igual de 320px a pantalla completa: por debajo del máximo ocupa todo el
- * ancho, por encima se centra.
+ * La columna de contenido. Ocupa el ancho que haya, siempre: en un teléfono es
+ * la pantalla, y en cualquier ventana más ancha que la columna de 480 sigue
+ * siendo la ventana entera, no una tira de 480 con dos franjas de fondo muerto
+ * a los lados.
  *
- * No lleva padding lateral: el panel va a sangre y el acolchado de 24 lo ponen
- * el propio panel y el bloque de tarjetas.
+ * Lo que se topa es el texto, y se topa con el acolchado del panel y del bloque
+ * de tarjetas, no aquí: un `max-width` en la columna se llevaría con él el
+ * degradado de la cabecera, las burbujas y la cúpula, que son justo lo que
+ * tiene que llegar a los bordes.
  */
 .pantalla__columna {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: var(--faro-ancho-max);
   min-height: min(100dvh, var(--faro-alto-referencia));
   padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
 }
@@ -174,8 +210,14 @@ defineExpose({ recargar });
   display: flex;
   flex-direction: column;
   min-height: var(--faro-panel-alto);
-  padding: calc(var(--faro-esp-14) + env(safe-area-inset-top, 0px)) var(--faro-esp-24)
-    var(--faro-esp-26);
+  /*
+   * El acolchado lateral es el de siempre mientras la ventana no pase del ancho
+   * de lectura, y a partir de ahí es lo que sobra repartido a los dos lados.
+   * En un teléfono `(100% - 480px)` es negativo y gana el 24 de siempre: el
+   * `max()` no cambia ni un píxel de lo que ya había.
+   */
+  padding: calc(var(--faro-esp-14) + env(safe-area-inset-top, 0px))
+    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) var(--faro-esp-26);
   overflow: hidden;
   background:
     radial-gradient(130% 62% at 50% 0%, var(--faro-brillo), transparent 62%),
@@ -212,7 +254,10 @@ defineExpose({ recargar });
   /* `gap` es el mínimo entre bloques; con espacio libre, `space-between` sigue
      repartiéndolo igual. */
   gap: var(--faro-esp-14);
-  padding: calc(var(--faro-esp-14) + var(--faro-cupula)) var(--faro-esp-24) 0;
+  /* El mismo margen que crece del panel, por la misma razón y con la misma
+     cuenta: las tarjetas y la cabecera tienen que caer sobre la misma línea. */
+  padding: calc(var(--faro-esp-14) + var(--faro-cupula))
+    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) 0;
   margin-top: calc(var(--faro-cupula) * -1);
   /* Las burbujas se dimensionan contra esta caja, así que llenan la columna
      igual en un teléfono que en una ventana ancha. */
@@ -238,5 +283,144 @@ defineExpose({ recargar });
   background: var(--faro-superficie);
   border-radius: var(--faro-radio-24);
   box-shadow: var(--faro-sombra-tarjeta);
+}
+
+/*
+ * Tableta, o una ventana a media pantalla: de 600 a 900.
+ *
+ * La columna crece sola —`--faro-ancho-max` ya vale más a partir de 600—, así
+ * que aquí solo va lo que no puede crecer con ella: la cabecera del riesgo. La
+ * cifra de 104 px, su pastilla de confianza y el navegador de fecha están
+ * dibujados para 480, y repartidos por 660 dejan de ser una cabecera para ser
+ * una fila de cosas sueltas. El panel sigue yendo a sangre; lo que se queda
+ * quieto es su contenido.
+ */
+@media (min-width: 600px) and (min-height: 500px), (min-width: 1100px) {
+  /*
+   * El ancho de lectura ya subió a 660 en los tokens, y el panel y las tarjetas
+   * lo siguen solos. Aquí solo va lo que no puede seguirlo.
+   *
+   * La cabecera del riesgo es lo único: la cifra de 104 px, su pastilla de
+   * confianza y el navegador de fecha están dibujados para 480, y repartidos
+   * por 660 dejan de ser una cabecera para ser una fila de cosas sueltas.
+   */
+  .pantalla__panel-contenido {
+    width: 100%;
+    max-width: var(--faro-ancho-cabecera);
+    margin-inline: auto;
+  }
+
+  /*
+   * Y llega hasta abajo, por dos motivos distintos que dejaban el mismo hueco.
+   *
+   * El tope de 844 es el alto de referencia de un teléfono y tenía sentido
+   * cuando la columna era una tira centrada; ahora que es la página, en una
+   * ventana más alta que eso el lienzo se quedaba corto. `flex: 1` del
+   * contenido hace el resto.
+   *
+   * Y el acolchado de abajo de la columna cae por fuera del lienzo: la columna
+   * no tiene fondo propio, así que esos 26 px eran una franja de color plano
+   * pegada al borde inferior incluso con la página llena. Se mueve dentro del
+   * contenido, que es quien lleva el fondo.
+   */
+  .pantalla__columna {
+    min-height: 100dvh;
+    padding-bottom: 0;
+  }
+
+  .pantalla__contenido {
+    padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/*
+ * Escritorio, a partir de 900. Todo lo de arriba es el móvil y sigue intacto:
+ * de aquí abajo no se corrige ni un valor de la columna de 480, solo se declara
+ * lo que pasa cuando hay sitio de sobra.
+ *
+ * Y lo que pasa es que la columna deja de ser una columna. Dos brazos, la misma
+ * retícula que ya usaba el historial —contenido y un rail de 372— para que las
+ * dos pantallas de escritorio no tengan dos anchos parecidos pero distintos. A
+ * la izquierda lo que dice el día: la recomendación y lo que el formulario
+ * pregunta primero. A la derecha lo que hay que hacer con él: el aviso, la
+ * pregunta de cierre y los últimos formularios.
+ *
+ * La cúpula y el alto del panel crecen con el ancho. Son proporciones, no
+ * medidas: un arco de 44 sobre 1040 px se lee como una línea recta.
+ */
+@media (min-width: 900px) {
+  .pantalla__columna {
+    /* Repetidos y no heredados del bloque de 600: los dos puntos de corte
+       tienen condiciones distintas —ese lleva un mínimo de alto y este no—, y
+       una ventana ancha y baja casa con este solo. */
+    min-height: 100dvh;
+    padding-bottom: 0;
+    --faro-cupula: var(--faro-cupula-amplia);
+    --faro-panel-alto: var(--faro-panel-alto-amplio);
+  }
+
+  .pantalla__contenido {
+    display: grid;
+    /*
+     * Las casillas se declaran enteras porque las piezas de la derecha
+     * aparecen y desaparecen —no siempre hay aviso pendiente, no siempre hay
+     * pregunta de cierre— y con colocación automática cada combinación habría
+     * dado una retícula distinta.
+     */
+    /*
+     * Cuatro columnas y dos son márgenes. Los `1fr` de los extremos se comen
+     * todo el ancho que sobre, así que el contenido se queda en su medida y
+     * centrado sin que haga falta toparlo con un `max-width` —que aquí se
+     * llevaría por delante el fondo y la cúpula, que sí van de borde a borde.
+     */
+    grid-template-columns:
+      minmax(var(--faro-esp-40), 1fr)
+      minmax(0, var(--faro-ancho-principal))
+      var(--faro-rail-ancho)
+      minmax(var(--faro-esp-40), 1fr);
+    grid-template-areas:
+      ". recomendacion pendiente   ."
+      ". factores      resultado   ."
+      ". factores      formularios .";
+    align-content: start;
+    /* Cada tarjeta con su alto: la de factores ocupa dos filas y sin esto se
+       estiraría hasta el fondo de la segunda, dejándose media tarjeta en
+       blanco. */
+    align-items: start;
+    gap: var(--faro-esp-20);
+    padding: calc(var(--faro-esp-20) + var(--faro-cupula)) 0
+      calc(var(--faro-esp-20) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pantalla__zona--recomendacion {
+    grid-area: recomendacion;
+  }
+
+  .pantalla__zona--factores {
+    grid-area: factores;
+  }
+
+  .pantalla__zona--formularios {
+    grid-area: formularios;
+  }
+
+  .pantalla__zona--resultado {
+    grid-area: resultado;
+  }
+
+  .pantalla__zona--pendiente {
+    grid-area: pendiente;
+  }
+
+  /* Carga y error ocupan el sitio de todo lo demás, que es exactamente lo que
+     hacían en la columna: no hay tarjetas con las que compartir la retícula. */
+  .pantalla__aviso {
+    grid-row: 1;
+    /* De margen a margen, no de borde a borde: un aviso centrado en la ventana
+       entera se leería lejos de donde iban a estar las tarjetas. */
+    grid-column: 2 / 4;
+    align-self: start;
+    margin-bottom: 0;
+  }
 }
 </style>

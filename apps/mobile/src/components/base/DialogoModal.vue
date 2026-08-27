@@ -1,17 +1,37 @@
 <script setup lang="ts">
-import { ref, useId } from "vue";
+import { computed, onBeforeUnmount, ref, useId } from "vue";
 
 import IconoCerrar from "@/components/icons/IconoCerrar.vue";
 import { useDialogo } from "@/composables/useDialogo";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     titulo: string;
     /** Línea corta encima del título: de qué es este diálogo. */
     sobretitulo?: string;
     etiquetaCerrar?: string;
+    /**
+     * `hoja` sube desde abajo y se apoya en el borde inferior, que es donde
+     * llega el pulgar; en pantalla ancha se centra. `centrado` nace en el centro
+     * en las dos densidades: es para lo que hay que mirar, no para lo que hay
+     * que alcanzar.
+     */
+    variante?: "hoja" | "centrado";
+    /**
+     * `false` lo vuelve obligatorio: sin aspa, sin velo que cierre al pulsarlo
+     * y sin `Esc`. La única salida es contestar.
+     */
+    cerrable?: boolean;
+    /** Una hoja abierta sobre otra sube un plano. 0 es el de la página. */
+    nivel?: number;
   }>(),
-  { sobretitulo: "", etiquetaCerrar: "Cerrar" },
+  {
+    sobretitulo: "",
+    etiquetaCerrar: "Cerrar",
+    variante: "hoja",
+    cerrable: true,
+    nivel: 0,
+  },
 );
 
 const emitir = defineEmits<{ cerrar: [] }>();
@@ -19,7 +39,47 @@ const emitir = defineEmits<{ cerrar: [] }>();
 const contenedor = ref<HTMLElement | null>(null);
 const idTitulo = useId();
 
-useDialogo(contenedor, () => emitir("cerrar"));
+/*
+ * Lo que tarda en entrar y en irse.
+ *
+ * Viven aquí y no en `tokens.css` porque no son solo estilo: la de salida es
+ * también lo que se espera antes de avisar al padre de que ya puede desmontar
+ * el diálogo. Si fueran dos cifras en dos sitios podrían separarse, y entonces
+ * el diálogo desaparecería a medio irse, o se quedaría un rato invisible
+ * tapando la pantalla. El CSS las recibe por variable, de aquí.
+ */
+const MS_ENTRADA = 340;
+const MS_SALIDA = 240;
+
+/*
+ * El diálogo se pinta abierto —de ahí el `appear` de la transición— y al
+ * cerrarse no desaparece: primero se va, y solo cuando ha terminado avisa al
+ * padre, que es quien lo desmonta. Sin ese paso intermedio el `v-if` de fuera
+ * lo arrancaría del DOM antes de que la animación de salida tuviera nada que
+ * animar.
+ */
+const visible = ref(true);
+let temporizador: ReturnType<typeof setTimeout> | null = null;
+
+const transicion = computed(() => (props.variante === "hoja" ? "hoja" : "centro"));
+
+const duraciones = computed(() => ({
+  "--faro-dur-entrada": `${MS_ENTRADA}ms`,
+  "--faro-dur-salida": `${MS_SALIDA}ms`,
+}));
+
+useDialogo(contenedor, pedirCierre, { cerrarConEsc: () => props.cerrable });
+
+function pedirCierre(): void {
+  // Ya se está yendo: una segunda pulsación no arranca un segundo cierre.
+  if (!props.cerrable || temporizador !== null) return;
+  visible.value = false;
+  temporizador = setTimeout(() => emitir("cerrar"), MS_SALIDA);
+}
+
+onBeforeUnmount(() => {
+  if (temporizador !== null) clearTimeout(temporizador);
+});
 </script>
 
 <template>
@@ -28,55 +88,73 @@ useDialogo(contenedor, () => emitir("cerrar"));
     `contain` que rompa un `position: fixed`, así que el diálogo funciona donde
     se declara y las pruebas pueden montarlo sin buscarlo por `document.body`.
   -->
-  <div class="velo">
-    <!--
-      El velo también cierra al pulsarlo, y para eso es un botón de verdad: con
-      nombre accesible y fuera del orden de tabulación, porque el control que se
-      recorre con el teclado es la aspa de la cabecera, y `Esc` hace lo mismo.
-    -->
-    <button
-      type="button"
-      class="velo__fondo"
-      tabindex="-1"
-      :aria-label="etiquetaCerrar"
-      @click="emitir('cerrar')"
-    ></button>
-
+  <Transition :name="transicion" appear>
     <div
-      ref="contenedor"
-      class="dialogo"
-      role="dialog"
-      aria-modal="true"
-      :aria-labelledby="idTitulo"
-      tabindex="-1"
+      v-if="visible"
+      class="velo"
+      :class="[`velo--${variante}`, { 'velo--obligatorio': !cerrable }]"
+      :style="{ zIndex: 10 + nivel * 10, ...duraciones }"
     >
-      <header class="dialogo__cabecera">
-        <span class="dialogo__asa" aria-hidden="true"></span>
+      <!--
+        El velo también cierra al pulsarlo, y para eso es un botón de verdad: con
+        nombre accesible y fuera del orden de tabulación, porque el control que se
+        recorre con el teclado es la aspa de la cabecera, y `Esc` hace lo mismo.
 
-        <div class="dialogo__rotulos">
-          <p v-if="sobretitulo" class="dialogo__sobretitulo">{{ sobretitulo }}</p>
-          <h2 :id="idTitulo" class="dialogo__titulo">{{ titulo }}</h2>
+        En un diálogo obligatorio no hay tal botón. No es un botón desactivado:
+        es que pulsar fuera no es una salida, y un control que no lleva a ningún
+        sitio no debería anunciarse.
+      -->
+      <button
+        v-if="cerrable"
+        type="button"
+        class="velo__fondo"
+        tabindex="-1"
+        :aria-label="etiquetaCerrar"
+        @click="pedirCierre"
+      ></button>
+      <div v-else class="velo__fondo" aria-hidden="true"></div>
+
+      <div
+        ref="contenedor"
+        class="dialogo"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="idTitulo"
+        tabindex="-1"
+      >
+        <header class="dialogo__cabecera">
+          <span
+            v-if="variante === 'hoja' && cerrable"
+            class="dialogo__asa"
+            aria-hidden="true"
+          ></span>
+
+          <div class="dialogo__rotulos">
+            <p v-if="sobretitulo" class="dialogo__sobretitulo">{{ sobretitulo }}</p>
+            <h2 :id="idTitulo" class="dialogo__titulo">{{ titulo }}</h2>
+          </div>
+
+          <button
+            v-if="cerrable"
+            type="button"
+            class="dialogo__cerrar"
+            :aria-label="etiquetaCerrar"
+            @click="pedirCierre"
+          >
+            <IconoCerrar class="dialogo__aspa" />
+          </button>
+        </header>
+
+        <div class="dialogo__cuerpo">
+          <slot />
         </div>
 
-        <button
-          type="button"
-          class="dialogo__cerrar"
-          :aria-label="etiquetaCerrar"
-          @click="emitir('cerrar')"
-        >
-          <IconoCerrar class="dialogo__aspa" />
-        </button>
-      </header>
-
-      <div class="dialogo__cuerpo">
-        <slot />
+        <footer v-if="$slots.pie" class="dialogo__pie">
+          <slot name="pie" />
+        </footer>
       </div>
-
-      <footer v-if="$slots.pie" class="dialogo__pie">
-        <slot name="pie" />
-      </footer>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -211,6 +289,110 @@ useDialogo(contenedor, () => emitir("cerrar"));
   border-top: 1px solid var(--faro-linea);
 }
 
+/*
+ * La variante centrada. No es una hoja apoyada en el borde: flota, así que
+ * lleva radio por los cuatro lados y un margen que la separa de los bordes de
+ * la ventana incluso en un teléfono.
+ */
+.velo--centrado {
+  align-items: center;
+  padding: var(--faro-esp-20);
+}
+
+.velo--centrado .dialogo {
+  max-width: var(--faro-ancho-dialogo);
+  max-height: min(88dvh, 720px);
+  border-radius: var(--faro-radio-32);
+}
+
+.velo--centrado .dialogo__cabecera {
+  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
+}
+
+.velo--centrado .dialogo__pie {
+  padding-bottom: var(--faro-esp-16);
+  border-radius: 0 0 var(--faro-radio-32) var(--faro-radio-32);
+}
+
+/*
+ * Obligatorio: el velo es más denso que el de un diálogo que se puede cerrar.
+ * No es decoración, es la diferencia que se ve sin leer nada —esto no es una
+ * capa sobre la pantalla, es lo único que hay— y por eso el contexto de debajo
+ * deja de reconocerse, que en cualquier otro diálogo sería un error.
+ */
+.velo--obligatorio .velo__fondo {
+  background: var(--faro-velo-obligatorio);
+}
+
+/*
+ * El movimiento.
+ *
+ * La hoja sube y baja; el diálogo centrado crece y se apaga en el sitio. En los
+ * dos casos el velo solo cambia de opacidad: mover el velo lo convertiría en
+ * una pieza más y es un fondo.
+ *
+ * La curva no es simétrica a propósito: entra frenando largo, que es lo que
+ * hace que parezca que algo pesado se posa, y sale más corta y más recta,
+ * porque una salida lenta se lee como que la aplicación va lenta.
+ */
+.hoja-enter-active,
+.centro-enter-active {
+  transition: opacity var(--faro-dur-entrada) var(--faro-curva-hoja);
+}
+
+.hoja-leave-active,
+.centro-leave-active {
+  transition: opacity var(--faro-dur-salida) ease-in;
+}
+
+.hoja-enter-active .dialogo,
+.centro-enter-active .dialogo {
+  transition: transform var(--faro-dur-entrada) var(--faro-curva-hoja);
+}
+
+.hoja-leave-active .dialogo,
+.centro-leave-active .dialogo {
+  transition: transform var(--faro-dur-salida) ease-in;
+}
+
+.hoja-enter-from,
+.hoja-leave-to,
+.centro-enter-from,
+.centro-leave-to {
+  opacity: 0;
+}
+
+.hoja-enter-from .dialogo,
+.hoja-leave-to .dialogo {
+  transform: translateY(100%);
+}
+
+.centro-enter-from .dialogo,
+.centro-leave-to .dialogo {
+  transform: scale(0.94);
+}
+
+/*
+ * Quien pide menos movimiento no pide menos diálogo: sigue apareciendo y
+ * desapareciendo con una opacidad corta, que orienta igual, y lo que se quita
+ * es el desplazamiento.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .hoja-enter-active .dialogo,
+  .hoja-leave-active .dialogo,
+  .centro-enter-active .dialogo,
+  .centro-leave-active .dialogo {
+    transition: none;
+  }
+
+  .hoja-enter-from .dialogo,
+  .hoja-leave-to .dialogo,
+  .centro-enter-from .dialogo,
+  .centro-leave-to .dialogo {
+    transform: none;
+  }
+}
+
 @media (min-width: 900px) {
   .velo {
     align-items: center;
@@ -240,6 +422,13 @@ useDialogo(contenedor, () => emitir("cerrar"));
   .dialogo__pie {
     padding: var(--faro-esp-16) var(--faro-esp-24);
     border-radius: 0 0 var(--faro-radio-32) var(--faro-radio-32);
+  }
+
+  /* Ya centrada por el punto de corte: lo que sube desde abajo en un teléfono
+     aparece en el sitio en escritorio, igual que la variante centrada. */
+  .hoja-enter-from .dialogo,
+  .hoja-leave-to .dialogo {
+    transform: scale(0.96);
   }
 }
 </style>

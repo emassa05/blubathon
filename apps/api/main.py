@@ -30,6 +30,10 @@ from apps.api.services import Services, build_registry
 from apps.api.settings import Settings, load_settings
 from apps.api.store.db import Database
 
+logging.basicConfig(
+    level=os.environ.get("BLUBATHON_LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 logger = logging.getLogger("blubathon.api")
 
 

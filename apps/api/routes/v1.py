@@ -7,6 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, Query, WebSocket, WebSocketDisconnect
 
 from apps.api.canonical import parse_timestamp
+from apps.api.services.local_time import local_date as reference_date
 from apps.api.contracts.constants import API_PREFIX
 from apps.api.contracts.models import (
     AnswerItem,
@@ -70,7 +71,7 @@ def today_recommendation(
     child_id: str, context: Context, services: Registry
 ) -> TodayRecommendationResponse:
     now = services.core.now()
-    local_date = parse_timestamp(now).date().isoformat()
+    local_date = reference_date(parse_timestamp(now)).isoformat()
     with services.core.database.read() as connection:
         return services.recommendations.today(
             connection,

@@ -108,6 +108,35 @@ export function escalaOrdinal(especificacion: EspecificacionCampo): readonly num
   return Array.from({ length: maximo - minimo + 1 }, (_, indice) => minimo + indice);
 }
 
+/**
+ * Los campos que el cuestionario pinta como cifra con dos pasos, y no como
+ * pastillas ni como escala: las horas de sueño, los despertares, los episodios.
+ * Un ordinal también es un número, pero se contesta pulsando uno de sus cinco
+ * puntos, así que no tiene campo que rellenar.
+ */
+export function esNumerico(especificacion: EspecificacionCampo): boolean {
+  return especificacion.tipo === "continuous" || especificacion.tipo === "count";
+}
+
+/**
+ * El valor con el que nace un campo numérico.
+ *
+ * Es 1 y no el mínimo del rango, que en los tres campos de casa es 0. Un 0 de
+ * salida se lee como una respuesta —"no durmió", "ningún despertar"— y un campo
+ * vacío obliga a escribir antes de poder usar los pasos. El 1 no dice nada
+ * plausible por sí solo y deja los dos pasos operativos desde el principio.
+ *
+ * Se acota contra el rango del catálogo por si un campo futuro empezara más
+ * arriba: el valor inicial nunca puede caer fuera de lo que el contrato admite.
+ */
+export const VALOR_NUMERICO_INICIAL = 1;
+
+export function valorInicialNumerico(especificacion: EspecificacionCampo): number {
+  const minimo = especificacion.minimo ?? VALOR_NUMERICO_INICIAL;
+  const maximo = especificacion.maximo ?? VALOR_NUMERICO_INICIAL;
+  return Math.min(maximo, Math.max(minimo, VALOR_NUMERICO_INICIAL));
+}
+
 /** Unidad visible de los campos que la tienen. El resto no lleva ninguna. */
 const UNIDADES: Partial<Record<FieldCode, string>> = {
   sleep_hours: "h",

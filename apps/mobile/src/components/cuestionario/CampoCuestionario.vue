@@ -15,14 +15,12 @@ import {
   formatearValor,
   preguntaCampo,
 } from "@/dominio/campos";
-import type { VariableCritica } from "@/dominio/criticas";
 import type { Borrador } from "@/composables/useCuestionario";
 
 const props = defineProps<{
   pregunta: FormQuestion;
   borrador?: Borrador | undefined;
   sugerencia?: DefaultSuggestion | undefined;
-  critica?: VariableCritica | undefined;
 }>();
 
 const emitir = defineEmits<{
@@ -280,11 +278,6 @@ const motivoDestacada = computed(() => {
       </button>
       <p v-if="noSabe" class="campo__ayuda">{{ FARO_TEXTS_ES.unknownAnswerHintEs }}</p>
     </div>
-
-    <p v-if="critica" class="campo__critica">
-      <span class="campo__critica-punto" aria-hidden="true"></span>
-      {{ critica.motivo }}
-    </p>
   </fieldset>
 </template>
 
@@ -576,27 +569,5 @@ const motivoDestacada = computed(() => {
   margin-top: var(--faro-esp-6);
   font-size: var(--faro-fs-11);
   color: var(--faro-gris-texto);
-}
-
-/* El aviso de variable crítica va pegado a la respuesta que lo provocó. */
-.campo__critica {
-  display: flex;
-  align-items: center;
-  gap: var(--faro-esp-8);
-  margin-top: var(--faro-esp-10);
-  padding: var(--faro-esp-8) var(--faro-esp-12);
-  font-size: var(--faro-fs-125);
-  font-weight: 600;
-  color: var(--faro-critica-media-texto);
-  background: var(--faro-critica-media-fondo);
-  border-radius: var(--faro-radio-10);
-}
-
-.campo__critica-punto {
-  flex: none;
-  width: var(--faro-esp-6);
-  height: var(--faro-esp-6);
-  background: currentcolor;
-  border-radius: 50%;
 }
 </style>

@@ -16,9 +16,13 @@
  *   como `accept_default`; tocarla después la convierte en `edit_default`.
  * - "No sé" es una respuesta, distinta de dejar el campo vacío: viaja como
  *   `unknown` y el servidor la registra sin valor.
+ *
+ * Aparte de eso, los campos numéricos no nacen vacíos: salen en 1. Es un valor
+ * de salida de la pantalla, no una sugerencia del servidor, y por eso no se
+ * enseña como tal ni suprime la sugerencia de su propio campo —ver `sembrados`.
  */
 
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import type {
   AnswerItem,
@@ -33,8 +37,13 @@ import type {
 import { ORIGEN_CUIDADOR } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
 import { enviarFormulario, planFormulario } from "@/api/faro";
-import { CAMPOS_DE_CASA, ordenCanonico } from "@/dominio/campos";
-import { variablesCriticas, type DiaConRespuestas } from "@/dominio/criticas";
+import {
+  CAMPOS_DE_CASA,
+  esNumerico,
+  especificacionCampo,
+  ordenCanonico,
+  valorInicialNumerico,
+} from "@/dominio/campos";
 
 export interface Borrador {
   readonly valor?: ValorCampo;
@@ -48,8 +57,6 @@ interface Opciones {
   readonly fecha: string;
   /** Respuestas ya guardadas de ese día, si el cuestionario se abre otra vez. */
   readonly previas?: Readonly<Partial<Record<FieldCode, ValorCampo>>>;
-  /** Días anteriores con respuestas, para comparar contra lo habitual. */
-  readonly anteriores?: readonly DiaConRespuestas[];
 }
 
 export function useCuestionario(opciones: Opciones) {
@@ -60,6 +67,26 @@ export function useCuestionario(opciones: Opciones) {
   const errorEnvio = ref<string | null>(null);
   const resultado = ref<FormSubmissionResponse | null>(null);
   const borradores = ref<Borradores>({});
+
+  /*
+   * Los campos numéricos que nacieron con su valor de salida y que nadie ha
+   * tocado todavía.
+   *
+   * Hay que saber cuáles son por dos motivos, y los dos son de no afirmar algo
+   * que nadie dijo:
+   *
+   * - **No suprimen la sugerencia.** El plan usa `answers` para no volver a
+   *   proponer un valor de un campo que ya está contestado (SPEC 6.6). Un 1 que
+   *   puso la pantalla no lo contestó nadie, y dejarlo viajar ahí borraría la
+   *   sugerencia de ese mismo campo.
+   * - **No sobreviven a una pregunta que no se llega a hacer.** Si el plan
+   *   acaba pidiendo menos campos de los que había sembrados, los que se caen
+   *   salen del borrador: nadie los vio y no pueden ir en el envío.
+   *
+   * En cuanto se toca uno deja de estar aquí y pasa a ser una respuesta como
+   * cualquier otra, que sí cuenta y sí se envía.
+   */
+  const sembrados = new Set<FieldCode>();
 
   // Reabrir un día ya enviado no empieza de cero: lo contestado se recupera de
   // la copia local, porque la API no devuelve las respuestas de un envío.
@@ -78,6 +105,16 @@ export function useCuestionario(opciones: Opciones) {
     }
     return registro;
   });
+
+  /**
+   * Lo que ha contestado quien responde, sin los valores de salida que todavía
+   * no ha tocado nadie. Es lo que ve el plan; el envío ve `respondidas`.
+   */
+  function declaradas(): Partial<Record<FieldCode, ValorCampo>> {
+    const registro = { ...respondidas.value };
+    for (const campo of sembrados) delete registro[campo];
+    return registro;
+  }
 
   /**
    * Las preguntas del día.
@@ -105,6 +142,49 @@ export function useCuestionario(opciones: Opciones) {
     ),
   );
 
+  /**
+   * Las preguntas en el orden en que se hacen: primero lo que el plan destaca y
+   * después el resto, en orden canónico. Es el mismo orden que ya tenía el
+   * cuestionario cuando iba de corrido; lo único que cambia es que ahora se
+   * recorre de tres en tres.
+   */
+  const enOrden = computed<readonly FormQuestion[]>(() => [...destacadas.value, ...resto.value]);
+
+  /*
+   * El valor de salida de los campos numéricos.
+   *
+   * Se siembra en cuanto se sabe qué se pregunta —al montar, con el catálogo, y
+   * otra vez cuando llega el plan— y solo sobre lo que está sin contestar: un
+   * día que se reabre conserva lo suyo.
+   */
+  function sembrarNumericos(campos: readonly FieldCode[]): void {
+    const pedidos = new Set(campos);
+    const copia = { ...borradores.value };
+    let cambio = false;
+
+    for (const campo of [...sembrados]) {
+      if (pedidos.has(campo)) continue;
+      sembrados.delete(campo);
+      delete copia[campo];
+      cambio = true;
+    }
+
+    for (const campo of campos) {
+      if (copia[campo] !== undefined) continue;
+      const especificacion = especificacionCampo(campo);
+      if (especificacion === undefined || !esNumerico(especificacion)) continue;
+      copia[campo] = { valor: valorInicialNumerico(especificacion), interaccion: "manual" };
+      sembrados.add(campo);
+      cambio = true;
+    }
+
+    if (cambio) borradores.value = copia;
+  }
+
+  watch(preguntas, (lista) => sembrarNumericos(lista.map((pregunta) => pregunta.field_code)), {
+    immediate: true,
+  });
+
   const sugerencias = computed(() => {
     const indice = new Map<FieldCode, DefaultSuggestion>();
     for (const sugerencia of plan.value?.defaults ?? []) {
@@ -117,17 +197,13 @@ export function useCuestionario(opciones: Opciones) {
     () => Object.values(borradores.value).filter((borrador) => borrador !== undefined).length,
   );
 
-  const criticas = computed(() =>
-    variablesCriticas(respondidas.value, opciones.fecha, opciones.anteriores ?? []),
-  );
-
   async function cargarPlan(): Promise<void> {
     cargando.value = true;
     error.value = null;
     try {
       plan.value = await planFormulario(opciones.ninoId, {
         source: ORIGEN_CUIDADOR,
-        answers: respondidas.value,
+        answers: declaradas(),
       });
     } catch (fallo) {
       error.value = mensajeDeError(fallo);
@@ -137,15 +213,18 @@ export function useCuestionario(opciones: Opciones) {
   }
 
   function responder(campo: FieldCode, valor: ValorCampo, interaccion: Interaccion): void {
+    sembrados.delete(campo);
     borradores.value = { ...borradores.value, [campo]: { valor, interaccion } };
   }
 
   /** "No sé": se registra como respuesta, sin valor. */
   function noSabe(campo: FieldCode): void {
+    sembrados.delete(campo);
     borradores.value = { ...borradores.value, [campo]: { interaccion: "unknown" } };
   }
 
   function borrar(campo: FieldCode): void {
+    sembrados.delete(campo);
     const copia = { ...borradores.value };
     delete copia[campo];
     borradores.value = copia;
@@ -196,9 +275,9 @@ export function useCuestionario(opciones: Opciones) {
     preguntas,
     destacadas,
     resto,
+    enOrden,
     sugerencias,
     contestadas,
-    criticas,
     yaEnviado,
     cargarPlan,
     responder,

@@ -13,6 +13,7 @@ ever downloaded to make a build succeed.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
@@ -26,6 +27,8 @@ from packages.shared.constants import (
 from packages.shared.enums import RetrievalMode
 from rag.authoring.bm25 import Bm25Index, ScoredChunk
 from rag.authoring.fusion import FusedChunk, reciprocal_rank_fusion
+
+logger = logging.getLogger("blubathon.rag")
 
 
 @runtime_checkable
@@ -101,8 +104,11 @@ def retrieve(
 ) -> RetrievalResult:
     """Run the declared pipeline. A hybrid plan without a model refuses."""
 
+    logger.info("retrieve inicio mode=%s query_chars=%d", plan.mode.value, len(query))
+
     if plan.mode is RetrievalMode.LEXICAL_ONLY:
         lexical = index.search(query, top_k=plan.final_chunk_count)
+        logger.info("retrieve fin mode=%s chunks=%d", plan.mode.value, len(lexical))
         return RetrievalResult(
             mode=plan.mode,
             chunk_ids=tuple(str(item.document_chunk_id) for item in lexical),
@@ -110,6 +116,7 @@ def retrieve(
         )
 
     if dense is None:
+        logger.warning("retrieve abortado mode=hybrid motivo=dense_retriever_no_registrado")
         raise DenseModelNotRegisteredError(
             "a hybrid build needs a registered embedding model; no model is downloaded "
             "implicitly and retrieval is never simulated (SPEC 9.4)"
@@ -121,6 +128,12 @@ def retrieve(
         (lexical, dense_hits),
         k=plan.rrf_k or RAG_RRF_K,
         top_k=plan.final_chunk_count,
+    )
+    logger.info(
+        "retrieve fin mode=hybrid lexical=%d dense=%d fused=%d",
+        len(lexical),
+        len(dense_hits),
+        len(fused),
     )
     return RetrievalResult(
         mode=plan.mode,

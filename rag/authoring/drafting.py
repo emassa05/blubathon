@@ -14,6 +14,7 @@ literature, never a note, a message or an identifier (SPEC 2.23).
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
@@ -27,6 +28,8 @@ from rag.domain.text_guard import assert_literature_only, assert_no_clinical_tex
 
 PROMPT_PACKAGE: Final = "rag.authoring.prompts"
 AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_3_0.json"
+
+logger = logging.getLogger("blubathon.rag")
 
 
 @runtime_checkable
@@ -125,6 +128,7 @@ def request_draft(
     """Draft a candidate strategy locally, after auditing everything it sees."""
 
     if transport is None:
+        logger.warning("draft abortado motivo=transport_no_registrado")
         raise DraftUnavailableError(
             "no local model is registered with a licence, model card and artifact hash; "
             "authoring stays manual (TAREAS 13)"
@@ -144,11 +148,29 @@ def request_draft(
     )
     assert_no_clinical_text(rendered, sentinels=clinical_sentinels)
 
+    logger.info(
+        "draft inicio model=%s prompt_version=%s chunks=%d prompt_chars=%d",
+        transport.model_id,
+        prompt.prompt_version,
+        len(request.chunks),
+        len(rendered),
+    )
+    try:
+        raw_output = transport.complete(rendered)
+    except Exception:
+        logger.exception("draft error model=%s", transport.model_id)
+        raise
+    logger.info(
+        "draft fin model=%s output_chars=%d",
+        transport.model_id,
+        len(raw_output),
+    )
+
     return DraftResult(
         prompt_version=prompt.prompt_version,
         prompt_sha256=prompt.prompt_sha256,
         model_id=transport.model_id,
         model_sha256=transport.model_sha256,
         rendered_prompt=rendered,
-        raw_output=transport.complete(rendered),
+        raw_output=raw_output,
     )

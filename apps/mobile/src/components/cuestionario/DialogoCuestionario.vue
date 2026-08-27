@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 
-import type { FieldCode, FormSubmissionResponse } from "@/api/contrato";
+import type { FormSubmissionResponse } from "@/api/contrato";
 import { FARO_TEXTS_ES } from "@/api/contrato";
 import DialogoModal from "@/components/base/DialogoModal.vue";
 import CampoCuestionario from "@/components/cuestionario/CampoCuestionario.vue";
-import ListaCriticas from "@/components/cuestionario/ListaCriticas.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
+import IconoChevron from "@/components/icons/IconoChevron.vue";
 import { useCuestionario } from "@/composables/useCuestionario";
 import { etiquetaDiaLargo } from "@/dominio/semana";
-import { diasConRespuestas, guardarRespuestas, respuestasDe } from "@/estado/respuestas";
+import { guardarRespuestas, respuestasDe } from "@/estado/respuestas";
 
 const props = defineProps<{
   ninoId: string;
@@ -28,7 +28,6 @@ const cuestionario = useCuestionario({
   ninoId: props.ninoId,
   fecha: props.fecha,
   ...(previas === undefined ? {} : { previas }),
-  anteriores: diasConRespuestas(props.ninoId).filter((dia) => dia.fecha !== props.fecha),
 });
 
 const {
@@ -38,11 +37,9 @@ const {
   errorEnvio,
   resultado,
   borradores,
-  destacadas,
-  resto,
+  enOrden,
   sugerencias,
   contestadas,
-  criticas,
   respondidas,
   yaEnviado,
 } = cuestionario;
@@ -61,11 +58,57 @@ const MENSAJE_ENVIO: Record<FormSubmissionResponse["status"], string> = {
     "Registrado. Todavía no hay una definición de resultado vigente, así que este día no abre estimación.",
 };
 
-const criticaPorCampo = computed(() => {
-  const indice = new Map<FieldCode, (typeof criticas.value)[number]>();
-  for (const critica of criticas.value) indice.set(critica.campo, critica);
-  return indice;
+/* ---------------------------------------------------------------------------
+ * La paginación.
+ *
+ * El cuestionario es **un solo formulario** y sigue siéndolo: una lista de
+ * preguntas, en un orden, con un borrador y un envío. Lo único que cambia aquí
+ * es cuántas de esas preguntas se ven a la vez.
+ *
+ * No hay categorías. Un bloque no significa nada —no es "el sueño", no es "la
+ * comida"—, es sencillamente dónde se cortó la lista para que quepan tres
+ * preguntas sin desplazar. Por eso el corte se hace sobre `enOrden` y no sobre
+ * ningún reparto temático: quien decide qué se pregunta primero sigue siendo el
+ * plan del servidor, y quien decide el orden del resto sigue siendo el orden
+ * canónico del catálogo.
+ *
+ * Tres, y no cuatro ni cinco, porque tres campos con su enunciado y sus
+ * controles es lo que cabe en la hoja de un teléfono sin que haya que hacer
+ * rodar la pantalla para ver si queda algo.
+ * ------------------------------------------------------------------------- */
+
+const POR_PAGINA = 3;
+
+const pagina = ref(0);
+
+const paginas = computed(() => Math.max(1, Math.ceil(enOrden.value.length / POR_PAGINA)));
+
+const visibles = computed(() =>
+  enOrden.value.slice(pagina.value * POR_PAGINA, pagina.value * POR_PAGINA + POR_PAGINA),
+);
+
+const enPrimera = computed(() => pagina.value === 0);
+const enUltima = computed(() => pagina.value >= paginas.value - 1);
+
+/*
+ * El plan llega después del montaje y puede traer menos preguntas de las que
+ * había con el catálogo entero: la página en la que se estaba puede dejar de
+ * existir, y una página vacía no se lee como el final del formulario, se lee
+ * como que se rompió.
+ */
+watch(paginas, (total) => {
+  if (pagina.value > total - 1) pagina.value = total - 1;
 });
+
+const bloque = ref<HTMLElement | null>(null);
+
+async function irA(destino: number): Promise<void> {
+  pagina.value = Math.min(paginas.value - 1, Math.max(0, destino));
+  // Las preguntas nuevas empiezan donde acabó el desplazamiento de las
+  // anteriores: sin esto, un bloque se abre por la mitad de la primera.
+  await nextTick();
+  bloque.value?.scrollIntoView({ block: "start" });
+}
 
 async function enviar(): Promise<void> {
   const respuesta = await cuestionario.enviar();
@@ -90,8 +133,6 @@ async function enviar(): Promise<void> {
       </span>
       <h3 class="hecho__titulo">Cuestionario guardado</h3>
       <p class="hecho__detalle">{{ MENSAJE_ENVIO[resultado.status] }}</p>
-
-      <ListaCriticas v-if="criticas.length > 0" class="hecho__criticas" :criticas="criticas" />
     </div>
 
     <template v-else>
@@ -108,39 +149,30 @@ async function enviar(): Promise<void> {
         reemplaza la anterior.
       </p>
 
-      <ListaCriticas v-if="criticas.length > 0" class="bloque" :criticas="criticas" />
-
-      <section v-if="destacadas.length > 0" class="bloque grupo">
-        <h3 class="grupo__titulo">Lo primero de hoy</h3>
+      <!--
+        La tarjeta del formulario. Es la misma de siempre —superficie, radio 24,
+        elevación 1, campos separados por filete— y es una sola: lo que se
+        recorre por dentro son sus preguntas, no una pila de tarjetas.
+      -->
+      <section ref="bloque" class="bloque grupo">
+        <h3 class="grupo__titulo" aria-live="polite">Paso {{ pagina + 1 }} de {{ paginas }}</h3>
         <p class="grupo__subtitulo">
-          El formulario elige estas preguntas por lo que falta o por lo que hace días que no se
-          registra.
+          Es un solo formulario: se recorre de tres en tres y se guarda lo que haya.
         </p>
 
+        <div class="progreso" role="presentation">
+          <span
+            class="progreso__hecho"
+            :style="{ inlineSize: `${((pagina + 1) / paginas) * 100}%` }"
+          ></span>
+        </div>
+
         <CampoCuestionario
-          v-for="pregunta in destacadas"
+          v-for="pregunta in visibles"
           :key="pregunta.field_code"
           :pregunta="pregunta"
           :borrador="borradores[pregunta.field_code]"
           :sugerencia="sugerencias.get(pregunta.field_code)"
-          :critica="criticaPorCampo.get(pregunta.field_code)"
-          @responder="
-            (valor, interaccion) => cuestionario.responder(pregunta.field_code, valor, interaccion)
-          "
-          @no-sabe="cuestionario.noSabe(pregunta.field_code)"
-        />
-      </section>
-
-      <section class="bloque grupo">
-        <h3 class="grupo__titulo">El resto del día</h3>
-
-        <CampoCuestionario
-          v-for="pregunta in resto"
-          :key="pregunta.field_code"
-          :pregunta="pregunta"
-          :borrador="borradores[pregunta.field_code]"
-          :sugerencia="sugerencias.get(pregunta.field_code)"
-          :critica="criticaPorCampo.get(pregunta.field_code)"
           @responder="
             (valor, interaccion) => cuestionario.responder(pregunta.field_code, valor, interaccion)
           "
@@ -156,6 +188,34 @@ async function enviar(): Promise<void> {
 
       <div v-else class="pie">
         <p v-if="errorEnvio" class="pie__error">{{ errorEnvio }}</p>
+
+        <!--
+          El paginador mueve por dentro del mismo formulario. No confirma ni
+          descarta nada: lo contestado en un bloque sigue en el borrador al
+          pasar al siguiente, y guardar está disponible desde el primero.
+        -->
+        <div class="paginador">
+          <button
+            type="button"
+            class="paginador__paso"
+            :disabled="enPrimera"
+            @click="irA(pagina - 1)"
+          >
+            <IconoChevron class="paginador__glifo paginador__glifo--atras" />
+            Anterior
+          </button>
+
+          <button
+            type="button"
+            class="paginador__paso"
+            :disabled="enUltima"
+            @click="irA(pagina + 1)"
+          >
+            Siguiente
+            <IconoChevron class="paginador__glifo" />
+          </button>
+        </div>
+
         <div class="pie__linea">
           <p class="pie__cuenta">
             <b>{{ contestadas }}</b> respondidas
@@ -227,6 +287,81 @@ async function enviar(): Promise<void> {
   color: var(--faro-gris-texto);
 }
 
+/*
+ * Cuánto queda. Es una línea y no una fila de puntos: con dieciocho preguntas
+ * el plan puede dar seis bloques, y seis puntos ya se cuentan de uno en uno en
+ * vez de leerse de un vistazo.
+ */
+.progreso {
+  overflow: hidden;
+  height: var(--faro-esp-4);
+  margin-top: var(--faro-esp-10);
+  background: var(--faro-punto-inactivo);
+  border-radius: var(--faro-radio-pastilla);
+}
+
+.progreso__hecho {
+  display: block;
+  block-size: 100%;
+  background: var(--faro-marca-accion);
+  border-radius: inherit;
+}
+
+/*
+ * El paginador va sobre la línea de guardar y no en su misma fila: son dos
+ * cosas distintas —moverse por el formulario y cerrarlo— y en una sola fila de
+ * teléfono, con tres controles, la de guardar dejaría de ser la que destaca.
+ *
+ * Por eso los pasos son pastillas sin relleno: navegar es lo secundario, y el
+ * único botón lleno del pie sigue siendo "Guardar cuestionario".
+ */
+.paginador {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--faro-esp-8);
+  margin-bottom: var(--faro-esp-12);
+}
+
+.paginador__paso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--faro-esp-6);
+  min-height: var(--faro-toque);
+  padding-inline: var(--faro-esp-14);
+  font-size: var(--faro-fs-13);
+  font-weight: 700;
+  color: var(--faro-marca-accion);
+  background: var(--faro-superficie);
+  border: 1px solid var(--faro-linea);
+  border-radius: var(--faro-radio-pastilla);
+}
+
+.paginador__paso:hover:not(:disabled) {
+  border-color: var(--faro-punto-activo);
+}
+
+.paginador__paso:focus-visible {
+  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
+  outline-offset: var(--faro-foco-offset);
+}
+
+/* En el primero y en el último no se desvanece: sigue ahí, apagado, para que
+   el pie no cambie de forma al llegar a un extremo. */
+.paginador__paso:disabled {
+  color: var(--faro-punto-inactivo);
+  cursor: default;
+}
+
+.paginador__glifo {
+  width: var(--faro-icono-14);
+  height: var(--faro-icono-14);
+}
+
+.paginador__glifo--atras {
+  transform: rotate(180deg);
+}
+
 .hecho {
   padding-block: var(--faro-esp-20);
   text-align: center;
@@ -258,11 +393,6 @@ async function enviar(): Promise<void> {
   margin-top: var(--faro-esp-6);
   font-size: var(--faro-fs-135);
   color: var(--faro-marca-texto);
-}
-
-.hecho__criticas {
-  margin-top: var(--faro-esp-20);
-  text-align: left;
 }
 
 .pie__linea {

@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "jsdom",
       include: ["tests/**/*.test.ts"],
+      setupFiles: ["./tests/entorno.ts"],
     },
   };
 });

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import logging
 import re
 import sqlite3
 from dataclasses import dataclass
@@ -28,6 +29,8 @@ from rag.authoring.bm25 import Bm25Index
 from rag.authoring.drafting import DraftRequest, DraftUnavailableError, request_draft
 from rag.authoring.retrieval import RetrievalPlan, retrieve
 from rag.domain.citations import verify_citation
+
+logger = logging.getLogger("blubathon.api")
 
 # Un modelo local chico rara vez cita palabra por palabra. `rag/domain/citations.py`
 # (INV-24) exige literalidad exacta y eso no se toca: es la única barrera antes de
@@ -313,6 +316,11 @@ class RecommendationService:
                 now,
                 increment_attempt,
             )
+        logger.info(
+            "recomendacion emparejada recommendation_instance_id=%s citas=%d",
+            recommendation_instance_id,
+            len(persisted_citations),
+        )
         with self._services.database.write() as connection:
             store.update_result(
                 connection,
@@ -350,6 +358,11 @@ class RecommendationService:
         now: str,
         increment_attempt: bool,
     ) -> RecommendationResult:
+        logger.info(
+            "recomendacion abstencion recommendation_instance_id=%s reason=%s",
+            recommendation_instance_id,
+            reason,
+        )
         with self._services.database.write() as connection:
             store.update_result(
                 connection,

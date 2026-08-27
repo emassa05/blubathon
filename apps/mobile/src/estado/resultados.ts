@@ -56,6 +56,14 @@ export function momentoDelEpisodio(solicitud: OutcomeRequestView, ahora = new Da
   return new Date(Math.min(ahora.getTime(), fin)).toISOString();
 }
 
+/** Vacía lo pedido. Solo lo usan las pruebas: el estado es de módulo. */
+export function olvidarResultados(): void {
+  solicitudes.value = [];
+  cargado.value = false;
+  enviando.value = null;
+  error.value = null;
+}
+
 export function useResultados() {
   /** La solicitud abierta de esa persona, si la hay. */
   function pendienteDe(ninoId: string | null): OutcomeRequestView | null {
