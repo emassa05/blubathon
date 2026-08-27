@@ -30,7 +30,7 @@
  *    inventa una.
  */
 
-import { FARO_CONSTANTS, type FieldCode, type ValorCampo } from "@/api/contrato";
+import { BLUBATHON_CONSTANTS, type FieldCode, type ValorCampo } from "@/api/contrato";
 import { etiquetaCampo, formatearValor, ordenCanonico } from "@/dominio/campos";
 import type { IconoFactor } from "@/types/salud";
 
@@ -53,10 +53,10 @@ export const AVISO_VARIABLES_CRITICAS =
   "influir en cómo le vaya el día. No son un diagnóstico.";
 
 /** Ventana, mínimo de observaciones y cortes de anomalía, declarados en C16-C22. */
-const VENTANA_DIAS = FARO_CONSTANTS.C21.value;
-const MINIMO_OBSERVACIONES = FARO_CONSTANTS.C22.value;
-const CORTE_Z_ROBUSTA = FARO_CONSTANTS.C17.value;
-const CORTE_FRECUENCIA = FARO_CONSTANTS.C16.value;
+const VENTANA_DIAS = BLUBATHON_CONSTANTS.C21.value;
+const MINIMO_OBSERVACIONES = BLUBATHON_CONSTANTS.C22.value;
+const CORTE_Z_ROBUSTA = BLUBATHON_CONSTANTS.C17.value;
+const CORTE_FRECUENCIA = BLUBATHON_CONSTANTS.C16.value;
 
 /** Constante de la z robusta: la MAD por 0.6745 estima la desviación típica. */
 const FACTOR_MAD = 0.6745;

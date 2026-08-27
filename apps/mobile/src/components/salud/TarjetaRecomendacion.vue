@@ -37,13 +37,13 @@ const SOBRETITULO = "Recomendación de hoy";
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: var(--faro-recomendacion-alto);
-  padding: var(--faro-esp-16);
+  min-height: var(--blubathon-recomendacion-alto);
+  padding: var(--blubathon-esp-16);
   background:
-    radial-gradient(120% 130% at 0% 0%, var(--faro-rec-tinte), transparent 62%),
-    var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+    radial-gradient(120% 130% at 0% 0%, var(--blubathon-rec-tinte), transparent 62%),
+    var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 /*
@@ -53,36 +53,36 @@ const SOBRETITULO = "Recomendación de hoy";
 .recomendacion__marca {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-10);
-  font-size: var(--faro-fs-11);
+  gap: var(--blubathon-esp-10);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-014);
+  letter-spacing: var(--blubathon-track-014);
   text-transform: uppercase;
-  color: var(--faro-rec-sobretitulo);
+  color: var(--blubathon-rec-sobretitulo);
 }
 
 .recomendacion__insignia {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-insignia);
-  height: var(--faro-insignia);
-  background: var(--faro-rec-insignia);
+  width: var(--blubathon-insignia);
+  height: var(--blubathon-insignia);
+  background: var(--blubathon-rec-insignia);
   border-radius: 50%;
 }
 
 .recomendacion__destello {
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
 }
 
 .recomendacion__frase {
-  margin-top: var(--faro-esp-12);
-  font-size: var(--faro-fs-17);
+  margin-top: var(--blubathon-esp-12);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
   line-height: 1.4;
   /* El mismo oscuro que los títulos de las otras tarjetas: sobre blanco, lo que
      manda es el sistema, no la banda. */
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 </style>

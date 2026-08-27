@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 import { computed, onMounted } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
@@ -98,7 +98,7 @@ defineExpose({ recargar });
         <!-- Carga y error ocupan el sitio de las tarjetas, no se superponen a
              ellas: el contenido de un día nunca se lee bajo el de otro. -->
         <p v-if="cargando" class="pantalla__aviso" role="status">
-          {{ FARO_TEXTS_ES.loadingEs }}
+          {{ BLUBATHON_TEXTS_ES.loadingEs }}
         </p>
 
         <p v-else-if="error" class="pantalla__aviso" role="alert">
@@ -170,7 +170,7 @@ defineExpose({ recargar });
   /* Plano a propósito. Las burbujas son de la columna, que es el lienzo de la
      aplicación; extenderlas a todo el ancho las estiraría hasta desaparecer en
      una ventana de escritorio. */
-  background: var(--faro-fondo-final);
+  background: var(--blubathon-fondo-final);
 }
 
 /*
@@ -189,8 +189,8 @@ defineExpose({ recargar });
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: min(100dvh, var(--faro-alto-referencia));
-  padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
+  min-height: min(100dvh, var(--blubathon-alto-referencia));
+  padding-bottom: calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
 }
 
 /*
@@ -209,19 +209,19 @@ defineExpose({ recargar });
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: var(--faro-panel-alto);
+  min-height: var(--blubathon-panel-alto);
   /*
    * El acolchado lateral es el de siempre mientras la ventana no pase del ancho
    * de lectura, y a partir de ahí es lo que sobra repartido a los dos lados.
    * En un teléfono `(100% - 480px)` es negativo y gana el 24 de siempre: el
    * `max()` no cambia ni un píxel de lo que ya había.
    */
-  padding: calc(var(--faro-esp-14) + env(safe-area-inset-top, 0px))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) var(--faro-esp-26);
+  padding: calc(var(--blubathon-esp-14) + env(safe-area-inset-top, 0px))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2) var(--blubathon-esp-26);
   overflow: hidden;
   background:
-    radial-gradient(130% 62% at 50% 0%, var(--faro-brillo), transparent 62%),
-    linear-gradient(180deg, var(--faro-panel-cima) 0%, var(--faro-panel) 100%);
+    radial-gradient(130% 62% at 50% 0%, var(--blubathon-brillo), transparent 62%),
+    linear-gradient(180deg, var(--blubathon-panel-cima) 0%, var(--blubathon-panel) 100%);
 }
 
 .pantalla__panel-contenido {
@@ -229,7 +229,7 @@ defineExpose({ recargar });
 }
 
 .pantalla__riesgo {
-  margin-top: var(--faro-esp-4);
+  margin-top: var(--blubathon-esp-4);
 }
 
 /*
@@ -253,16 +253,16 @@ defineExpose({ recargar });
   justify-content: space-between;
   /* `gap` es el mínimo entre bloques; con espacio libre, `space-between` sigue
      repartiéndolo igual. */
-  gap: var(--faro-esp-14);
+  gap: var(--blubathon-esp-14);
   /* El mismo margen que crece del panel, por la misma razón y con la misma
      cuenta: las tarjetas y la cabecera tienen que caer sobre la misma línea. */
-  padding: calc(var(--faro-esp-14) + var(--faro-cupula))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) 0;
-  margin-top: calc(var(--faro-cupula) * -1);
+  padding: calc(var(--blubathon-esp-14) + var(--blubathon-cupula))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2) 0;
+  margin-top: calc(var(--blubathon-cupula) * -1);
   /* Las burbujas se dimensionan contra esta caja, así que llenan la columna
      igual en un teléfono que en una ventana ancha. */
-  background: var(--faro-fondo-pagina);
-  border-radius: 50% 50% 0 0 / var(--faro-cupula) var(--faro-cupula) 0 0;
+  background: var(--blubathon-fondo-pagina);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
 }
 
 /*
@@ -276,19 +276,19 @@ defineExpose({ recargar });
  */
 .pantalla__aviso {
   margin-bottom: auto;
-  padding: var(--faro-esp-18) var(--faro-esp-16);
-  font-size: var(--faro-fs-135);
-  color: var(--faro-gris-texto);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-gris-texto);
   text-align: center;
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-sombra-tarjeta);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-sombra-tarjeta);
 }
 
 /*
  * Tableta, o una ventana a media pantalla: de 600 a 900.
  *
- * La columna crece sola —`--faro-ancho-max` ya vale más a partir de 600—, así
+ * La columna crece sola —`--blubathon-ancho-max` ya vale más a partir de 600—, así
  * que aquí solo va lo que no puede crecer con ella: la cabecera del riesgo. La
  * cifra de 104 px, su pastilla de confianza y el navegador de fecha están
  * dibujados para 480, y repartidos por 660 dejan de ser una cabecera para ser
@@ -306,7 +306,7 @@ defineExpose({ recargar });
    */
   .pantalla__panel-contenido {
     width: 100%;
-    max-width: var(--faro-ancho-cabecera);
+    max-width: var(--blubathon-ancho-cabecera);
     margin-inline: auto;
   }
 
@@ -329,7 +329,7 @@ defineExpose({ recargar });
   }
 
   .pantalla__contenido {
-    padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -355,8 +355,8 @@ defineExpose({ recargar });
        una ventana ancha y baja casa con este solo. */
     min-height: 100dvh;
     padding-bottom: 0;
-    --faro-cupula: var(--faro-cupula-amplia);
-    --faro-panel-alto: var(--faro-panel-alto-amplio);
+    --blubathon-cupula: var(--blubathon-cupula-amplia);
+    --blubathon-panel-alto: var(--blubathon-panel-alto-amplio);
   }
 
   .pantalla__contenido {
@@ -374,10 +374,10 @@ defineExpose({ recargar });
      * llevaría por delante el fondo y la cúpula, que sí van de borde a borde.
      */
     grid-template-columns:
-      minmax(var(--faro-esp-40), 1fr)
-      minmax(0, var(--faro-ancho-principal))
-      var(--faro-rail-ancho)
-      minmax(var(--faro-esp-40), 1fr);
+      minmax(var(--blubathon-esp-40), 1fr)
+      minmax(0, var(--blubathon-ancho-principal))
+      var(--blubathon-rail-ancho)
+      minmax(var(--blubathon-esp-40), 1fr);
     grid-template-areas:
       ". recomendacion pendiente   ."
       ". factores      resultado   ."
@@ -387,9 +387,9 @@ defineExpose({ recargar });
        estiraría hasta el fondo de la segunda, dejándose media tarjeta en
        blanco. */
     align-items: start;
-    gap: var(--faro-esp-20);
-    padding: calc(var(--faro-esp-20) + var(--faro-cupula)) 0
-      calc(var(--faro-esp-20) + env(safe-area-inset-bottom, 0px));
+    gap: var(--blubathon-esp-20);
+    padding: calc(var(--blubathon-esp-20) + var(--blubathon-cupula)) 0
+      calc(var(--blubathon-esp-20) + env(safe-area-inset-bottom, 0px));
   }
 
   .pantalla__zona--recomendacion {

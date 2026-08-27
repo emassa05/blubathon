@@ -17,7 +17,7 @@ from packages.shared.domain import prediction as prediction_models
 SCHEMA_ARTIFACT = "contract_schema"
 
 _PUBLISHED: tuple[type[BaseModel], ...] = (
-    # Faro v0.4 HTTP and WebSocket contracts.
+    # Blubathon v0.4 HTTP and WebSocket contracts.
     api.ErrorDetail,
     api.ErrorResponse,
     api.DefaultSuggestion,

@@ -17,7 +17,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
-    FaroModel,
+    BlubathonModel,
     Interval,
     Sha256Hex,
     UtcDatetime,
@@ -36,7 +36,7 @@ from packages.shared.enums import (
 )
 
 
-class DatasetSnapshot(FaroModel):
+class DatasetSnapshot(BlubathonModel):
     """Immutable, hashed, and separated by origin. Real and synthetic never mix."""
 
     dataset_snapshot_id: UUID
@@ -65,7 +65,7 @@ class DatasetSnapshot(FaroModel):
         return self.positive_count > 0 and self.negative_count > 0
 
 
-class ChallengerTrainingProtocolVersion(FaroModel):
+class ChallengerTrainingProtocolVersion(BlubathonModel):
     """Optimiser settings fixed before a run, not per-run flags (SPEC 8.4)."""
 
     protocol_version: VersionLabel
@@ -78,7 +78,7 @@ class ChallengerTrainingProtocolVersion(FaroModel):
     content_sha256: Sha256Hex
 
 
-class EvaluationProtocolVersion(FaroModel):
+class EvaluationProtocolVersion(BlubathonModel):
     """Splits, seeds, interval method and estimability rules, all versioned."""
 
     protocol_version: VersionLabel
@@ -96,7 +96,7 @@ class EvaluationProtocolVersion(FaroModel):
     content_sha256: Sha256Hex
 
 
-class TrainingRun(FaroModel):
+class TrainingRun(BlubathonModel):
     """A run that produced a candidate, or an honest reason it produced none."""
 
     training_run_id: UUID
@@ -131,7 +131,7 @@ class TrainingRun(FaroModel):
         return self
 
 
-class ModelVersion(FaroModel):
+class ModelVersion(BlubathonModel):
     """A trained artifact and the only states it is allowed to be in.
 
     There is no automatic promotion to an operational champion in v0.3.
@@ -169,7 +169,7 @@ class ModelVersion(FaroModel):
         return self
 
 
-class MetricValue(FaroModel):
+class MetricValue(BlubathonModel):
     """A number with its estimability, or an explicit reason there is none."""
 
     name: str
@@ -194,7 +194,7 @@ class MetricValue(FaroModel):
         return self
 
 
-class GroupMetric(FaroModel):
+class GroupMetric(BlubathonModel):
     """A per-group metric, suppressed unless the privacy minimums are met."""
 
     group_kind: str
@@ -212,14 +212,14 @@ class GroupMetric(FaroModel):
         return self
 
 
-class SourceMetric(FaroModel):
+class SourceMetric(BlubathonModel):
     """Metrics broken down by observation context (SPEC 14.3)."""
 
     source: Source
     metrics: tuple[MetricValue, ...] = ()
 
 
-class AbstentionBreakdown(FaroModel):
+class AbstentionBreakdown(BlubathonModel):
     """Abstention rate per reason, over the same denominator as coverage."""
 
     reason: str
@@ -227,7 +227,7 @@ class AbstentionBreakdown(FaroModel):
     rate: float = Field(ge=0.0, le=1.0)
 
 
-class EvaluationReport(FaroModel):
+class EvaluationReport(BlubathonModel):
     """One report, one exact target definition version. No pooling in v0.3."""
 
     evaluation_report_id: UUID
@@ -267,7 +267,7 @@ class EvaluationReport(FaroModel):
         return self.intended_use is IntendedUse.SIMULATION_ONLY
 
 
-class ReleaseManifest(FaroModel):
+class ReleaseManifest(BlubathonModel):
     """Implementation, corpus, target and catalogue status, declared separately.
 
     Without a legally usable corpus M4 and the DoD stay blocked; without an

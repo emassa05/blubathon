@@ -28,15 +28,15 @@ from packages.shared.enums import (
 )
 
 # SPEC 13.2 and CONVENTIONS 14: shown on entry, abstention, results and
-# recommendations. Faro is not emergency monitoring and must never delay a local
+# recommendations. Blubathon is not emergency monitoring and must never delay a local
 # urgent or safeguarding protocol.
 EMERGENCY_LIMIT_ES = (
-    "Faro no vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmediato "
+    "Blubathon no vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmediato "
     "los protocolos de emergencia o resguardo de tu localidad."
 )
 
 INTENDED_USE_ES = (
-    "Faro organiza registros, calcula estadísticas personales y muestra estimaciones "
+    "Blubathon organiza registros, calcula estadísticas personales y muestra estimaciones "
     "experimentales. No diagnostica, no indica tratamientos y no reemplaza el criterio "
     "profesional."
 )

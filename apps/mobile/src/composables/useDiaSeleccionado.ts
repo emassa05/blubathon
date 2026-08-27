@@ -1,4 +1,4 @@
-import { FARO_CONSTANTS } from "@faro/contract/constants";
+import { BLUBATHON_CONSTANTS } from "@blubathon/contract/constants";
 import { computed, ref } from "vue";
 
 /** "martes 25" */
@@ -9,7 +9,7 @@ const FORMATO_DIA = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "nu
  * sistema (SPEC 5.1 / C03). El backend agrupa los registros por esa fecha
  * local; si el móvil está en otro huso, la pantalla pediría el día equivocado.
  */
-const ZONA_REFERENCIA = FARO_CONSTANTS.C03.value;
+const ZONA_REFERENCIA = BLUBATHON_CONSTANTS.C03.value;
 
 /** "en-CA" da exactamente YYYY-MM-DD, que es el formato que pide la API. */
 const FORMATO_ISO = new Intl.DateTimeFormat("en-CA", {

@@ -1,7 +1,7 @@
-import type { ErrorResponse } from "@faro/contract/contract";
+import type { ErrorResponse } from "@blubathon/contract/contract";
 
 import { BASE_API, TIMEOUT_MS } from "@/api/config";
-import { ErrorFaro } from "@/api/errores";
+import { ErrorBlubathon } from "@/api/errores";
 
 type Metodo = "GET" | "POST";
 
@@ -34,13 +34,13 @@ function esSobreDeError(cuerpo: unknown): cuerpo is ErrorResponse {
   );
 }
 
-async function traducirFallo(respuesta: Response): Promise<ErrorFaro> {
+async function traducirFallo(respuesta: Response): Promise<ErrorBlubathon> {
   const requestId = respuesta.headers.get("X-Request-Id");
   // El cuerpo puede no ser JSON: un proxy o un 502 responden HTML.
   const cuerpo = await respuesta.json().catch(() => null);
-  if (!esSobreDeError(cuerpo)) return ErrorFaro.inesperado(respuesta.status, requestId);
+  if (!esSobreDeError(cuerpo)) return ErrorBlubathon.inesperado(respuesta.status, requestId);
 
-  return new ErrorFaro({
+  return new ErrorBlubathon({
     codigo: cuerpo.error.code,
     mensajeEs: cuerpo.error.message_es,
     estado: respuesta.status,
@@ -52,9 +52,9 @@ async function traducirFallo(respuesta: Response): Promise<ErrorFaro> {
  * Una petición a la API, ya tipada y con los fallos traducidos.
  *
  * Es el único sitio del frontend que conoce `fetch`, cabeceras y códigos HTTP.
- * Todo lo que sale de aquí es o el cuerpo tipado o un `ErrorFaro`.
+ * Todo lo que sale de aquí es o el cuerpo tipado o un `ErrorBlubathon`.
  *
- * El tipo de respuesta se toma del contrato generado (`@faro/contract`), que
+ * El tipo de respuesta se toma del contrato generado (`@blubathon/contract`), que
  * sale del mismo esquema que valida el backend: si el contrato cambia, el
  * frontend deja de compilar. No hay validación en tiempo de ejecución a
  * propósito —el contrato es la puerta— y `T` es por tanto una afirmación, no
@@ -76,8 +76,8 @@ export async function pedir<T>(camino: string, opciones: Opciones = {}): Promise
     // Cancelar es una decisión del llamador, no un fallo: se propaga tal cual
     // para que el composable pueda distinguirla y no pintar un error.
     if (opciones.signal?.aborted) throw causa;
-    if (porTiempo.aborted) throw ErrorFaro.porTiempo();
-    throw ErrorFaro.red(causa);
+    if (porTiempo.aborted) throw ErrorBlubathon.porTiempo();
+    throw ErrorBlubathon.red(causa);
   }
 
   if (!respuesta.ok) throw await traducirFallo(respuesta);

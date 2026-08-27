@@ -19,7 +19,7 @@ from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     NamespacedTag,
     Tag,
     UtcDatetime,
@@ -209,7 +209,7 @@ class SubjectProfile(AppendOnlyModel):
         return tuple(sorted(tags))
 
 
-class Subject(FaroModel):
+class Subject(BlubathonModel):
     """Cohort membership decides which tracks may ever see this subject."""
 
     subject_id: UUID
@@ -217,7 +217,7 @@ class Subject(FaroModel):
     cohort_kind: CohortKind
 
 
-class AuthorizationContext(FaroModel):
+class AuthorizationContext(BlubathonModel):
     """The authorisation a service resolved before calling any domain code.
 
     Carried explicitly so a pure function can state what it required, instead of
@@ -243,7 +243,7 @@ class AuthorizationContext(FaroModel):
         return capability in self.accreditation_capabilities
 
 
-class OperationRequirement(FaroModel):
+class OperationRequirement(BlubathonModel):
     """One row of the SPEC 13.1 minimum operation matrix."""
 
     operation: str
@@ -302,7 +302,7 @@ OPERATION_MATRIX: tuple[OperationRequirement, ...] = (
 )
 
 
-class ConsentRevocationImpact(FaroModel):
+class ConsentRevocationImpact(BlubathonModel):
     """What a revocation does to artifacts that already used the data.
 
     A snapshot stays immutable for audit, but it can no longer feed a new run

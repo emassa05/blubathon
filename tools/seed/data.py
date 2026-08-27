@@ -11,7 +11,7 @@ from __future__ import annotations
 from tools.seed import ids
 
 TENANTS = (
-    {"tenant_id": ids.TENANT_A, "name": "Centro Faro Demo"},
+    {"tenant_id": ids.TENANT_A, "name": "Centro Blubathon Demo"},
     {"tenant_id": ids.TENANT_B, "name": "Otra Organización Demo"},
 )
 
@@ -216,7 +216,7 @@ FIXTURE_DOCUMENT = {
     "title": "Documento ficticio de demostración sobre rutinas y sueño",
     "document_version": "1.0.0",
     "publication_date": "2026-01-15",
-    "canonical_url": "https://example.invalid/faro/fixture-doc-001/v1",
+    "canonical_url": "https://example.invalid/blubathon/fixture-doc-001/v1",
     "rights_basis": "fixture_demo_only",
     "language": "es",
 }

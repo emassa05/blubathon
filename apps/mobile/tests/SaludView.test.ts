@@ -78,7 +78,7 @@ describe("SaludView", () => {
     servidor();
     const wrapper = await montar();
 
-    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--bajo");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("blubathon-banda--bajo");
   });
 
   it("anuncia la carga antes de tener datos", () => {
@@ -86,7 +86,7 @@ describe("SaludView", () => {
     const wrapper = mount(SaludView);
 
     expect(wrapper.get('[role="status"]').text()).toBe("Cargando…");
-    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--desconocido");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("blubathon-banda--desconocido");
   });
 
   it("cuando el modelo se abstiene no muestra cifra ni la pinta de riesgo bajo", async () => {
@@ -97,7 +97,7 @@ describe("SaludView", () => {
 
     expect(wrapper.get(".riesgo__cifra").text()).toBe("—");
     expect(wrapper.find(".riesgo__confianza").exists()).toBe(false);
-    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--desconocido");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("blubathon-banda--desconocido");
   });
 
   it("muestra el mensaje del backend cuando la petición falla", async () => {

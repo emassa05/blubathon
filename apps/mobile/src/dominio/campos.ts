@@ -8,7 +8,7 @@
  * uniforme que un componente puede recorrer sin preguntar por el tipo.
  */
 
-import { FARO_FIELD_CATALOG, FARO_TEXTS_ES, type FieldCode, type ValorCampo } from "@/api/contrato";
+import { BLUBATHON_FIELD_CATALOG, BLUBATHON_TEXTS_ES, type FieldCode, type ValorCampo } from "@/api/contrato";
 
 export type TipoCampo =
   "continuous" | "count" | "ordinal" | "nominal" | "boolean" | "tag_set" | "text";
@@ -26,7 +26,7 @@ export interface EspecificacionCampo {
   readonly largoMaximo?: number;
 }
 
-function normalizar(entrada: (typeof FARO_FIELD_CATALOG.fields)[number]): EspecificacionCampo {
+function normalizar(entrada: (typeof BLUBATHON_FIELD_CATALOG.fields)[number]): EspecificacionCampo {
   return {
     codigo: entrada.code,
     tipo: entrada.kind,
@@ -39,7 +39,7 @@ function normalizar(entrada: (typeof FARO_FIELD_CATALOG.fields)[number]): Especi
 }
 
 const ESPECIFICACIONES = new Map<FieldCode, EspecificacionCampo>(
-  FARO_FIELD_CATALOG.fields.map((entrada) => [entrada.code, normalizar(entrada)]),
+  BLUBATHON_FIELD_CATALOG.fields.map((entrada) => [entrada.code, normalizar(entrada)]),
 );
 
 export function especificacionCampo(codigo: FieldCode): EspecificacionCampo | undefined {
@@ -56,40 +56,40 @@ export function especificacionCampo(codigo: FieldCode): EspecificacionCampo | un
 export const ORIGEN_CASA = "home";
 
 /** Los campos que el cuestionario de casa puede preguntar, en orden canónico. */
-export const CAMPOS_DE_CASA: readonly FieldCode[] = FARO_FIELD_CATALOG.canonicalOrder.filter(
+export const CAMPOS_DE_CASA: readonly FieldCode[] = BLUBATHON_FIELD_CATALOG.canonicalOrder.filter(
   (codigo) => especificacionCampo(codigo)?.origenes.includes(ORIGEN_CASA) ?? false,
 );
 
 /** Posición de un campo en el orden canónico. Ordena listas sin inventar criterio. */
 export function ordenCanonico(codigo: FieldCode): number {
-  const posicion = FARO_FIELD_CATALOG.canonicalOrder.indexOf(codigo);
-  return posicion === -1 ? FARO_FIELD_CATALOG.canonicalOrder.length : posicion;
+  const posicion = BLUBATHON_FIELD_CATALOG.canonicalOrder.indexOf(codigo);
+  return posicion === -1 ? BLUBATHON_FIELD_CATALOG.canonicalOrder.length : posicion;
 }
 
 export function etiquetaCampo(codigo: FieldCode): string {
-  return FARO_TEXTS_ES.fieldLabelsEs[codigo] ?? codigo;
+  return BLUBATHON_TEXTS_ES.fieldLabelsEs[codigo] ?? codigo;
 }
 
 export function preguntaCampo(codigo: FieldCode): string {
-  return FARO_TEXTS_ES.fieldPromptsEs[codigo] ?? etiquetaCampo(codigo);
+  return BLUBATHON_TEXTS_ES.fieldPromptsEs[codigo] ?? etiquetaCampo(codigo);
 }
 
 /** Las etiquetas de los valores de cada campo nominal, tal y como las publica el contrato. */
 const ETIQUETAS_POR_CAMPO: Partial<Record<FieldCode, Readonly<Record<string, string>>>> = {
-  sleep_quality: FARO_TEXTS_ES.sleepQualityLabelsEs,
-  wake_state: FARO_TEXTS_ES.wakeStateLabelsEs,
-  gi_status: FARO_TEXTS_ES.giStatusLabelsEs,
-  medication_adherence: FARO_TEXTS_ES.medicationAdherenceLabelsEs,
-  alertness: FARO_TEXTS_ES.alertnessLabelsEs,
-  daily_regulation_state: FARO_TEXTS_ES.dailyRegulationLabelsEs,
-  attendance_status: FARO_TEXTS_ES.attendanceLabelsEs,
+  sleep_quality: BLUBATHON_TEXTS_ES.sleepQualityLabelsEs,
+  wake_state: BLUBATHON_TEXTS_ES.wakeStateLabelsEs,
+  gi_status: BLUBATHON_TEXTS_ES.giStatusLabelsEs,
+  medication_adherence: BLUBATHON_TEXTS_ES.medicationAdherenceLabelsEs,
+  alertness: BLUBATHON_TEXTS_ES.alertnessLabelsEs,
+  daily_regulation_state: BLUBATHON_TEXTS_ES.dailyRegulationLabelsEs,
+  attendance_status: BLUBATHON_TEXTS_ES.attendanceLabelsEs,
 };
 
 export function etiquetaOpcion(codigo: FieldCode, valor: string): string {
   return ETIQUETAS_POR_CAMPO[codigo]?.[valor] ?? valor;
 }
 
-const ANCLAS = FARO_TEXTS_ES.ordinalAnchorsEs as Readonly<Record<string, readonly string[]>>;
+const ANCLAS = BLUBATHON_TEXTS_ES.ordinalAnchorsEs as Readonly<Record<string, readonly string[]>>;
 
 /** El ancla de un punto de la escala: "3 - Apoyo moderado". Nunca se inventa. */
 export function anclaOrdinal(codigo: FieldCode, valor: number): string {

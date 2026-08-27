@@ -22,7 +22,7 @@ POLICY_VERSION = "demo-accreditation-policy-0.3.0"
 
 def _id(*parts: str) -> str:
     """UUID v4 determinista a partir de un nombre estable."""
-    raw = uuid5(NAMESPACE_URL, "faro-seed:" + "|".join(parts)).hex
+    raw = uuid5(NAMESPACE_URL, "blubathon-seed:" + "|".join(parts)).hex
     return f"{raw[:8]}-{raw[8:12]}-4{raw[13:16]}-8{raw[17:20]}-{raw[20:32]}"
 
 

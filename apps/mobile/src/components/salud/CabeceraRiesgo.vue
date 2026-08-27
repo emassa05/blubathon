@@ -95,11 +95,11 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
 }
 
 .riesgo__sobretitulo {
-  font-size: var(--faro-fs-125);
+  font-size: var(--blubathon-fs-125);
   font-weight: 700;
-  letter-spacing: var(--faro-track-014);
+  letter-spacing: var(--blubathon-track-014);
   text-transform: uppercase;
-  color: var(--faro-texto-suave);
+  color: var(--blubathon-texto-suave);
 }
 
 /*
@@ -111,32 +111,32 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
   display: grid;
   flex: none;
   place-items: center;
-  min-width: var(--faro-toque);
-  min-height: var(--faro-toque);
-  margin-block: calc((var(--faro-toque) - var(--faro-icono-16)) / -2);
-  margin-inline: calc(var(--faro-esp-6) - (var(--faro-toque) - var(--faro-icono-16)) / 2)
-    calc((var(--faro-toque) - var(--faro-icono-16)) / -2);
-  color: var(--faro-texto-suave);
-  border-radius: var(--faro-radio-10);
+  min-width: var(--blubathon-toque);
+  min-height: var(--blubathon-toque);
+  margin-block: calc((var(--blubathon-toque) - var(--blubathon-icono-16)) / -2);
+  margin-inline: calc(var(--blubathon-esp-6) - (var(--blubathon-toque) - var(--blubathon-icono-16)) / 2)
+    calc((var(--blubathon-toque) - var(--blubathon-icono-16)) / -2);
+  color: var(--blubathon-texto-suave);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .riesgo__info:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-panel);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-panel);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .riesgo__glifo {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .riesgo__cifra {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-104);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-104);
   font-weight: 400;
   line-height: 1;
-  letter-spacing: var(--faro-track-cifra);
-  color: var(--faro-texto-fuerte);
+  letter-spacing: var(--blubathon-track-cifra);
+  color: var(--blubathon-texto-fuerte);
 }
 
 /*
@@ -157,25 +157,25 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
 .riesgo__confianza {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-8);
-  margin-top: var(--faro-esp-14);
-  padding: var(--faro-esp-8) var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
+  gap: var(--blubathon-esp-8);
+  margin-top: var(--blubathon-esp-14);
+  padding: var(--blubathon-esp-8) var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-125);
   font-weight: 600;
-  color: var(--faro-texto-suave);
-  background: var(--faro-vidrio);
-  border: 1px solid var(--faro-vidrio-borde);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-texto-suave);
+  background: var(--blubathon-vidrio);
+  border: 1px solid var(--blubathon-vidrio-borde);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .riesgo__dato {
   font-weight: 700;
-  color: var(--faro-texto-fuerte);
+  color: var(--blubathon-texto-fuerte);
 }
 
 .riesgo__escudo {
   flex: none;
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
 }
 </style>

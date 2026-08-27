@@ -8,25 +8,25 @@ that break the contract itself.
 from __future__ import annotations
 
 
-class FaroError(Exception):
-    """Base error for expected Faro domain failures."""
+class BlubathonError(Exception):
+    """Base error for expected Blubathon domain failures."""
 
-    code = "faro_error"
+    code = "blubathon_error"
 
 
-class ContractViolationError(FaroError):
+class ContractViolationError(BlubathonError):
     """Input violates the published contract."""
 
     code = "contract_violation"
 
 
-class InsufficientDataError(FaroError):
+class InsufficientDataError(BlubathonError):
     """A computation cannot proceed and has no abstention path to return."""
 
     code = "insufficient_data"
 
 
-class ModelNotReadyError(FaroError):
+class ModelNotReadyError(BlubathonError):
     """Inference was requested before an artifact was loaded."""
 
     code = "model_not_ready"

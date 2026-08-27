@@ -1,4 +1,4 @@
-"""Closed vocabularies of the Faro contract.
+"""Closed vocabularies of the Blubathon contract.
 
 Every value here comes from SPEC v0.3.0. Where the SPEC names a catalogue but
 does not enumerate it (care modes, sensory and communication tags,

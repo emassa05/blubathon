@@ -40,7 +40,7 @@ REQUIRED_EXAMPLES = (
 
 @pytest.fixture(scope="module")
 def schema() -> dict[str, Any]:
-    return json.loads((GENERATED / "faro.schema.json").read_text(encoding="utf-8"))
+    return json.loads((GENERATED / "blubathon.schema.json").read_text(encoding="utf-8"))
 
 
 def _validator(schema: dict[str, Any], model_name: str) -> Draft202012Validator:

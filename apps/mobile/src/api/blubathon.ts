@@ -29,7 +29,7 @@ import type {
   RecommendationInstanceView,
   RecommendationListResponse,
   TodayRecommendationResponse,
-} from "@faro/contract/contract";
+} from "@blubathon/contract/contract";
 
 import { DIAS_HISTORIAL, ORIGEN_API } from "@/api/config";
 import { pedir } from "@/api/http";

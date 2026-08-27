@@ -11,7 +11,7 @@
 
 import { BASE_API, ORIGEN_API } from "@/api/config";
 
-export type EventoFaro =
+export type EventoBlubathon =
   | {
       type: "recommendation.ready";
       child_id: string;
@@ -49,7 +49,7 @@ function urlDelCanal(): string {
  * pantalla se queda muda hasta que alguien recargue la página. Cerrar desde
  * aquí no reconecta.
  */
-export function conectarEventos(alRecibir: (evento: EventoFaro) => void): () => void {
+export function conectarEventos(alRecibir: (evento: EventoBlubathon) => void): () => void {
   let socket: WebSocket | null = null;
   let temporizador: ReturnType<typeof setTimeout> | null = null;
   let cerrado = false;
@@ -60,7 +60,7 @@ export function conectarEventos(alRecibir: (evento: EventoFaro) => void): () => 
     socket.addEventListener("message", (mensaje) => {
       // Un mensaje ilegible no puede tumbar el canal.
       try {
-        alRecibir(JSON.parse(mensaje.data as string) as EventoFaro);
+        alRecibir(JSON.parse(mensaje.data as string) as EventoBlubathon);
       } catch {
         return;
       }

@@ -1,4 +1,4 @@
-"""Public model surface of the Faro contract.
+"""Public model surface of the Blubathon contract.
 
 One import site for API, ML and RAG consumers. The models themselves live in
 `packages/shared/domain/`, split by the part of SPEC v0.3.0 they implement; this
@@ -42,7 +42,7 @@ from packages.shared.domain.api import (
 )
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     Interval,
     LocalDate,
     NamespacedTag,
@@ -166,6 +166,7 @@ __all__ = [
     "AuthoringReview",
     "AuthoringUseAuthorization",
     "AuthorizationContext",
+    "BlubathonModel",
     "CatalogVersion",
     "ChallengerTrainingProtocolVersion",
     "CitationView",
@@ -183,7 +184,6 @@ __all__ = [
     "EvaluationProtocolVersion",
     "EvaluationReport",
     "EvaluationResponse",
-    "FaroModel",
     "FeatureSnapshot",
     "FieldObservation",
     "FormAnswerRequest",

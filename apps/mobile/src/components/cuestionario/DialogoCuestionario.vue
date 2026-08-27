@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 
 import type { FormSubmissionResponse } from "@/api/contrato";
-import { FARO_TEXTS_ES } from "@/api/contrato";
+import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
 import DialogoModal from "@/components/base/DialogoModal.vue";
 import CampoCuestionario from "@/components/cuestionario/CampoCuestionario.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
@@ -136,7 +136,7 @@ async function enviar(): Promise<void> {
     </div>
 
     <template v-else>
-      <p v-if="cargando" class="estado">{{ FARO_TEXTS_ES.loadingEs }}</p>
+      <p v-if="cargando" class="estado">{{ BLUBATHON_TEXTS_ES.loadingEs }}</p>
 
       <!-- El plan es una ayuda, no un requisito: sin él se pregunta el catálogo
            entero en orden canónico y el cuestionario se puede enviar igual. -->
@@ -236,30 +236,30 @@ async function enviar(): Promise<void> {
 
 <style scoped>
 .estado {
-  padding: var(--faro-esp-12) var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-14);
+  padding: var(--blubathon-esp-12) var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .estado + .estado {
-  margin-top: var(--faro-esp-8);
+  margin-top: var(--blubathon-esp-8);
 }
 
 .estado--fallo {
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
 }
 
 .estado--aviso {
-  color: var(--faro-critica-media-texto);
-  background: var(--faro-critica-media-fondo);
+  color: var(--blubathon-critica-media-texto);
+  background: var(--blubathon-critica-media-fondo);
 }
 
 .bloque + .bloque,
 .estado + .bloque {
-  margin-top: var(--faro-esp-14);
+  margin-top: var(--blubathon-esp-14);
 }
 
 /*
@@ -268,23 +268,23 @@ async function enviar(): Promise<void> {
  * filete.
  */
 .grupo {
-  padding: var(--faro-esp-6) var(--faro-esp-16) var(--faro-esp-10);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+  padding: var(--blubathon-esp-6) var(--blubathon-esp-16) var(--blubathon-esp-10);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .grupo__titulo {
-  padding-top: var(--faro-esp-14);
-  font-size: var(--faro-fs-15);
+  padding-top: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-15);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .grupo__subtitulo {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 /*
@@ -294,16 +294,16 @@ async function enviar(): Promise<void> {
  */
 .progreso {
   overflow: hidden;
-  height: var(--faro-esp-4);
-  margin-top: var(--faro-esp-10);
-  background: var(--faro-punto-inactivo);
-  border-radius: var(--faro-radio-pastilla);
+  height: var(--blubathon-esp-4);
+  margin-top: var(--blubathon-esp-10);
+  background: var(--blubathon-punto-inactivo);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .progreso__hecho {
   display: block;
   block-size: 100%;
-  background: var(--faro-marca-accion);
+  background: var(--blubathon-marca-accion);
   border-radius: inherit;
 }
 
@@ -319,43 +319,43 @@ async function enviar(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--faro-esp-8);
-  margin-bottom: var(--faro-esp-12);
+  gap: var(--blubathon-esp-8);
+  margin-bottom: var(--blubathon-esp-12);
 }
 
 .paginador__paso {
   display: inline-flex;
   align-items: center;
-  gap: var(--faro-esp-6);
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-14);
-  font-size: var(--faro-fs-13);
+  gap: var(--blubathon-esp-6);
+  min-height: var(--blubathon-toque);
+  padding-inline: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-13);
   font-weight: 700;
-  color: var(--faro-marca-accion);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .paginador__paso:hover:not(:disabled) {
-  border-color: var(--faro-punto-activo);
+  border-color: var(--blubathon-punto-activo);
 }
 
 .paginador__paso:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 /* En el primero y en el último no se desvanece: sigue ahí, apagado, para que
    el pie no cambie de forma al llegar a un extremo. */
 .paginador__paso:disabled {
-  color: var(--faro-punto-inactivo);
+  color: var(--blubathon-punto-inactivo);
   cursor: default;
 }
 
 .paginador__glifo {
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
 }
 
 .paginador__glifo--atras {
@@ -363,7 +363,7 @@ async function enviar(): Promise<void> {
 }
 
 .hecho {
-  padding-block: var(--faro-esp-20);
+  padding-block: var(--blubathon-esp-20);
   text-align: center;
 }
 
@@ -372,73 +372,73 @@ async function enviar(): Promise<void> {
   place-items: center;
   width: 56px;
   height: 56px;
-  color: var(--faro-marca-accion);
-  background: var(--faro-marca-icono-fondo);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-marca-icono-fondo);
   border-radius: 50%;
 }
 
 .hecho__tilde {
-  width: var(--faro-icono-26);
-  height: var(--faro-icono-26);
+  width: var(--blubathon-icono-26);
+  height: var(--blubathon-icono-26);
 }
 
 .hecho__titulo {
-  margin-top: var(--faro-esp-14);
-  font-size: var(--faro-fs-17);
+  margin-top: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .hecho__detalle {
-  margin-top: var(--faro-esp-6);
-  font-size: var(--faro-fs-135);
-  color: var(--faro-marca-texto);
+  margin-top: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-marca-texto);
 }
 
 .pie__linea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .pie__cuenta {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .pie__cuenta b {
-  font-size: var(--faro-fs-15);
-  color: var(--faro-marca-profundo);
+  font-size: var(--blubathon-fs-15);
+  color: var(--blubathon-marca-profundo);
 }
 
 .pie__error {
-  margin-bottom: var(--faro-esp-10);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-critica-alta-texto);
+  margin-bottom: var(--blubathon-esp-10);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-critica-alta-texto);
 }
 
 .pie__enviar {
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-22);
-  font-size: var(--faro-fs-135);
+  min-height: var(--blubathon-toque);
+  padding-inline: var(--blubathon-esp-22);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  color: var(--faro-superficie);
-  background: var(--faro-marca-accion);
-  border-radius: var(--faro-radio-pastilla);
-  box-shadow: var(--faro-elev-1);
+  color: var(--blubathon-superficie);
+  background: var(--blubathon-marca-accion);
+  border-radius: var(--blubathon-radio-pastilla);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .pie__enviar:disabled {
-  color: var(--faro-gris-texto);
-  background: var(--faro-punto-inactivo);
+  color: var(--blubathon-gris-texto);
+  background: var(--blubathon-punto-inactivo);
   box-shadow: none;
   cursor: default;
 }
 
 .pie__enviar:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .pie > .pie__enviar {

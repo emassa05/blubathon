@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ErrorFaro } from "@/api/errores";
+import { ErrorBlubathon } from "@/api/errores";
 import { pedir } from "@/api/http";
-import { historialNino, listarRecomendaciones, valorarRecomendacion } from "@/api/faro";
+import { historialNino, listarRecomendaciones, valorarRecomendacion } from "@/api/blubathon";
 
 import { instalarServidorFalso } from "./servidorFalso";
 
@@ -33,7 +33,7 @@ describe("pedir", () => {
 
     const fallo = await pedir("/children").catch((error: unknown) => error);
 
-    expect(fallo).toBeInstanceOf(ErrorFaro);
+    expect(fallo).toBeInstanceOf(ErrorBlubathon);
     expect(fallo).toMatchObject({
       codigo: "validation_error",
       mensajeEs: "Los datos enviados no cumplen el contrato.",
@@ -48,7 +48,7 @@ describe("pedir", () => {
       vi.fn(() => Promise.resolve(new Response("<html>502</html>", { status: 502 }))),
     );
 
-    const fallo = (await pedir("/children").catch((error: unknown) => error)) as ErrorFaro;
+    const fallo = (await pedir("/children").catch((error: unknown) => error)) as ErrorBlubathon;
 
     expect(fallo.codigo).toBe("internal_error");
     expect(fallo.estado).toBe(502);
@@ -60,7 +60,7 @@ describe("pedir", () => {
       vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))),
     );
 
-    const fallo = (await pedir("/children").catch((error: unknown) => error)) as ErrorFaro;
+    const fallo = (await pedir("/children").catch((error: unknown) => error)) as ErrorBlubathon;
 
     expect(fallo.codigo).toBe("network_error");
     expect(fallo.mensajeEs).toBe("No pudimos conectar con el servidor.");
@@ -80,7 +80,7 @@ describe("pedir", () => {
       (error: unknown) => error,
     );
 
-    expect(fallo).not.toBeInstanceOf(ErrorFaro);
+    expect(fallo).not.toBeInstanceOf(ErrorBlubathon);
   });
 });
 

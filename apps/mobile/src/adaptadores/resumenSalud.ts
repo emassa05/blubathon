@@ -19,18 +19,18 @@ import type {
   FormQuestion,
   RecommendationInstanceView,
   TodayRecommendationResponse,
-} from "@faro/contract/contract";
-import { FARO_CONSTANTS } from "@faro/contract/constants";
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
+} from "@blubathon/contract/contract";
+import { BLUBATHON_CONSTANTS } from "@blubathon/contract/constants";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 
 import { DIAS_HISTORIAL } from "@/api/config";
-import { ErrorFaro } from "@/api/errores";
+import { ErrorBlubathon } from "@/api/errores";
 import {
   historialNino,
   planFormulario,
   recomendacionDeEpisodio,
   recomendacionDeHoy,
-} from "@/api/faro";
+} from "@/api/blubathon";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import { reconciliar, respuestasDe } from "@/estado/respuestas";
 import type { FactorRiesgo, IconoFactor, RegistroFormulario, ResumenSalud } from "@/types/salud";
@@ -49,7 +49,7 @@ const CAMPOS_DE_SUENO: ReadonlySet<FieldCode> = new Set<FieldCode>([
 ]);
 
 /** SPEC 6.10 / C14: un campo se considera vencido a los 7 días. */
-const DIAS_VENCIMIENTO = FARO_CONSTANTS.C14.value;
+const DIAS_VENCIMIENTO = BLUBATHON_CONSTANTS.C14.value;
 
 /**
  * `days_since_presented` no viaja en `FormQuestion`, así que el texto no puede
@@ -165,7 +165,7 @@ function factores(plan: FormPlanResponse | null): readonly FactorRiesgo[] {
     .map((pregunta) => ({
       id: pregunta.field_code,
       icono: (CAMPOS_DE_SUENO.has(pregunta.field_code) ? "luna" : "rombo") satisfies IconoFactor,
-      titulo: FARO_TEXTS_ES.fieldLabelsEs[pregunta.field_code],
+      titulo: BLUBATHON_TEXTS_ES.fieldLabelsEs[pregunta.field_code],
       detalle: DETALLE_POR_MOTIVO[pregunta.reason],
       prioridad: "alta" as const,
     }));
@@ -223,7 +223,7 @@ async function recomendacionDelDia(
   } catch (error) {
     // El episodio puede existir sin recomendación asociada: es un día vacío,
     // no un fallo que la pantalla deba mostrar.
-    if (error instanceof ErrorFaro && error.esNoEncontrado) return null;
+    if (error instanceof ErrorBlubathon && error.esNoEncontrado) return null;
     throw error;
   }
 }

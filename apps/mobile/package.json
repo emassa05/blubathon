@@ -1,9 +1,9 @@
 {
-  "name": "@faro/mobile",
+  "name": "@blubathon/mobile",
   "private": true,
   "version": "0.3.0",
   "type": "module",
-  "description": "Interfaz visual de Faro (Vue 3 + Vite). Pantalla Salud.",
+  "description": "Interfaz visual de Blubathon (Vue 3 + Vite). Pantalla Salud.",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -15,7 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@faro/contract": "workspace:*",
+    "@blubathon/contract": "workspace:*",
     "@fontsource/nunito": "5.3.0",
     "vue": "3.5.41"
   },

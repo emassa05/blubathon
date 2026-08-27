@@ -53,49 +53,49 @@ function etiquetaFila(registro: RegistroFormulario): string {
 
 <style scoped>
 .formularios {
-  padding: var(--faro-esp-18) var(--faro-esp-16);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-sombra-tarjeta);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-sombra-tarjeta);
 }
 
 .formularios__cabecera {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .formularios__titulo {
-  font-size: var(--faro-fs-15);
+  font-size: var(--blubathon-fs-15);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .formularios__accion {
   /* 44x44 de área táctil sin alterar la línea base ni el alto de la cabecera:
      el padding crece y el margen negativo lo devuelve. */
-  min-width: var(--faro-toque);
-  min-height: var(--faro-toque);
-  padding: var(--faro-esp-14) var(--faro-esp-10);
-  margin: calc(var(--faro-esp-14) * -1) calc(var(--faro-esp-10) * -1);
-  font-size: var(--faro-fs-13);
+  min-width: var(--blubathon-toque);
+  min-height: var(--blubathon-toque);
+  padding: var(--blubathon-esp-14) var(--blubathon-esp-10);
+  margin: calc(var(--blubathon-esp-14) * -1) calc(var(--blubathon-esp-10) * -1);
+  font-size: var(--blubathon-fs-13);
   font-weight: 700;
-  color: var(--faro-marca-accion);
-  border-radius: var(--faro-radio-10);
+  color: var(--blubathon-marca-accion);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .formularios__accion:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .formularios__lista {
-  margin-top: var(--faro-esp-6);
+  margin-top: var(--blubathon-esp-6);
 }
 
 .formulario + .formulario {
-  border-top: 1px solid var(--faro-linea);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 /*
@@ -106,58 +106,58 @@ function etiquetaFila(registro: RegistroFormulario): string {
 .formulario__fila {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-12);
-  width: calc(100% + var(--faro-esp-16));
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-8);
-  margin-inline: calc(var(--faro-esp-8) * -1);
+  gap: var(--blubathon-esp-12);
+  width: calc(100% + var(--blubathon-esp-16));
+  min-height: var(--blubathon-toque);
+  padding-inline: var(--blubathon-esp-8);
+  margin-inline: calc(var(--blubathon-esp-8) * -1);
   text-align: left;
-  border-radius: var(--faro-radio-10);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .formulario__fila:hover,
 .formulario__fila:active {
-  background: var(--faro-fila-activa);
+  background: var(--blubathon-fila-activa);
 }
 
 .formulario__fila:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: calc(var(--faro-foco-offset) * -1);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: calc(var(--blubathon-foco-offset) * -1);
 }
 
 .formulario__punto {
   flex: none;
-  width: var(--faro-punto);
-  height: var(--faro-punto);
+  width: var(--blubathon-punto);
+  height: var(--blubathon-punto);
   border-radius: 50%;
 }
 
 .formulario__punto--respondido {
-  background: var(--faro-punto-activo);
+  background: var(--blubathon-punto-activo);
 }
 
 .formulario__punto--sin-responder {
-  background: var(--faro-punto-inactivo);
+  background: var(--blubathon-punto-inactivo);
 }
 
 .formulario__dia {
   flex: 1;
   min-width: 0;
-  font-size: var(--faro-fs-135);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  color: var(--faro-marca-texto);
+  color: var(--blubathon-marca-texto);
 }
 
 .formulario__estado {
   flex: none;
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .formulario__chevron {
   flex: none;
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
-  color: var(--faro-gris-texto);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
+  color: var(--blubathon-gris-texto);
 }
 </style>

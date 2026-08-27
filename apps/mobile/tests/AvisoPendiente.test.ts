@@ -26,7 +26,7 @@ describe("AvisoPendiente", () => {
 
     expect(wrapper.classes()).toContain("aviso--animado");
     expect(wrapper.classes()).toContain("aviso--pulso");
-    expect(wrapper.attributes("style")).toContain("--faro-dur: 5s");
+    expect(wrapper.attributes("style")).toContain("--blubathon-dur: 5s");
   });
 
   it("acepta otra animación y recorta la duración al rango 3-9", () => {
@@ -35,7 +35,7 @@ describe("AvisoPendiente", () => {
     });
 
     expect(wrapper.classes()).toContain("aviso--deslizamiento");
-    expect(wrapper.attributes("style")).toContain("--faro-dur: 9s");
+    expect(wrapper.attributes("style")).toContain("--blubathon-dur: 9s");
   });
 
   it("con animar en false no aplica ninguna clase de animación", () => {

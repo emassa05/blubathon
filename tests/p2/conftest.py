@@ -64,9 +64,9 @@ def clock() -> FrozenClock:
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(
-        db_path=tmp_path / "faro-test.db",
-        audit_secret=b"faro-test-audit-secret",
-        scenario_secret=b"faro-test-scenario-secret",
+        db_path=tmp_path / "blubathon-test.db",
+        audit_secret=b"blubathon-test-audit-secret",
+        scenario_secret=b"blubathon-test-scenario-secret",
     )
 
 

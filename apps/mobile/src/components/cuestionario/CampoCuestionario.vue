@@ -2,7 +2,7 @@
 import { computed, ref, useId, watch } from "vue";
 
 import type { DefaultSuggestion, FieldCode, FormQuestion, ValorCampo } from "@/api/contrato";
-import { FARO_TEXTS_ES, type Interaccion } from "@/api/contrato";
+import { BLUBATHON_TEXTS_ES, type Interaccion } from "@/api/contrato";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoMas from "@/components/icons/IconoMas.vue";
 import IconoMenos from "@/components/icons/IconoMenos.vue";
@@ -147,7 +147,7 @@ const motivoDestacada = computed(() => {
         Suele responder
         <b>{{ formatearValor(campo, sugerencia.value) }}</b>
       </p>
-      <p class="sugerencia__ayuda">{{ FARO_TEXTS_ES.defaultSuggestionHintEs }}</p>
+      <p class="sugerencia__ayuda">{{ BLUBATHON_TEXTS_ES.defaultSuggestionHintEs }}</p>
       <button type="button" class="sugerencia__usar" @click="aceptarSugerencia">
         Usar esta respuesta
       </button>
@@ -274,9 +274,9 @@ const motivoDestacada = computed(() => {
         :aria-pressed="noSabe"
         @click="emitir('noSabe')"
       >
-        {{ FARO_TEXTS_ES.unknownAnswerEs }}
+        {{ BLUBATHON_TEXTS_ES.unknownAnswerEs }}
       </button>
-      <p v-if="noSabe" class="campo__ayuda">{{ FARO_TEXTS_ES.unknownAnswerHintEs }}</p>
+      <p v-if="noSabe" class="campo__ayuda">{{ BLUBATHON_TEXTS_ES.unknownAnswerHintEs }}</p>
     </div>
   </fieldset>
 </template>
@@ -288,69 +288,69 @@ const motivoDestacada = computed(() => {
  * una conversación. Separa el filete, igual que en las otras listas.
  */
 .campo {
-  padding-block: var(--faro-esp-16);
+  padding-block: var(--blubathon-esp-16);
   border: 0;
 }
 
 .campo + .campo {
-  border-top: 1px solid var(--faro-linea);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 .campo__legenda {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-8);
+  gap: var(--blubathon-esp-8);
   /* `legend` en un `fieldset` sin borde: se comporta mejor como bloque normal. */
   float: left;
   width: 100%;
 }
 
 .campo__titulo {
-  font-size: var(--faro-fs-135);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  color: var(--faro-marca-titulo);
+  color: var(--blubathon-marca-titulo);
 }
 
 .campo__hecho {
   display: grid;
   place-items: center;
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
-  color: var(--faro-marca-accion);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
+  color: var(--blubathon-marca-accion);
 }
 
 .campo__tilde {
-  width: var(--faro-icono-12);
-  height: var(--faro-icono-12);
+  width: var(--blubathon-icono-12);
+  height: var(--blubathon-icono-12);
 }
 
 .campo__enunciado {
   clear: both;
-  padding-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  padding-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .campo__motivo {
-  margin-top: var(--faro-esp-6);
-  font-size: var(--faro-fs-11);
+  margin-top: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-marca-accion);
+  color: var(--blubathon-marca-accion);
 }
 
 .campo__sin-catalogo {
-  margin-top: var(--faro-esp-10);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  margin-top: var(--blubathon-esp-10);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .opciones {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--faro-esp-8);
-  margin-top: var(--faro-esp-12);
+  gap: var(--blubathon-esp-8);
+  margin-top: var(--blubathon-esp-12);
 }
 
 /*
@@ -359,46 +359,46 @@ const motivoDestacada = computed(() => {
  * distinga sin depender del tono.
  */
 .opcion {
-  min-height: var(--faro-toque);
-  padding: var(--faro-esp-10) var(--faro-esp-16);
-  font-size: var(--faro-fs-13);
+  min-height: var(--blubathon-toque);
+  padding: var(--blubathon-esp-10) var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-13);
   font-weight: 600;
-  color: var(--faro-marca-texto);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-marca-texto);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .opcion:hover {
-  border-color: var(--faro-punto-activo);
+  border-color: var(--blubathon-punto-activo);
 }
 
 .opcion:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .opcion--activa {
   font-weight: 700;
-  color: var(--faro-marca-profundo);
-  background: var(--faro-marca-icono-fondo);
-  border-color: var(--faro-marca-accion);
+  color: var(--blubathon-marca-profundo);
+  background: var(--blubathon-marca-icono-fondo);
+  border-color: var(--blubathon-marca-accion);
   border-width: 2px;
 }
 
 .opcion--suave {
   font-weight: 600;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
   background: none;
 }
 
 .escala {
-  margin-top: var(--faro-esp-12);
+  margin-top: var(--blubathon-esp-12);
 }
 
 .escala__puntos {
   display: flex;
-  gap: var(--faro-esp-8);
+  gap: var(--blubathon-esp-8);
 }
 
 /*
@@ -408,67 +408,67 @@ const motivoDestacada = computed(() => {
  */
 .escala__punto {
   flex: 1;
-  min-width: var(--faro-toque);
-  min-height: var(--faro-toque);
-  font-size: var(--faro-fs-15);
+  min-width: var(--blubathon-toque);
+  min-height: var(--blubathon-toque);
+  font-size: var(--blubathon-fs-15);
   font-weight: 700;
-  color: var(--faro-marca-texto);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-14);
+  color: var(--blubathon-marca-texto);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .escala__punto:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .escala__punto--activo {
-  color: var(--faro-marca-profundo);
-  background: var(--faro-marca-icono-fondo);
-  border-color: var(--faro-marca-accion);
+  color: var(--blubathon-marca-profundo);
+  background: var(--blubathon-marca-icono-fondo);
+  border-color: var(--blubathon-marca-accion);
   border-width: 2px;
 }
 
 .escala__ancla {
-  margin-top: var(--faro-esp-8);
-  font-size: var(--faro-fs-125);
+  margin-top: var(--blubathon-esp-8);
+  font-size: var(--blubathon-fs-125);
   font-weight: 600;
-  color: var(--faro-marca-texto);
+  color: var(--blubathon-marca-texto);
 }
 
 .numero {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-10);
-  margin-top: var(--faro-esp-12);
+  gap: var(--blubathon-esp-10);
+  margin-top: var(--blubathon-esp-12);
 }
 
 .numero__paso {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-toque);
-  height: var(--faro-toque);
-  color: var(--faro-marca-accion);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
+  width: var(--blubathon-toque);
+  height: var(--blubathon-toque);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
   border-radius: 50%;
 }
 
 .numero__paso:disabled {
-  color: var(--faro-punto-inactivo);
+  color: var(--blubathon-punto-inactivo);
   cursor: default;
 }
 
 .numero__paso:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .numero__glifo {
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
 }
 
 /* El rótulo envuelve al control para nombrarlo, pero no dibuja nada: con
@@ -479,95 +479,95 @@ const motivoDestacada = computed(() => {
 
 .numero__campo {
   width: 6rem;
-  min-height: var(--faro-toque);
-  padding: var(--faro-esp-8) var(--faro-esp-12);
+  min-height: var(--blubathon-toque);
+  padding: var(--blubathon-esp-8) var(--blubathon-esp-12);
   font: inherit;
-  font-size: var(--faro-fs-17);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
   text-align: center;
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-14);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .numero__campo:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .texto {
-  margin-top: var(--faro-esp-12);
+  margin-top: var(--blubathon-esp-12);
 }
 
 .texto__area {
   width: 100%;
-  padding: var(--faro-esp-12);
+  padding: var(--blubathon-esp-12);
   font: inherit;
-  font-size: var(--faro-fs-135);
-  color: var(--faro-marca-texto);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-14);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-marca-texto);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-14);
   resize: vertical;
 }
 
 .texto__area:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .texto__cuenta {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-11);
-  color: var(--faro-gris-texto);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-11);
+  color: var(--blubathon-gris-texto);
   text-align: right;
 }
 
 /* La sugerencia no puede parecer un valor ya puesto: fondo propio, borde
    discontinuo y su acción aparte. */
 .sugerencia {
-  margin-top: var(--faro-esp-12);
-  padding: var(--faro-esp-12);
-  background: var(--faro-marca-icono-fondo);
-  border: 1px dashed var(--faro-marca-accion);
-  border-radius: var(--faro-radio-14);
+  margin-top: var(--blubathon-esp-12);
+  padding: var(--blubathon-esp-12);
+  background: var(--blubathon-marca-icono-fondo);
+  border: 1px dashed var(--blubathon-marca-accion);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .sugerencia__valor {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-marca-titulo);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-marca-titulo);
 }
 
 .sugerencia__ayuda {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-11);
-  color: var(--faro-marca-texto);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-11);
+  color: var(--blubathon-marca-texto);
 }
 
 .sugerencia__usar {
-  min-height: var(--faro-toque);
-  margin-top: var(--faro-esp-6);
-  padding-inline: var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
+  min-height: var(--blubathon-toque);
+  margin-top: var(--blubathon-esp-6);
+  padding-inline: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-125);
   font-weight: 700;
-  color: var(--faro-superficie);
-  background: var(--faro-marca-accion);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-superficie);
+  background: var(--blubathon-marca-accion);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .sugerencia__usar:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .campo__cierre {
-  margin-top: var(--faro-esp-10);
+  margin-top: var(--blubathon-esp-10);
 }
 
 .campo__ayuda {
-  margin-top: var(--faro-esp-6);
-  font-size: var(--faro-fs-11);
-  color: var(--faro-gris-texto);
+  margin-top: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-11);
+  color: var(--blubathon-gris-texto);
 }
 </style>

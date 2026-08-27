@@ -27,7 +27,7 @@ from packages.shared.constants import REFERENCE_TIMEZONE
 
 REFERENCE_ZONE: Final = ZoneInfo(REFERENCE_TIMEZONE)
 TIMESTAMP_FORMAT: Final = "%Y-%m-%dT%H:%M:%S.%f"
-HASH_DOMAIN_PREFIX: Final = "faro"
+HASH_DOMAIN_PREFIX: Final = "blubathon"
 
 
 class CanonicalizationError(ValueError):
@@ -142,7 +142,7 @@ def canonical_bytes(payload: Any) -> bytes:
 
 
 def domain_separator(artifact: str, schema_version: str) -> bytes:
-    """`faro:<artifact>:<schema_version>\\0` (SPEC 5.9)."""
+    """`blubathon:<artifact>:<schema_version>\\0` (SPEC 5.9)."""
 
     prefix = f"{HASH_DOMAIN_PREFIX}:{artifact}:{schema_version}"
     return normalize_text(prefix).encode("utf-8") + b"\x00"

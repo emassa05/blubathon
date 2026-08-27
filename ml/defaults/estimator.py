@@ -4,7 +4,7 @@ A binary field is `Beta(1+k, 1+N-k)`; a categorical or ordinal field is
 `Dirichlet(1+n_j)` and the candidate's marginal is again a Beta. The two are the
 same arithmetic: the binary case is the K=2 marginal.
 
-Faro shows the lower bound, not the mean. Two histories with the same mean can
+Blubathon shows the lower bound, not the mean. Two histories with the same mean can
 carry very different evidence, and the product rule asks how high the value
 still is under a conservative reading of the posterior (FUNDAMENTOS 5.5).
 

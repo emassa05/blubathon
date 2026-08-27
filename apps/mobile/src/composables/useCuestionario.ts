@@ -36,7 +36,7 @@ import type {
 } from "@/api/contrato";
 import { ORIGEN_CUIDADOR } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { enviarFormulario, planFormulario } from "@/api/faro";
+import { enviarFormulario, planFormulario } from "@/api/blubathon";
 import {
   CAMPOS_DE_CASA,
   esNumerico,

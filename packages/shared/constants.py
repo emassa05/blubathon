@@ -17,7 +17,7 @@ from typing import Any, Literal, cast
 
 DecisionClass = Literal["mathematical", "evidence", "policy", "engineering"]
 
-CONTRACT_VERSION = "faro-contract-0.4.0"
+CONTRACT_VERSION = "blubathon-contract-0.4.0"
 """Version of the executable contract published by `packages/shared`.
 
 Distinct from ``SPEC_VERSION``: the SPEC can be clarified without regenerating

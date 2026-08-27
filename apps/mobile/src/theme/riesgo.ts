@@ -44,8 +44,8 @@ export const BANDA_DE_LA_API: Record<"low" | "medium" | "high" | "unknown", Band
 };
 
 export const CLASE_BANDA: Record<BandaRiesgo, string> = {
-  desconocido: "faro-banda--desconocido",
-  bajo: "faro-banda--bajo",
-  medio: "faro-banda--medio",
-  alto: "faro-banda--alto",
+  desconocido: "blubathon-banda--desconocido",
+  bajo: "blubathon-banda--bajo",
+  medio: "blubathon-banda--medio",
+  alto: "blubathon-banda--alto",
 };

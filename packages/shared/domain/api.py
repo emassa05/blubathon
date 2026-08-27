@@ -1,4 +1,4 @@
-"""Request and response contracts for the Faro HTTP API.
+"""Request and response contracts for the Blubathon HTTP API.
 
 Every response has an explicit model; no route returns a bare dictionary. An
 abstention is HTTP 200 with its own envelope, never the error envelope, and the
@@ -16,7 +16,7 @@ from pydantic import AnyUrl, Field, model_validator
 from packages.shared.canonical import content_hash
 from packages.shared.constants import API_PREFIX, CONTRACT_VERSION
 from packages.shared.domain.base import (
-    FaroModel,
+    BlubathonModel,
     Interval,
     NonNegativeFloat,
     Probability,
@@ -63,7 +63,7 @@ from packages.shared.enums import (
 from packages.shared.field_catalog import FieldValue, validate_field_value
 
 
-class ErrorDetail(FaroModel):
+class ErrorDetail(BlubathonModel):
     """Stable machine code plus sanitised Spanish copy (SPEC 11.7)."""
 
     code: ErrorCode
@@ -71,11 +71,11 @@ class ErrorDetail(FaroModel):
     request_id: UUID
 
 
-class ErrorResponse(FaroModel):
+class ErrorResponse(BlubathonModel):
     error: ErrorDetail
 
 
-class DefaultSuggestion(FaroModel):
+class DefaultSuggestion(BlubathonModel):
     """Stateless default shown by the form plan."""
 
     field_code: FieldCode
@@ -90,7 +90,7 @@ class DefaultSuggestion(FaroModel):
         return self
 
 
-class FormQuestion(FaroModel):
+class FormQuestion(BlubathonModel):
     """One field in the stateless plan."""
 
     field_code: FieldCode
@@ -99,7 +99,7 @@ class FormQuestion(FaroModel):
     voi_nats: NonNegativeFloat | None = None
 
 
-class AnswerItem(FaroModel):
+class AnswerItem(BlubathonModel):
     field_code: FieldCode
     value: FieldValue | None = None
     interaction: Literal["manual", "accept_default", "edit_default", "unknown"]
@@ -116,25 +116,25 @@ class AnswerItem(FaroModel):
         return self
 
 
-class FormPlanRequest(FaroModel):
+class FormPlanRequest(BlubathonModel):
     source: Literal["caregiver_daily"]
     answers: dict[FieldCode, FieldValue] = Field(default_factory=dict)
 
 
-class FormPlanResponse(FaroModel):
+class FormPlanResponse(BlubathonModel):
     questions: tuple[FormQuestion, ...] = ()
     defaults: tuple[DefaultSuggestion, ...] = ()
     voi_status: Literal["unavailable_model"] = "unavailable_model"
     coverage: Probability
 
 
-class FormSubmissionRequest(FaroModel):
+class FormSubmissionRequest(BlubathonModel):
     source: Literal["caregiver_daily"]
     local_date: date
     answers: tuple[AnswerItem, ...] = ()
 
 
-class FormSubmissionResponse(FaroModel):
+class FormSubmissionResponse(BlubathonModel):
     submission_id: UUID
     status: SubmitStatus
     prediction_episode_id: UUID | None = None
@@ -170,7 +170,7 @@ class FormSubmissionResponse(FaroModel):
         return self
 
 
-class FormSessionResponse(FaroModel):
+class FormSessionResponse(BlubathonModel):
     """The session envelope of SPEC 11.3, recalculated after every answer."""
 
     form_session_id: UUID
@@ -199,7 +199,7 @@ class FormSessionResponse(FaroModel):
         return self
 
 
-class FormSessionCreateRequest(FaroModel):
+class FormSessionCreateRequest(BlubathonModel):
     """Audit mode, timestamps and policy version are the server's to decide."""
 
     subject_id: UUID
@@ -207,13 +207,13 @@ class FormSessionCreateRequest(FaroModel):
     session_kind: FormSessionKind
 
 
-class FormAnswerRequest(FaroModel):
+class FormAnswerRequest(BlubathonModel):
     """The client declares an interaction; the server derives the entry mode."""
 
     answer: AnswerSubmission
 
 
-class FormSubmitResponse(FaroModel):
+class FormSubmitResponse(BlubathonModel):
     """Only `episode_created` creates a snapshot, outputs and an outcome request."""
 
     form_session_id: UUID
@@ -242,7 +242,7 @@ class FormSubmitResponse(FaroModel):
         return self
 
 
-class PredictionOutputView(FaroModel):
+class PredictionOutputView(BlubathonModel):
     """A single track's answer as a caller sees it (SPEC 11.5).
 
     `confidence` is absent on purpose: what a track publishes about its own
@@ -321,7 +321,7 @@ class PredictionOutputView(FaroModel):
         return self
 
 
-class PredictionEpisodeResponse(FaroModel):
+class PredictionEpisodeResponse(BlubathonModel):
     """The authorised view of one episode: window, tracks and data quality."""
 
     prediction_episode_id: UUID
@@ -337,7 +337,7 @@ class PredictionEpisodeResponse(FaroModel):
     risk_band: None = None
 
 
-class OutcomeRequestView(FaroModel):
+class OutcomeRequestView(BlubathonModel):
     """One pending item of the actor's inbox, with its derived state."""
 
     outcome_request_id: UUID
@@ -353,11 +353,11 @@ class OutcomeRequestView(FaroModel):
     resolution_status: OutcomeResolutionStatus
 
 
-class OutcomeRequestListResponse(FaroModel):
+class OutcomeRequestListResponse(BlubathonModel):
     items: tuple[OutcomeRequestView, ...] = ()
 
 
-class OutcomeReportRequest(FaroModel):
+class OutcomeReportRequest(BlubathonModel):
     """The client sends the answer only. Actor, role, timing and target are server-side."""
 
     value: OutcomeReportValue
@@ -374,7 +374,7 @@ class OutcomeReportRequest(FaroModel):
         return self
 
 
-class OutcomeReportView(FaroModel):
+class OutcomeReportView(BlubathonModel):
     """The wire view refuses exactly what `OutcomeReport` refuses."""
 
     outcome_report_id: UUID
@@ -401,7 +401,7 @@ class OutcomeReportView(FaroModel):
         return self
 
 
-class OutcomeResolutionView(FaroModel):
+class OutcomeResolutionView(BlubathonModel):
     """A resolution is not a report, and a conflict never becomes clean again."""
 
     status: OutcomeResolutionStatus
@@ -426,23 +426,23 @@ class OutcomeResolutionView(FaroModel):
         return self
 
 
-class OutcomeReportResponse(FaroModel):
+class OutcomeReportResponse(BlubathonModel):
     """Report and resolution are returned separately; they are different facts."""
 
     report: OutcomeReportView
     resolution: OutcomeResolutionView
 
 
-class ChildListItem(FaroModel):
+class ChildListItem(BlubathonModel):
     child_id: UUID
     display_label: SpanishText
 
 
-class ChildListResponse(FaroModel):
+class ChildListResponse(BlubathonModel):
     children: tuple[ChildListItem, ...] = ()
 
 
-class ChildView(FaroModel):
+class ChildView(BlubathonModel):
     child_id: UUID
     display_label: SpanishText
     sensory_profile_tags: tuple[str, ...] = ()
@@ -453,24 +453,24 @@ class ChildView(FaroModel):
     prediction_episode_id: UUID | None = None
 
 
-class ChildHistoryPrediction(FaroModel):
+class ChildHistoryPrediction(BlubathonModel):
     status: Literal["ok", "abstained"]
     probability: Probability | None = None
     interval: tuple[Probability, Probability] | None = None
 
 
-class ChildHistoryRecommendation(FaroModel):
+class ChildHistoryRecommendation(BlubathonModel):
     recommendation_instance_id: UUID
     status: Literal["pending", "matched", "abstained"]
     rating: Literal["good", "bad"] | None = None
 
 
-class ChildHistoryOutcome(FaroModel):
+class ChildHistoryOutcome(BlubathonModel):
     status: Literal["yes", "no", "unknown", "conflicted", "pending"]
     reported_at: UtcDatetime | None = None
 
 
-class ChildHistoryDay(FaroModel):
+class ChildHistoryDay(BlubathonModel):
     local_date: date
     submission_id: UUID | None = None
     prediction_episode_id: UUID | None = None
@@ -479,18 +479,18 @@ class ChildHistoryDay(FaroModel):
     outcome: ChildHistoryOutcome | None = None
 
 
-class ChildHistoryResponse(FaroModel):
+class ChildHistoryResponse(BlubathonModel):
     child_id: UUID
     days: tuple[ChildHistoryDay, ...] = ()
 
 
-class RecommendationCitation(FaroModel):
+class RecommendationCitation(BlubathonModel):
     document_title_es: SpanishText
     locator: str = Field(min_length=1)
     quote_es: str = Field(min_length=1)
 
 
-class CitationView(FaroModel):
+class CitationView(BlubathonModel):
     citation_id: UUID
     claim_id: UUID
     locator: str = Field(min_length=1)
@@ -498,7 +498,7 @@ class CitationView(FaroModel):
     canonical_url: AnyUrl
 
 
-class StrategyItem(FaroModel):
+class StrategyItem(BlubathonModel):
     item_type: Literal[RecommendationItemType.STRATEGY] = RecommendationItemType.STRATEGY
     strategy_version_id: UUID
     review_status: ReviewStatus
@@ -506,7 +506,7 @@ class StrategyItem(FaroModel):
     citations: tuple[CitationView, ...] = ()
 
 
-class HumanPlanItem(FaroModel):
+class HumanPlanItem(BlubathonModel):
     """A human plan never inherits the RAG citations (SPEC 10.2)."""
 
     item_type: Literal[RecommendationItemType.HUMAN_PLAN] = RecommendationItemType.HUMAN_PLAN
@@ -524,7 +524,7 @@ class HumanPlanItem(FaroModel):
 RecommendationItem = StrategyItem | HumanPlanItem
 
 
-class RecommendationResponse(FaroModel):
+class RecommendationResponse(BlubathonModel):
     """Matched, abstained, or waiting for a professional. Never a raw draft."""
 
     status: RecommendationResponseStatus
@@ -549,7 +549,7 @@ class RecommendationResponse(FaroModel):
         return self
 
 
-class RecommendationInstanceView(FaroModel):
+class RecommendationInstanceView(BlubathonModel):
     recommendation_instance_id: UUID
     child_id: UUID
     child_label: SpanishText | None = None
@@ -590,7 +590,7 @@ class RecommendationInstanceView(FaroModel):
         return self
 
 
-class TodayRecommendationResponse(FaroModel):
+class TodayRecommendationResponse(BlubathonModel):
     status: Literal["no_submission_today", "pending", "matched", "abstained"]
     risk_band: Literal["low", "medium", "high", "unknown"] | None = None
     recommendation_instance_id: UUID | None = None
@@ -603,22 +603,22 @@ class TodayRecommendationResponse(FaroModel):
     rating: Literal["good", "bad"] | None = None
 
 
-class RecommendationListResponse(FaroModel):
+class RecommendationListResponse(BlubathonModel):
     items: tuple[RecommendationInstanceView, ...] = ()
 
 
-class FeedbackRequest(FaroModel):
+class FeedbackRequest(BlubathonModel):
     rating: Literal["good", "bad"]
     note_es: SpanishText | None = None
 
 
-class FeedbackResponse(FaroModel):
+class FeedbackResponse(BlubathonModel):
     feedback_id: UUID
     rating: Literal["good", "bad"]
     attempt: int = Field(ge=1)
 
 
-class NotificationEvent(FaroModel):
+class NotificationEvent(BlubathonModel):
     type: Literal["recommendation.ready", "recommendation.redrafted", "feedback.recorded"]
     child_id: UUID | None = None
     prediction_episode_id: UUID | None = None
@@ -632,11 +632,11 @@ class NotificationEvent(FaroModel):
     at: UtcDatetime
 
 
-class RecommendationInboxResponse(FaroModel):
+class RecommendationInboxResponse(BlubathonModel):
     items: tuple[RecommendationInstanceView, ...] = ()
 
 
-class RecommendationReviewRequest(FaroModel):
+class RecommendationReviewRequest(BlubathonModel):
     """One decision, one strategy version. Substitution carries its plan text."""
 
     strategy_version_id: UUID
@@ -656,7 +656,7 @@ class RecommendationReviewRequest(FaroModel):
         return self
 
 
-class RecommendationReviewResponse(FaroModel):
+class RecommendationReviewResponse(BlubathonModel):
     review_id: UUID
     recommendation_instance_id: UUID
     strategy_version_id: UUID
@@ -665,7 +665,7 @@ class RecommendationReviewResponse(FaroModel):
     human_plan_version_id: UUID | None = None
 
 
-class StrategyExecutionRequest(FaroModel):
+class StrategyExecutionRequest(BlubathonModel):
     """Applied, not applied or unknown, for exactly one strategy or plan."""
 
     strategy_version_id: UUID | None = None
@@ -686,7 +686,7 @@ class StrategyExecutionRequest(FaroModel):
         return self
 
 
-class StrategyExecutionResponse(FaroModel):
+class StrategyExecutionResponse(BlubathonModel):
     strategy_execution_id: UUID
     recommendation_instance_id: UUID
     status: ExecutionStatus
@@ -694,7 +694,7 @@ class StrategyExecutionResponse(FaroModel):
     applied_at: UtcDatetime | None = None
 
 
-class EvaluationResponse(FaroModel):
+class EvaluationResponse(BlubathonModel):
     """Every report says which data it came from and what it cannot show."""
 
     model_version: VersionLabel
@@ -724,7 +724,7 @@ class EvaluationResponse(FaroModel):
         return self
 
 
-class IdempotencyScope(FaroModel):
+class IdempotencyScope(BlubathonModel):
     """`(tenant, actor, method, concrete path, key)` (SPEC 11.2).
 
     The concrete path includes every normalised ID, so the same key on two

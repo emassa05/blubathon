@@ -65,12 +65,12 @@ def build_schema() -> dict[str, Any]:
     defs = dict(sorted(schema.get("$defs", {}).items()))
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": f"https://faro.local/schema/{CONTRACT_VERSION}.json",
-        "title": "Faro contract",
+        "$id": f"https://blubathon.local/schema/{CONTRACT_VERSION}.json",
+        "title": "Blubathon contract",
         "description": JSON_BANNER,
-        "x-faro-contract-version": CONTRACT_VERSION,
-        "x-faro-spec-version": SPEC_VERSION,
-        "x-faro-published-models": sorted(PUBLISHED_MODELS),
+        "x-blubathon-contract-version": CONTRACT_VERSION,
+        "x-blubathon-spec-version": SPEC_VERSION,
+        "x-blubathon-published-models": sorted(PUBLISHED_MODELS),
         "$defs": defs,
     }
 
@@ -371,11 +371,11 @@ def render_constants() -> str:
         BANNER,
         "",
         "/** SPEC 15 registry C01-C50. A policy number is labelled as policy. */",
-        "export const FARO_CONSTANTS = {",
+        "export const BLUBATHON_CONSTANTS = {",
         *entries,
         "} as const;",
         "",
-        "export const FARO_VERSIONS = " + _json(versions) + " as const;",
+        "export const BLUBATHON_VERSIONS = " + _json(versions) + " as const;",
         "",
     ]
     return "\n".join(lines)
@@ -419,7 +419,7 @@ def render_field_catalog() -> str:
             BANNER,
             "",
             "/** The frontend only shows fields the session source is allowed to report. */",
-            "export const FARO_FIELD_CATALOG = "
+            "export const BLUBATHON_FIELD_CATALOG = "
             + json.dumps(payload, ensure_ascii=False, indent=2)
             + " as const;",
             "",
@@ -472,7 +472,7 @@ def render_texts() -> str:
             BANNER,
             "",
             "/** Visible copy comes from `packages/shared/texts.py`, never from a component. */",
-            "export const FARO_TEXTS_ES = "
+            "export const BLUBATHON_TEXTS_ES = "
             + json.dumps(payload, ensure_ascii=False, indent=2)
             + " as const;",
             "",
@@ -511,7 +511,9 @@ def render_lock(schema: dict[str, Any]) -> str:
         "contract_version": CONTRACT_VERSION,
         "spec_version": SPEC_VERSION,
         "schema_hash": schema_hash(schema),
-        "hash_input": f"faro:{SCHEMA_ARTIFACT}:{CONTRACT_VERSION}\\0<JCS(faro.schema.json)>",
+        "hash_input": (
+            f"blubathon:{SCHEMA_ARTIFACT}:{CONTRACT_VERSION}\\0<JCS(blubathon.schema.json)>"
+        ),
         "generated_by": "python -m tools.contracts.generate",
         "commands": [
             "python -m tools.contracts.generate",
@@ -521,7 +523,7 @@ def render_lock(schema: dict[str, Any]) -> str:
         "published_models": sorted(PUBLISHED_MODELS),
         "definition_count": len(schema["$defs"]),
         "artifacts": [
-            "faro.schema.json",
+            "blubathon.schema.json",
             "contract.ts",
             "contract.zod.ts",
             "constants.ts",
@@ -544,7 +546,9 @@ def generate_in_memory() -> dict[str, str]:
 
     schema = build_schema()
     return {
-        "faro.schema.json": json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        "blubathon.schema.json": (
+            json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        ),
         "contract.ts": render_types(schema),
         "contract.zod.ts": render_zod(schema),
         "constants.ts": render_constants(),
@@ -566,7 +570,7 @@ def generate(output_dir: Path = OUTPUT_DIR) -> dict[str, str]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate the Faro contract artifacts.")
+    parser = argparse.ArgumentParser(description="Generate the Blubathon contract artifacts.")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     parser.add_argument(
         "--check",

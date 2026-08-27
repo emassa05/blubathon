@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { FARO_TEXTS_ES } from "@/api/contrato";
+import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
 import ListaCriticas from "@/components/cuestionario/ListaCriticas.vue";
 import IconoPortapapeles from "@/components/icons/IconoPortapapeles.vue";
 import { bandaDelDia, type ResumenDia } from "@/dominio/dia";
@@ -57,7 +57,7 @@ const recomendacion = computed(() => {
 const resultado = computed(() => {
   const estado = props.resumen.resultado?.status;
   if (estado === undefined) return null;
-  const etiquetas = FARO_TEXTS_ES.outcomeResolutionLabelsEs as Readonly<Record<string, string>>;
+  const etiquetas = BLUBATHON_TEXTS_ES.outcomeResolutionLabelsEs as Readonly<Record<string, string>>;
   return etiquetas[estado] ?? null;
 });
 
@@ -106,7 +106,7 @@ const accion = computed(() =>
     </p>
 
     <p v-else-if="resumen.estado === 'sin-responder'" class="detalle__nota">
-      {{ FARO_TEXTS_ES.emptyEs }} Responder el cuestionario de este día es lo que abre su
+      {{ BLUBATHON_TEXTS_ES.emptyEs }} Responder el cuestionario de este día es lo que abre su
       estimación.
     </p>
 
@@ -126,17 +126,17 @@ const accion = computed(() =>
 
 <style scoped>
 .detalle {
-  padding: var(--faro-esp-16);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+  padding: var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .detalle__cabecera {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .detalle__rotulos {
@@ -144,27 +144,27 @@ const accion = computed(() =>
 }
 
 .detalle__titulo {
-  font-size: var(--faro-fs-17);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .detalle__estado {
   display: inline-block;
-  margin-top: var(--faro-esp-6);
-  padding: var(--faro-esp-4) var(--faro-esp-9);
-  font-size: var(--faro-fs-11);
+  margin-top: var(--blubathon-esp-6);
+  padding: var(--blubathon-esp-4) var(--blubathon-esp-9);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-gris-texto);
-  background: var(--faro-fila-activa);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-gris-texto);
+  background: var(--blubathon-fila-activa);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .detalle__estado--respondido {
-  color: var(--faro-marca-accion);
-  background: var(--faro-marca-icono-fondo);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-marca-icono-fondo);
 }
 
 /*
@@ -177,50 +177,50 @@ const accion = computed(() =>
   flex: none;
   flex-direction: column;
   align-items: center;
-  padding: var(--faro-esp-8) var(--faro-esp-12);
-  background: var(--faro-panel, var(--faro-fila-activa));
-  border-radius: var(--faro-radio-14);
+  padding: var(--blubathon-esp-8) var(--blubathon-esp-12);
+  background: var(--blubathon-panel, var(--blubathon-fila-activa));
+  border-radius: var(--blubathon-radio-14);
 }
 
 .detalle__cifra {
-  font-size: var(--faro-fs-20);
+  font-size: var(--blubathon-fs-20);
   font-weight: 700;
-  color: var(--faro-texto-fuerte, var(--faro-marca-titulo));
+  color: var(--blubathon-texto-fuerte, var(--blubathon-marca-titulo));
 }
 
 .detalle__pie {
-  font-size: var(--faro-fs-11);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-texto-suave, var(--faro-gris-texto));
+  color: var(--blubathon-texto-suave, var(--blubathon-gris-texto));
 }
 
 .detalle__nota {
-  margin-top: var(--faro-esp-12);
-  font-size: var(--faro-fs-125);
+  margin-top: var(--blubathon-esp-12);
+  font-size: var(--blubathon-fs-125);
   line-height: 1.45;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .detalle__hechos {
-  margin-top: var(--faro-esp-12);
+  margin-top: var(--blubathon-esp-12);
 }
 
 .detalle__hecho {
-  padding-block: var(--faro-esp-6);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-marca-texto);
+  padding-block: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-marca-texto);
 }
 
 .detalle__hecho + .detalle__hecho {
-  border-top: 1px solid var(--faro-linea);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 /* La lista de críticas ya es una tarjeta: dentro de esta se queda sin sombra
    para no dibujar una caja dentro de otra. */
 .detalle__criticas {
-  margin-top: var(--faro-esp-14);
+  margin-top: var(--blubathon-esp-14);
   padding: 0;
   box-shadow: none;
 }
@@ -228,37 +228,37 @@ const accion = computed(() =>
 .detalle__accion {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
   width: 100%;
-  min-height: var(--faro-toque);
-  margin-top: var(--faro-esp-16);
-  padding: var(--faro-esp-8) var(--faro-esp-12);
-  font-size: var(--faro-fs-135);
+  min-height: var(--blubathon-toque);
+  margin-top: var(--blubathon-esp-16);
+  padding: var(--blubathon-esp-8) var(--blubathon-esp-12);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
   text-align: left;
-  color: var(--faro-aviso-titulo);
-  background: var(--faro-aviso-fondo);
-  border-radius: var(--faro-radio-18);
+  color: var(--blubathon-aviso-titulo);
+  background: var(--blubathon-aviso-fondo);
+  border-radius: var(--blubathon-radio-18);
 }
 
 .detalle__accion:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-aviso-titulo);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-aviso-titulo);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .detalle__insignia {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-caja-icono);
-  height: var(--faro-caja-icono);
-  color: var(--faro-superficie);
-  background: var(--faro-aviso-insignia);
-  border-radius: var(--faro-radio-10);
+  width: var(--blubathon-caja-icono);
+  height: var(--blubathon-caja-icono);
+  color: var(--blubathon-superficie);
+  background: var(--blubathon-aviso-insignia);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .detalle__icono {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 </style>

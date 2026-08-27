@@ -45,14 +45,14 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .semana__etiqueta {
   flex: 1;
-  font-size: var(--faro-fs-155);
+  font-size: var(--blubathon-fs-155);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
   text-align: center;
 }
 
@@ -62,20 +62,20 @@ defineEmits<{
   display: grid;
   flex: none;
   place-items: center;
-  min-width: var(--faro-toque);
-  min-height: var(--faro-toque);
-  font-size: var(--faro-fs-26);
+  min-width: var(--blubathon-toque);
+  min-height: var(--blubathon-toque);
+  font-size: var(--blubathon-fs-26);
   line-height: 1;
-  color: var(--faro-marca-accion);
-  border-radius: var(--faro-radio-10);
+  color: var(--blubathon-marca-accion);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .semana__chevron:hover {
-  background: var(--faro-fila-activa);
+  background: var(--blubathon-fila-activa);
 }
 
 .semana__chevron:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 </style>

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-// contract_version: faro-contract-0.4.0
+// contract_version: blubathon-contract-0.4.0
 
 export const AbstentionBreakdownSchema = z.object({
   "reason": z.string(),

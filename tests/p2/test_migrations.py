@@ -7,7 +7,7 @@ import sqlite3
 import pytest
 
 from apps.api.canonical import canonical_timestamp
-from apps.api.errors import FaroApiError
+from apps.api.errors import BlubathonApiError
 from apps.api.settings import Settings
 from apps.api.store.db import Database, connect
 from apps.api.store.migrations import MigrationError, discover, migrate
@@ -108,7 +108,7 @@ def test_foreign_keys_are_enforced(tmp_path) -> None:
 
 def test_sqlite_blocks_pilot_startup(tmp_path) -> None:
     settings = Settings(mode="pilot", database_url="sqlite:///x", db_path=tmp_path / "p.db")  # type: ignore[arg-type]
-    with pytest.raises(FaroApiError) as error:
+    with pytest.raises(BlubathonApiError) as error:
         Database(settings)
     assert error.value.code == "pilot_requires_postgresql"
 

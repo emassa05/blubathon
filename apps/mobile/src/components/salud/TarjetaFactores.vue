@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 import type { Component } from "vue";
 
 import IconoLuna from "@/components/icons/IconoLuna.vue";
@@ -25,7 +25,7 @@ const ICONOS: Record<IconoFactor, Component> = {
     <p class="factores__subtitulo">Lo que el formulario de hoy pregunta primero.</p>
 
     <p v-if="factores.length === 0" class="factores__vacio">
-      {{ FARO_TEXTS_ES.emptyEs }}
+      {{ BLUBATHON_TEXTS_ES.emptyEs }}
     </p>
 
     <ul v-else class="factores__lista">
@@ -55,32 +55,32 @@ const ICONOS: Record<IconoFactor, Component> = {
  * título, no en el color ni en la sombra, que son iguales en todas.
  */
 .factores {
-  padding: var(--faro-esp-18) var(--faro-esp-16);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-sombra-tarjeta);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-sombra-tarjeta);
 }
 
 .factores__titulo {
-  font-size: var(--faro-fs-17);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .factores__subtitulo {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .factores__lista {
-  margin-top: var(--faro-esp-10);
+  margin-top: var(--blubathon-esp-10);
 }
 
 .factores__vacio {
-  margin-top: var(--faro-esp-10);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  margin-top: var(--blubathon-esp-10);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 /*
@@ -91,28 +91,28 @@ const ICONOS: Record<IconoFactor, Component> = {
 .factor {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-12);
-  padding-block: var(--faro-esp-10);
+  gap: var(--blubathon-esp-12);
+  padding-block: var(--blubathon-esp-10);
 }
 
 .factor + .factor {
-  border-top: 1px solid var(--faro-linea);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 .factor__caja {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-caja-icono);
-  height: var(--faro-caja-icono);
-  background: var(--faro-marca-icono-fondo);
-  border-radius: var(--faro-radio-10);
-  color: var(--faro-marca-icono);
+  width: var(--blubathon-caja-icono);
+  height: var(--blubathon-caja-icono);
+  background: var(--blubathon-marca-icono-fondo);
+  border-radius: var(--blubathon-radio-10);
+  color: var(--blubathon-marca-icono);
 }
 
 .factor__glifo {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .factor__texto {
@@ -124,14 +124,14 @@ const ICONOS: Record<IconoFactor, Component> = {
 }
 
 .factor__titulo {
-  font-size: var(--faro-fs-135);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  color: var(--faro-marca-titulo);
+  color: var(--blubathon-marca-titulo);
 }
 
 .factor__detalle {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 /*
@@ -146,23 +146,23 @@ const ICONOS: Record<IconoFactor, Component> = {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--faro-esp-6);
-  padding: var(--faro-esp-4) var(--faro-esp-9);
-  font-size: var(--faro-fs-11);
+  gap: var(--blubathon-esp-6);
+  padding: var(--blubathon-esp-4) var(--blubathon-esp-9);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .factor__prioridad--media {
-  color: var(--faro-critica-media-texto);
-  background: var(--faro-critica-media-fondo);
+  color: var(--blubathon-critica-media-texto);
+  background: var(--blubathon-critica-media-fondo);
 }
 
 .factor__punto {
-  width: var(--faro-esp-6);
-  height: var(--faro-esp-6);
+  width: var(--blubathon-esp-6);
+  height: var(--blubathon-esp-6);
   background: currentcolor;
   border-radius: 50%;
 }

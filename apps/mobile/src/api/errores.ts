@@ -1,5 +1,5 @@
-import type { ErrorCode } from "@faro/contract/contract";
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
+import type { ErrorCode } from "@blubathon/contract/contract";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 
 /**
  * Un fallo de la API, ya traducido.
@@ -12,7 +12,7 @@ import { FARO_TEXTS_ES } from "@faro/contract/texts";
  *
  * La abstención **no** llega por aquí: es HTTP 200 con estado explícito.
  */
-export class ErrorFaro extends Error {
+export class ErrorBlubathon extends Error {
   /** Códigos del contrato más los dos locales. */
   readonly codigo: ErrorCode | "network_error" | "timeout";
   readonly mensajeEs: string;
@@ -20,14 +20,14 @@ export class ErrorFaro extends Error {
   readonly requestId: string | null;
 
   constructor(opciones: {
-    codigo: ErrorFaro["codigo"];
+    codigo: ErrorBlubathon["codigo"];
     mensajeEs: string;
     estado?: number | null;
     requestId?: string | null;
     causa?: unknown;
   }) {
     super(`${opciones.codigo}: ${opciones.mensajeEs}`, { cause: opciones.causa });
-    this.name = "ErrorFaro";
+    this.name = "ErrorBlubathon";
     this.codigo = opciones.codigo;
     this.mensajeEs = opciones.mensajeEs;
     this.estado = opciones.estado ?? null;
@@ -39,25 +39,25 @@ export class ErrorFaro extends Error {
     return this.codigo === "not_found";
   }
 
-  static red(causa: unknown): ErrorFaro {
-    return new ErrorFaro({
+  static red(causa: unknown): ErrorBlubathon {
+    return new ErrorBlubathon({
       codigo: "network_error",
       mensajeEs: "No pudimos conectar con el servidor.",
       causa,
     });
   }
 
-  static porTiempo(): ErrorFaro {
-    return new ErrorFaro({
+  static porTiempo(): ErrorBlubathon {
+    return new ErrorBlubathon({
       codigo: "timeout",
       mensajeEs: "El servidor tardó demasiado en responder.",
     });
   }
 
-  static inesperado(estado: number, requestId: string | null): ErrorFaro {
-    return new ErrorFaro({
+  static inesperado(estado: number, requestId: string | null): ErrorBlubathon {
+    return new ErrorBlubathon({
       codigo: "internal_error",
-      mensajeEs: FARO_TEXTS_ES.genericErrorEs,
+      mensajeEs: BLUBATHON_TEXTS_ES.genericErrorEs,
       estado,
       requestId,
     });

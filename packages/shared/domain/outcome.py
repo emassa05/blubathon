@@ -21,7 +21,7 @@ from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     SpanishText,
     UtcDatetime,
     VersionLabel,
@@ -37,7 +37,7 @@ from packages.shared.enums import (
 )
 
 
-class OutcomeRequest(FaroModel):
+class OutcomeRequest(BlubathonModel):
     """Immutable scheduling record. Its state is derived, never mutated."""
 
     outcome_request_id: UUID

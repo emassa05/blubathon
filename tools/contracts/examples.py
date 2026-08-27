@@ -1,4 +1,4 @@
-"""Render fictional examples for the published Faro v0.4 contract."""
+"""Render fictional examples for the published Blubathon v0.4 contract."""
 
 from __future__ import annotations
 
@@ -225,7 +225,7 @@ def write(output_dir: Path = OUTPUT_DIR) -> dict[str, str]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Render Faro v0.4 examples.")
+    parser = argparse.ArgumentParser(description="Render Blubathon v0.4 examples.")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     args = parser.parse_args(argv)
     files = write(args.output_dir)

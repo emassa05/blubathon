@@ -1,4 +1,4 @@
-# Faro contract handoffs (P1 to P2)
+# Blubathon contract handoffs (P1 to P2)
 
 P1 publishes contracts here. P2 consumes them without copying or editing them
 (CONVENTIONS 5). If P2 needs a change, the request goes back with route,
@@ -28,7 +28,7 @@ than from this page: a hash copied into prose goes stale.
 | Canonical bytes, hashes, windows | `packages/shared/canonical.py` |
 | Append-only projection | `packages/shared/projection.py` |
 | Spanish copy | `packages/shared/texts.py` |
-| JSON Schema bundle | `packages/shared/generated/faro.schema.json` |
+| JSON Schema bundle | `packages/shared/generated/blubathon.schema.json` |
 | TypeScript types | `packages/shared/generated/contract.ts` |
 | Zod schemas | `packages/shared/generated/contract.zod.ts` |
 | Constants for the frontend | `packages/shared/generated/constants.ts` |

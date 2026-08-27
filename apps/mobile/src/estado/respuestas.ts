@@ -25,7 +25,7 @@ export type RespuestasDelDia = Partial<Record<FieldCode, ValorCampo>>;
 /** niño → fecha ISO → respuestas de ese día. */
 type Almacen = Record<string, Record<string, RespuestasDelDia>>;
 
-const CLAVE = "faro.respuestas.v1";
+const CLAVE = "blubathon.respuestas.v1";
 
 function leerDelDisco(): Almacen {
   try {

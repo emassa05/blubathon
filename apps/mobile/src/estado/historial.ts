@@ -18,7 +18,7 @@ import { computed, ref } from "vue";
 import type { ChildHistoryDay } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
 import { DIAS_HISTORIAL } from "@/api/config";
-import { historialNino } from "@/api/faro";
+import { historialNino } from "@/api/blubathon";
 import { reconciliar } from "@/estado/respuestas";
 
 const dias = ref<readonly ChildHistoryDay[]>([]);

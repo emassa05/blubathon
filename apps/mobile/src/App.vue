@@ -82,7 +82,7 @@ async function alEnviar(): Promise<void> {
     @cerrar="cuestionario = null"
   >
     <p class="sin-api">
-      El cuestionario se envía a la API de Faro y ahora mismo no responde. Comprueba que esté
+      El cuestionario se envía a la API de Blubathon y ahora mismo no responde. Comprueba que esté
       levantada en <code>http://127.0.0.1:8000</code> y vuelve a intentarlo.
     </p>
   </DialogoModal>
@@ -90,16 +90,16 @@ async function alEnviar(): Promise<void> {
 
 <style scoped>
 .sin-api {
-  padding: var(--faro-esp-14);
-  font-size: var(--faro-fs-135);
+  padding: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-135);
   line-height: 1.5;
-  color: var(--faro-marca-texto);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-14);
+  color: var(--blubathon-marca-texto);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .sin-api code {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-marca-profundo);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-marca-profundo);
 }
 </style>

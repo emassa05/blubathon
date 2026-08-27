@@ -30,7 +30,7 @@
     ],
     "susceptibility_std": 0.6
   },
-  "generator_version": "faro-synth-0.2.0",
+  "generator_version": "blubathon-synth-0.2.0",
   "missingness": {
     "base": 0.25,
     "forgetful_multiplier": 1.4,

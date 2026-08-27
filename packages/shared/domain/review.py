@@ -20,7 +20,7 @@ from pydantic import Field, model_validator
 from packages.shared.constants import MAX_RUNTIME_STRATEGIES
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     Sha256Hex,
     SpanishText,
     UtcDatetime,
@@ -36,7 +36,7 @@ from packages.shared.enums import (
 )
 
 
-class RecommendationInstance(FaroModel):
+class RecommendationInstance(BlubathonModel):
     """Written once, when the episode is created. Later GETs only read it."""
 
     recommendation_instance_id: UUID

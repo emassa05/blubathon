@@ -89,41 +89,41 @@ const vencimiento = computed(() =>
  * porque pide una acción, no informa.
  */
 .resultado {
-  padding: var(--faro-esp-16);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-2);
+  padding: var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-2);
 }
 
 .resultado__etiqueta {
-  font-size: var(--faro-fs-11);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-aviso-etiqueta);
+  color: var(--blubathon-aviso-etiqueta);
 }
 
 .resultado__titulo {
-  margin-top: var(--faro-esp-6);
-  font-size: var(--faro-fs-155);
+  margin-top: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-155);
   font-weight: 700;
   line-height: 1.3;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .resultado__anclas {
-  margin-top: var(--faro-esp-12);
+  margin-top: var(--blubathon-esp-12);
 }
 
 .resultado__ancla {
-  padding-block: var(--faro-esp-6);
-  font-size: var(--faro-fs-125);
+  padding-block: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-125);
   line-height: 1.45;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .resultado__ancla + .resultado__ancla {
-  border-top: 1px solid var(--faro-linea);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 /* Envuelven en pantallas estrechas: dos áreas táctiles de 44 no caben en 320
@@ -131,8 +131,8 @@ const vencimiento = computed(() =>
 .resultado__acciones {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--faro-esp-12);
-  margin-top: var(--faro-esp-16);
+  gap: var(--blubathon-esp-12);
+  margin-top: var(--blubathon-esp-16);
 }
 
 .resultado__boton {
@@ -140,12 +140,12 @@ const vencimiento = computed(() =>
   flex: 1 1 10rem;
   align-items: center;
   justify-content: center;
-  gap: var(--faro-esp-9);
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-14);
-  font-size: var(--faro-fs-135);
+  gap: var(--blubathon-esp-9);
+  min-height: var(--blubathon-toque);
+  padding-inline: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  border-radius: var(--faro-radio-18);
+  border-radius: var(--blubathon-radio-18);
 }
 
 .resultado__boton:disabled {
@@ -153,39 +153,39 @@ const vencimiento = computed(() =>
 }
 
 .resultado__boton:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .resultado__boton--si {
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
 }
 
 .resultado__boton--no {
-  color: var(--faro-marca-accion);
-  background: var(--faro-marca-icono-fondo);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-marca-icono-fondo);
 }
 
 .resultado__icono {
   flex: none;
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .resultado__nota {
-  margin-top: var(--faro-esp-12);
-  font-size: var(--faro-fs-125);
+  margin-top: var(--blubathon-esp-12);
+  font-size: var(--blubathon-fs-125);
   line-height: 1.45;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .resultado__error {
-  margin-top: var(--faro-esp-12);
-  padding: var(--faro-esp-9) var(--faro-esp-12);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
-  border-radius: var(--faro-radio-14);
+  margin-top: var(--blubathon-esp-12);
+  padding: var(--blubathon-esp-9) var(--blubathon-esp-12);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
+  border-radius: var(--blubathon-radio-14);
 }
 </style>

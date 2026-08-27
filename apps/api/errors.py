@@ -28,7 +28,7 @@ ERROR_MESSAGES_ES: dict[str, str] = {
 
 
 @dataclass(slots=True)
-class FaroApiError(Exception):
+class BlubathonApiError(Exception):
     """Error de dominio con traducción HTTP determinista."""
 
     code: str
@@ -43,13 +43,13 @@ class FaroApiError(Exception):
         return ERROR_MESSAGES_ES.get(self.code, ERROR_MESSAGES_ES["internal_error"])
 
 
-def invalid(code: str = "validation_error", **detail: Any) -> FaroApiError:
-    return FaroApiError(code, 422, detail)
+def invalid(code: str = "validation_error", **detail: Any) -> BlubathonApiError:
+    return BlubathonApiError(code, 422, detail)
 
 
-def conflict(code: str, **detail: Any) -> FaroApiError:
-    return FaroApiError(code, 409, detail)
+def conflict(code: str, **detail: Any) -> BlubathonApiError:
+    return BlubathonApiError(code, 409, detail)
 
 
-def not_found(code: str = "not_found", **detail: Any) -> FaroApiError:
-    return FaroApiError(code, 404, detail)
+def not_found(code: str = "not_found", **detail: Any) -> BlubathonApiError:
+    return BlubathonApiError(code, 404, detail)

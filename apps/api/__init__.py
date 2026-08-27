@@ -1,1 +1,1 @@
-"""FastAPI transport for the Faro domain."""
+"""FastAPI transport for the Blubathon domain."""

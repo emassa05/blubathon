@@ -22,7 +22,7 @@ import { computed, ref } from "vue";
 
 import type { OutcomeReportValue, OutcomeRequestView } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { listarSolicitudesDeResultado, reportarResultado } from "@/api/faro";
+import { listarSolicitudesDeResultado, reportarResultado } from "@/api/blubathon";
 
 const solicitudes = ref<readonly OutcomeRequestView[]>([]);
 const cargado = ref(false);

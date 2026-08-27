@@ -25,7 +25,7 @@ describe("bandaRiesgo", () => {
 
   it("cada banda tiene su clase", () => {
     for (const banda of BANDAS_RIESGO) {
-      expect(CLASE_BANDA[banda]).toBe(`faro-banda--${banda}`);
+      expect(CLASE_BANDA[banda]).toBe(`blubathon-banda--${banda}`);
     }
   });
 });

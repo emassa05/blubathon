@@ -22,7 +22,7 @@ from packages.shared.constants import (
     TARGET_HORIZON_HOURS,
 )
 from packages.shared.domain.base import (
-    FaroModel,
+    BlubathonModel,
     Interval,
     NonNegativeFloat,
     Probability,
@@ -76,7 +76,7 @@ TRACK_ESTIMATE_KIND: dict[TrackId, EstimateKind] = {
 }
 
 
-class TargetDefinitionVersion(FaroModel):
+class TargetDefinitionVersion(BlubathonModel):
     """The versioned question a real label answers.
 
     An imported intensity label proves a category exists in an export; it does
@@ -118,7 +118,7 @@ class TargetDefinitionVersion(FaroModel):
         return self.scope is TargetScope.DEMO_FIXTURE
 
 
-class PredictionEpisode(FaroModel):
+class PredictionEpisode(BlubathonModel):
     """An immutable opportunity with a 24-hour window and a 48-hour deadline."""
 
     prediction_episode_id: UUID
@@ -163,7 +163,7 @@ class PredictionEpisode(FaroModel):
         return self.target_start_at < moment <= self.target_end_at
 
 
-class FeatureSnapshot(FaroModel):
+class FeatureSnapshot(BlubathonModel):
     """The closed instant a prediction was made from.
 
     It stores the exact projected IDs so it is never recomputed, and it refuses
@@ -193,7 +193,7 @@ class FeatureSnapshot(FaroModel):
         return self
 
 
-class PredictionOutput(FaroModel):
+class PredictionOutput(BlubathonModel):
     """One track's answer for one episode, including its abstention."""
 
     prediction_output_id: UUID
@@ -293,7 +293,7 @@ class PredictionOutput(FaroModel):
         return self.intended_use is IntendedUse.OPERATIONAL_SUPPORT
 
 
-class VoiEstimate(FaroModel):
+class VoiEstimate(BlubathonModel):
     """Mutual information in nats, or an explicit reason it is unavailable.
 
     Unavailable means `voi_nats=null`. Zero would claim the value was computed
@@ -327,7 +327,7 @@ class VoiEstimate(FaroModel):
         return self
 
 
-class TargetSelection(FaroModel):
+class TargetSelection(BlubathonModel):
     """The single selectable definition at a cutoff, or why there is none."""
 
     status: str

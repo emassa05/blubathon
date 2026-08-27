@@ -1,4 +1,4 @@
-"""Persistencia de Faro. Todo el SQL del proyecto vive aquí (CONVENTIONS 13).
+"""Persistencia de Blubathon. Todo el SQL del proyecto vive aquí (CONVENTIONS 13).
 
 Los módulos exponen comandos y consultas concretos, no un repositorio genérico
 sobre cada tabla (CONVENTIONS 20).

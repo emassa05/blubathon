@@ -1,5 +1,5 @@
 {
-  "name": "@faro/contract",
+  "name": "@blubathon/contract",
   "version": "0.3.0",
   "private": true,
   "description": "Contrato ejecutable v0.3 generado desde packages/shared (H1). No se edita a mano.",

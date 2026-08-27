@@ -66,7 +66,7 @@ def library_versions() -> dict[str, str]:
 
     return {
         "python": sys.version.split()[0],
-        "faro_contract": CONTRACT_VERSION,
+        "blubathon_contract": CONTRACT_VERSION,
         "bm25": BM25_VERSION,
         "tokenizer": TOKENIZER_VERSION,
     }

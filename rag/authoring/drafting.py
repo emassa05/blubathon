@@ -1,6 +1,6 @@
 """The optional local LLM draft (SPEC 9.1, 9.4, CONVENTIONS 11.2).
 
-This step sits at the only place in Faro where a language model is allowed: it
+This step sits at the only place in Blubathon where a language model is allowed: it
 proposes wording for a candidate strategy, offline, from fragments of versioned
 literature, and its output cannot reach anybody without an evidence review and
 an independent clinical review. Runtime makes zero LLM calls (C29).

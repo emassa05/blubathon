@@ -44,40 +44,40 @@ const criticas = computed(() =>
 .resumen {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: var(--faro-esp-14) var(--faro-esp-8);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+  padding: var(--blubathon-esp-14) var(--blubathon-esp-8);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .cifra {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--faro-esp-4);
+  gap: var(--blubathon-esp-4);
   text-align: center;
 }
 
 .cifra + .cifra {
-  border-left: 1px solid var(--faro-linea);
+  border-left: 1px solid var(--blubathon-linea);
 }
 
 .cifra__dato {
-  font-size: var(--faro-fs-20);
+  font-size: var(--blubathon-fs-20);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .cifra__dato--critica {
-  color: var(--faro-critica-media-texto);
+  color: var(--blubathon-critica-media-texto);
 }
 
 .cifra__rotulo {
-  padding-inline: var(--faro-esp-4);
-  font-size: var(--faro-fs-11);
+  padding-inline: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 </style>

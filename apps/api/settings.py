@@ -12,7 +12,7 @@ from pathlib import Path
 
 from apps.api.contracts.constants import PILOT_DATABASE
 from apps.api.contracts.enums import CohortKind, DeploymentMode
-from apps.api.errors import FaroApiError
+from apps.api.errors import BlubathonApiError
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
@@ -57,7 +57,7 @@ class Settings:
         if self.deployment_mode is DeploymentMode.PILOT and not self.database_url.startswith(
             PILOT_URL_SCHEME
         ):
-            raise FaroApiError("pilot_requires_postgresql", 500)
+            raise BlubathonApiError("pilot_requires_postgresql", 500)
 
 
 def _origins(raw: str | None) -> tuple[str, ...]:

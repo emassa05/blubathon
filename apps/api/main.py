@@ -23,7 +23,7 @@ from starlette.exceptions import HTTPException
 from apps.api.adapters import build_ports
 from apps.api.clock import Clock, system_clock
 from apps.api.contracts.constants import SPEC_VERSION
-from apps.api.errors import ERROR_MESSAGES_ES, FaroApiError
+from apps.api.errors import ERROR_MESSAGES_ES, BlubathonApiError
 from apps.api.events import EventBroker
 from apps.api.routes import router
 from apps.api.services import Services, build_registry
@@ -146,8 +146,8 @@ def _envelope(request: Request, code: str, status_code: int) -> JSONResponse:
 
 
 def _install_handlers(app: FastAPI) -> None:
-    @app.exception_handler(FaroApiError)
-    async def handle_domain_error(request: Request, error: FaroApiError) -> JSONResponse:
+    @app.exception_handler(BlubathonApiError)
+    async def handle_domain_error(request: Request, error: BlubathonApiError) -> JSONResponse:
         return _envelope(request, error.code, error.status_code)
 
     @app.exception_handler(RequestValidationError)

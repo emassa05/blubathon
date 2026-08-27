@@ -64,8 +64,8 @@ let temporizador: ReturnType<typeof setTimeout> | null = null;
 const transicion = computed(() => (props.variante === "hoja" ? "hoja" : "centro"));
 
 const duraciones = computed(() => ({
-  "--faro-dur-entrada": `${MS_ENTRADA}ms`,
-  "--faro-dur-salida": `${MS_SALIDA}ms`,
+  "--blubathon-dur-entrada": `${MS_ENTRADA}ms`,
+  "--blubathon-dur-salida": `${MS_SALIDA}ms`,
 }));
 
 useDialogo(contenedor, pedirCierre, { cerrarConEsc: () => props.cerrable });
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
 .velo__fondo {
   position: absolute;
   inset: 0;
-  background: var(--faro-velo);
+  background: var(--blubathon-velo);
   cursor: default;
 }
 
@@ -187,11 +187,11 @@ onBeforeUnmount(() => {
   width: 100%;
   /* La misma columna que el resto de la aplicación: en un teléfono ocupa todo
      el ancho y en una ventana intermedia no se estira más que la pantalla. */
-  max-width: var(--faro-ancho-max);
+  max-width: var(--blubathon-ancho-max);
   max-height: 92dvh;
-  background: var(--faro-fondo-final);
-  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
-  box-shadow: var(--faro-elev-dialogo);
+  background: var(--blubathon-fondo-final);
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+  box-shadow: var(--blubathon-elev-dialogo);
 }
 
 .dialogo:focus-visible {
@@ -207,22 +207,22 @@ onBeforeUnmount(() => {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: var(--faro-esp-12);
-  padding: var(--faro-esp-18) var(--faro-esp-16) var(--faro-esp-14);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
-  border-bottom: 1px solid var(--faro-linea);
+  gap: var(--blubathon-esp-12);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16) var(--blubathon-esp-14);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+  border-bottom: 1px solid var(--blubathon-linea);
 }
 
 /* El asa no se arrastra: dice que esto sube y baja, no que sea una página. */
 .dialogo__asa {
   position: absolute;
-  top: var(--faro-esp-8);
+  top: var(--blubathon-esp-8);
   left: 50%;
   width: 38px;
   height: 4px;
-  background: var(--faro-punto-inactivo);
-  border-radius: var(--faro-radio-pastilla);
+  background: var(--blubathon-punto-inactivo);
+  border-radius: var(--blubathon-radio-pastilla);
   transform: translateX(-50%);
 }
 
@@ -232,43 +232,43 @@ onBeforeUnmount(() => {
 }
 
 .dialogo__sobretitulo {
-  font-size: var(--faro-fs-11);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .dialogo__titulo {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-17);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .dialogo__cerrar {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-toque);
-  height: var(--faro-toque);
-  margin: calc(var(--faro-esp-10) * -1) calc(var(--faro-esp-6) * -1) 0 0;
-  color: var(--faro-marca-texto);
+  width: var(--blubathon-toque);
+  height: var(--blubathon-toque);
+  margin: calc(var(--blubathon-esp-10) * -1) calc(var(--blubathon-esp-6) * -1) 0 0;
+  color: var(--blubathon-marca-texto);
   border-radius: 50%;
 }
 
 .dialogo__cerrar:hover {
-  background: var(--faro-fila-activa);
+  background: var(--blubathon-fila-activa);
 }
 
 .dialogo__cerrar:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .dialogo__aspa {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .dialogo__cuerpo {
@@ -276,17 +276,17 @@ onBeforeUnmount(() => {
   /* Sin esto, un hijo de flex no baja de su alto de contenido y el diálogo
      entero crecería en vez de desplazarse por dentro. */
   min-height: 0;
-  padding: var(--faro-esp-16);
+  padding: var(--blubathon-esp-16);
   overflow-y: auto;
   /* Al llegar al final, la página de debajo no se lleva el desplazamiento. */
   overscroll-behavior: contain;
 }
 
 .dialogo__pie {
-  padding: var(--faro-esp-12) var(--faro-esp-16)
-    calc(var(--faro-esp-16) + env(safe-area-inset-bottom, 0px));
-  background: var(--faro-superficie);
-  border-top: 1px solid var(--faro-linea);
+  padding: var(--blubathon-esp-12) var(--blubathon-esp-16)
+    calc(var(--blubathon-esp-16) + env(safe-area-inset-bottom, 0px));
+  background: var(--blubathon-superficie);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 /*
@@ -296,22 +296,22 @@ onBeforeUnmount(() => {
  */
 .velo--centrado {
   align-items: center;
-  padding: var(--faro-esp-20);
+  padding: var(--blubathon-esp-20);
 }
 
 .velo--centrado .dialogo {
-  max-width: var(--faro-ancho-dialogo);
+  max-width: var(--blubathon-ancho-dialogo);
   max-height: min(88dvh, 720px);
-  border-radius: var(--faro-radio-32);
+  border-radius: var(--blubathon-radio-32);
 }
 
 .velo--centrado .dialogo__cabecera {
-  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
 }
 
 .velo--centrado .dialogo__pie {
-  padding-bottom: var(--faro-esp-16);
-  border-radius: 0 0 var(--faro-radio-32) var(--faro-radio-32);
+  padding-bottom: var(--blubathon-esp-16);
+  border-radius: 0 0 var(--blubathon-radio-32) var(--blubathon-radio-32);
 }
 
 /*
@@ -321,7 +321,7 @@ onBeforeUnmount(() => {
  * deja de reconocerse, que en cualquier otro diálogo sería un error.
  */
 .velo--obligatorio .velo__fondo {
-  background: var(--faro-velo-obligatorio);
+  background: var(--blubathon-velo-obligatorio);
 }
 
 /*
@@ -337,22 +337,22 @@ onBeforeUnmount(() => {
  */
 .hoja-enter-active,
 .centro-enter-active {
-  transition: opacity var(--faro-dur-entrada) var(--faro-curva-hoja);
+  transition: opacity var(--blubathon-dur-entrada) var(--blubathon-curva-hoja);
 }
 
 .hoja-leave-active,
 .centro-leave-active {
-  transition: opacity var(--faro-dur-salida) ease-in;
+  transition: opacity var(--blubathon-dur-salida) ease-in;
 }
 
 .hoja-enter-active .dialogo,
 .centro-enter-active .dialogo {
-  transition: transform var(--faro-dur-entrada) var(--faro-curva-hoja);
+  transition: transform var(--blubathon-dur-entrada) var(--blubathon-curva-hoja);
 }
 
 .hoja-leave-active .dialogo,
 .centro-leave-active .dialogo {
-  transition: transform var(--faro-dur-salida) ease-in;
+  transition: transform var(--blubathon-dur-salida) ease-in;
 }
 
 .hoja-enter-from,
@@ -396,18 +396,18 @@ onBeforeUnmount(() => {
 @media (min-width: 900px) {
   .velo {
     align-items: center;
-    padding: var(--faro-esp-32);
+    padding: var(--blubathon-esp-32);
   }
 
   .dialogo {
-    max-width: var(--faro-ancho-dialogo);
+    max-width: var(--blubathon-ancho-dialogo);
     max-height: min(88dvh, 760px);
-    border-radius: var(--faro-radio-32);
+    border-radius: var(--blubathon-radio-32);
   }
 
   .dialogo__cabecera {
-    padding: var(--faro-esp-20) var(--faro-esp-24) var(--faro-esp-16);
-    border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
+    padding: var(--blubathon-esp-20) var(--blubathon-esp-24) var(--blubathon-esp-16);
+    border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
   }
 
   /* El asa es un gesto de móvil: en escritorio no dice nada. */
@@ -416,12 +416,12 @@ onBeforeUnmount(() => {
   }
 
   .dialogo__cuerpo {
-    padding: var(--faro-esp-20) var(--faro-esp-24);
+    padding: var(--blubathon-esp-20) var(--blubathon-esp-24);
   }
 
   .dialogo__pie {
-    padding: var(--faro-esp-16) var(--faro-esp-24);
-    border-radius: 0 0 var(--faro-radio-32) var(--faro-radio-32);
+    padding: var(--blubathon-esp-16) var(--blubathon-esp-24);
+    border-radius: 0 0 var(--blubathon-radio-32) var(--blubathon-radio-32);
   }
 
   /* Ya centrada por el punto de corte: lo que sube desde abajo en un teléfono

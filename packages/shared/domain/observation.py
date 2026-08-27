@@ -20,7 +20,7 @@ from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     LocalDate,
     NonNegativeFloat,
     Probability,
@@ -76,7 +76,7 @@ PRIMARY_REAL_MODEL_MODES: frozenset[EntryMode] = frozenset(
 )
 
 
-class SourceMapping(FaroModel):
+class SourceMapping(BlubathonModel):
     """A versioned adapter. Unknown source values fail; they never become null."""
 
     source_mapping_id: UUID
@@ -159,7 +159,7 @@ class FieldObservation(AppendOnlyModel):
         return (self.field_code, self.source, self.local_date)
 
 
-class PosteriorDefault(FaroModel):
+class PosteriorDefault(BlubathonModel):
     """The estimator output behind one suggestion (SPEC 6.3, 6.4)."""
 
     field_code: FieldCode
@@ -179,7 +179,7 @@ class PosteriorDefault(FaroModel):
         return self
 
 
-class DefaultPresentation(FaroModel):
+class DefaultPresentation(BlubathonModel):
     """Proof that a suggestion was shown for this field in this session.
 
     Its existence is what makes any other value for that field `default_edited`,
@@ -243,7 +243,7 @@ class QuestionPresentation(AppendOnlyModel):
         return self
 
 
-class FormSession(FaroModel):
+class FormSession(BlubathonModel):
     """`opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.
 
     The browser never decides either one (SPEC 4.1, CONVENTIONS 8.5).
@@ -280,7 +280,7 @@ class FormSession(FaroModel):
         return self
 
 
-class AnswerSubmission(FaroModel):
+class AnswerSubmission(BlubathonModel):
     """What a client may declare. The server derives `entry_mode` from it."""
 
     field_code: FieldCode
@@ -306,7 +306,7 @@ class AnswerSubmission(FaroModel):
         return self
 
 
-class DataQuality(FaroModel):
+class DataQuality(BlubathonModel):
     """DQI describes quality; it is never a predictive feature or a gate (SPEC 7.1)."""
 
     coverage: Probability
