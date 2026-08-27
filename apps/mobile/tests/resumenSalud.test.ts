@@ -59,6 +59,23 @@ describe("cargarResumenSalud", () => {
     expect(resumen.confianza).toBe(85);
   });
 
+  it("con cifra y sin intervalo la confianza es nula, no un cero", async () => {
+    // Es el caso del challenger logístico: publica probabilidad y, por
+    // invariante del dominio, ningún intervalo.
+    instalarServidorFalso({
+      [`${CHILD}/history`]: historialFalso([
+        diaFalso({ fecha: HOY, probabilidad: 0.4, intervalo: null }),
+      ]),
+      [`${CHILD}/form-plan`]: planFalso([]),
+      [`${CHILD}/recommendations/today`]: { status: "pending", citations: [] },
+    });
+
+    const resumen = await cargarHoy();
+
+    expect(resumen.riesgo).toBe(40);
+    expect(resumen.confianza).toBeNull();
+  });
+
   it("la abstención del modelo no se convierte en un cero", async () => {
     instalarServidorFalso({
       [`${CHILD}/history`]: historialFalso([diaFalso({ fecha: HOY, probabilidad: null })]),

@@ -4,7 +4,9 @@ import { computed, nextTick, onMounted, ref, watch } from "vue";
 import type { FormSubmissionResponse } from "@/api/contrato";
 import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
 import DialogoModal from "@/components/base/DialogoModal.vue";
+import GloboAyuda from "@/components/base/GloboAyuda.vue";
 import CampoCuestionario from "@/components/cuestionario/CampoCuestionario.vue";
+import ResumenSugerencias from "@/components/cuestionario/ResumenSugerencias.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoChevron from "@/components/icons/IconoChevron.vue";
 import { useCuestionario } from "@/composables/useCuestionario";
@@ -39,6 +41,7 @@ const {
   borradores,
   enOrden,
   sugerencias,
+  sugerenciasPendientes,
   contestadas,
   respondidas,
   yaEnviado,
@@ -110,7 +113,73 @@ async function irA(destino: number): Promise<void> {
   bloque.value?.scrollIntoView({ block: "start" });
 }
 
+/* ---------------------------------------------------------------------------
+ * El paso de revisión.
+ *
+ * Las sugerencias no se ven mientras se contesta: el formulario ya es largo y
+ * dieciocho cajas de ayuda lo hacían más largo justo donde intentaba ser más
+ * corto. Pero esconderlas del todo sería peor que enseñarlas —se enviarían
+ * valores que nadie ha visto—, así que la decisión no desaparece, se mueve al
+ * final y se toma una sola vez.
+ *
+ * Al guardar, si quedaron sugerencias sin tocar, en vez de enviar se enseña qué
+ * son y se pregunta. Dos salidas y las dos acaban en un envío:
+ *
+ * - **Revisarlas** vuelve al formulario con esos campos abiertos y sus
+ *   sugerencias a la vista, como estaban antes de esconderlas. Lo que no se
+ *   cambie se acepta igual al guardar.
+ * - **Enviar así** las acepta todas y guarda. Es el camino corto, y es el que
+ *   está a un dedo de distancia.
+ *
+ * Cerrar el diálogo sin elegir no envía nada, que es lo que ya hacía antes.
+ * ------------------------------------------------------------------------- */
+
+type Paso = "formulario" | "revision";
+
+const paso = ref<Paso>("formulario");
+
+/** En revisión solo se ven los campos cuya sugerencia se pidió revisar. */
+const soloSugeridas = ref(false);
+
+const preguntasVisibles = computed(() =>
+  soloSugeridas.value
+    ? enOrden.value.filter((pregunta) => cuestionario.sugerenciaVisible(pregunta.field_code))
+    : visibles.value,
+);
+
+async function guardar(): Promise<void> {
+  // Se pregunta una sola vez: al volver de la revisión se guarda sin más, con
+  // lo que se haya cambiado y lo que se haya dejado.
+  if (
+    paso.value === "formulario" &&
+    !soloSugeridas.value &&
+    sugerenciasPendientes.value.length > 0
+  ) {
+    paso.value = "revision";
+    return;
+  }
+  await enviar();
+}
+
+/** "Revisarlas": el formulario vuelve, recortado a esas preguntas. */
+async function revisar(): Promise<void> {
+  cuestionario.revelarSugerencias();
+  soloSugeridas.value = true;
+  paso.value = "formulario";
+  await nextTick();
+  bloque.value?.scrollIntoView({ block: "start" });
+}
+
+/** "Enviar así": se aceptan tal cual y se guarda. */
+async function aceptarYEnviar(): Promise<void> {
+  cuestionario.aplicarSugerencias();
+  await enviar();
+}
+
 async function enviar(): Promise<void> {
+  // Lo que quede sin tocar se acepta: es lo que se anunció en la revisión y lo
+  // que se anuncia en el pie mientras se revisa.
+  cuestionario.aplicarSugerencias();
   const respuesta = await cuestionario.enviar();
   if (respuesta === null) return;
   // La copia local se escribe solo cuando la API ya aceptó el envío.
@@ -126,6 +195,28 @@ async function enviar(): Promise<void> {
     etiqueta-cerrar="Cerrar el cuestionario"
     @cerrar="emitir('cerrar')"
   >
+    <!--
+      Cómo funciona esto, en tres frases y sin jerga. No bloquea nada: se abre y
+      se cierra cuando se quiera, a diferencia del diálogo de desregulación, que
+      sí exige una respuesta antes de dejar seguir.
+    -->
+    <template #ayuda>
+      <GloboAyuda
+        etiqueta="Cómo funciona el cuestionario diario"
+        titulo="Cómo funciona"
+        lado="derecha"
+      >
+        <p>
+          Cuenta cómo fue el día. No hace falta responder todo: se guarda lo que hayas puesto, y las
+          preguntas van de tres en tres.
+        </p>
+        <p>
+          Las primeras son las que más falta hacen hoy. Si alguna la respondes casi siempre igual,
+          Blubathon la rellena por ti y te la enseña al final por si quieres cambiarla.
+        </p>
+      </GloboAyuda>
+    </template>
+
     <!-- Enviado: la confirmación ocupa el diálogo entero. -->
     <div v-if="resultado" class="hecho">
       <span class="hecho__insignia" aria-hidden="true">
@@ -133,6 +224,27 @@ async function enviar(): Promise<void> {
       </span>
       <h3 class="hecho__titulo">Cuestionario guardado</h3>
       <p class="hecho__detalle">{{ MENSAJE_ENVIO[resultado.status] }}</p>
+    </div>
+
+    <!--
+      La revisión. Primero qué se va a enviar, después la pregunta: quien lee
+      llega a "¿quieres cambiarlas?" sabiendo ya de qué se le habla, que es lo
+      único que hace que la pregunta se pueda contestar sin abrir nada.
+    -->
+    <div v-else-if="paso === 'revision'" class="revision">
+      <h3 class="revision__titulo">Respuestas que se enviarán por ti</h3>
+      <p class="revision__detalle">
+        Estas
+        {{
+          sugerenciasPendientes.length === 1
+            ? "es la que no respondiste"
+            : "son las que no respondiste"
+        }}. Blubathon propone lo que sueles responder, a partir de tus últimos dos meses.
+      </p>
+
+      <ResumenSugerencias :sugerencias="sugerenciasPendientes" />
+
+      <p class="revision__pregunta">¿Quieres cambiar alguna antes de guardar?</p>
     </div>
 
     <template v-else>
@@ -155,24 +267,36 @@ async function enviar(): Promise<void> {
         recorre por dentro son sus preguntas, no una pila de tarjetas.
       -->
       <section ref="bloque" class="bloque grupo">
-        <h3 class="grupo__titulo" aria-live="polite">Paso {{ pagina + 1 }} de {{ paginas }}</h3>
-        <p class="grupo__subtitulo">
-          Es un solo formulario: se recorre de tres en tres y se guarda lo que haya.
-        </p>
+        <!-- Al volver de la revisión el formulario ya no se pagina: son las
+             preguntas que se pidió revisar y son todas las que hay. -->
+        <template v-if="soloSugeridas">
+          <h3 class="grupo__titulo">Respuestas sugeridas</h3>
+          <p class="grupo__subtitulo">
+            Cambia las que quieras. Las que dejes como están se guardan con el valor sugerido.
+          </p>
+        </template>
 
-        <div class="progreso" role="presentation">
-          <span
-            class="progreso__hecho"
-            :style="{ inlineSize: `${((pagina + 1) / paginas) * 100}%` }"
-          ></span>
-        </div>
+        <template v-else>
+          <h3 class="grupo__titulo" aria-live="polite">Paso {{ pagina + 1 }} de {{ paginas }}</h3>
+          <p class="grupo__subtitulo">
+            Es un solo formulario: se recorre de tres en tres y se guarda lo que haya.
+          </p>
+
+          <div class="progreso" role="presentation">
+            <span
+              class="progreso__hecho"
+              :style="{ inlineSize: `${((pagina + 1) / paginas) * 100}%` }"
+            ></span>
+          </div>
+        </template>
 
         <CampoCuestionario
-          v-for="pregunta in visibles"
+          v-for="pregunta in preguntasVisibles"
           :key="pregunta.field_code"
           :pregunta="pregunta"
           :borrador="borradores[pregunta.field_code]"
           :sugerencia="sugerencias.get(pregunta.field_code)"
+          :mostrar-sugerencia="cuestionario.sugerenciaVisible(pregunta.field_code)"
           @responder="
             (valor, interaccion) => cuestionario.responder(pregunta.field_code, valor, interaccion)
           "
@@ -186,6 +310,22 @@ async function enviar(): Promise<void> {
         <button type="button" class="pie__enviar" @click="emitir('cerrar')">Listo</button>
       </div>
 
+      <!--
+        Las dos salidas de la revisión, y ninguna es un callejón. "Enviar así" es
+        la llena porque es la que espera quien ya daba el formulario por
+        terminado; "Revisarlas" está al lado, no escondida detrás de un enlace.
+      -->
+      <div v-else-if="paso === 'revision'" class="pie">
+        <p v-if="errorEnvio" class="pie__error">{{ errorEnvio }}</p>
+
+        <div class="revision__acciones">
+          <button type="button" class="pie__secundario" @click="revisar">Sí, revisarlas</button>
+          <button type="button" class="pie__enviar" :disabled="enviando" @click="aceptarYEnviar">
+            {{ enviando ? "Guardando…" : "No, guardar así" }}
+          </button>
+        </div>
+      </div>
+
       <div v-else class="pie">
         <p v-if="errorEnvio" class="pie__error">{{ errorEnvio }}</p>
 
@@ -194,7 +334,7 @@ async function enviar(): Promise<void> {
           descarta nada: lo contestado en un bloque sigue en el borrador al
           pasar al siguiente, y guardar está disponible desde el primero.
         -->
-        <div class="paginador">
+        <div v-if="!soloSugeridas" class="paginador">
           <button
             type="button"
             class="paginador__paso"
@@ -224,7 +364,7 @@ async function enviar(): Promise<void> {
             type="button"
             class="pie__enviar"
             :disabled="contestadas === 0 || enviando"
-            @click="enviar"
+            @click="guardar"
           >
             {{ enviando ? "Guardando…" : "Guardar cuestionario" }}
           </button>
@@ -362,6 +502,52 @@ async function enviar(): Promise<void> {
   transform: rotate(180deg);
 }
 
+/*
+ * La revisión. Es una tarjeta del mismo sistema que el bloque de preguntas —no
+ * un aviso, no una alerta— porque no ha pasado nada malo: el formulario está
+ * terminado y esto es la última confirmación.
+ */
+.revision {
+  padding: var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
+}
+
+.revision__titulo {
+  font-size: var(--blubathon-fs-15);
+  font-weight: 700;
+  color: var(--blubathon-marca-profundo);
+}
+
+.revision__detalle {
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  line-height: 1.45;
+  color: var(--blubathon-gris-texto);
+}
+
+/* La pregunta va debajo de la lista y con el peso del título: se lee después de
+   saber de qué se está hablando, no antes. */
+.revision__pregunta {
+  margin-top: var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-135);
+  font-weight: 700;
+  color: var(--blubathon-marca-profundo);
+}
+
+/* Envuelven en 320: dos áreas táctiles de 44 con su texto no caben en una fila
+   de teléfono estrecho sin bajar del mínimo. */
+.revision__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--blubathon-esp-12);
+}
+
+.revision__acciones > * {
+  flex: 1 1 9rem;
+}
+
 .hecho {
   padding-block: var(--blubathon-esp-20);
   text-align: center;
@@ -437,6 +623,29 @@ async function enviar(): Promise<void> {
 }
 
 .pie__enviar:focus-visible {
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
+}
+
+/* La otra salida de la revisión: mismo tamaño y misma área táctil que la llena,
+   sin relleno. No es un enlace ni un "cancelar" —revisar es una opción tan
+   válida como enviar—, solo la menos frecuente. */
+.pie__secundario {
+  min-height: var(--blubathon-toque);
+  padding-inline: var(--blubathon-esp-18);
+  font-size: var(--blubathon-fs-135);
+  font-weight: 700;
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-pastilla);
+}
+
+.pie__secundario:hover {
+  border-color: var(--blubathon-punto-activo);
+}
+
+.pie__secundario:focus-visible {
   outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
   outline-offset: var(--blubathon-foco-offset);
 }

@@ -23,15 +23,21 @@ describe("CabeceraRiesgo", () => {
     expect(wrapper.get(".riesgo__cifra").attributes("aria-hidden")).toBe("true");
   });
 
-  it("el icono de información es un botón con nombre propio que emite masInfo", async () => {
+  it("el icono de información abre la explicación y se cierra sola", async () => {
     const wrapper = mount(CabeceraRiesgo, { props: PROPS });
 
-    const boton = wrapper.get(".riesgo__info");
+    const boton = wrapper.get(".ayuda__disparador");
     expect(boton.attributes("aria-label")).toBe("Qué significa el riesgo de desregulación");
     expect(boton.attributes("aria-hidden")).toBeUndefined();
+    expect(boton.attributes("aria-expanded")).toBe("false");
 
     await boton.trigger("click");
-    expect(wrapper.emitted("masInfo")).toHaveLength(1);
+    expect(boton.attributes("aria-expanded")).toBe("true");
+    expect(wrapper.get(".ayuda__globo").text()).toContain("proporción de días parecidos a hoy");
+
+    // No exige nada: el mismo botón la vuelve a cerrar.
+    await boton.trigger("click");
+    expect(wrapper.find(".ayuda__globo").exists()).toBe(false);
   });
 
   it("sin estimación no escribe un cero ni deja la pastilla de confianza", () => {

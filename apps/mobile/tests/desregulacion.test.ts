@@ -105,9 +105,12 @@ describe("evento de desregulación", () => {
 
       const dialogo = wrapper.get('[role="dialog"]');
       expect(dialogo.attributes("aria-modal")).toBe("true");
-      expect(dialogo.text()).toContain("¿Hubo un evento de desregulación");
-      // Las anclas son la definición acordada de qué cuenta como episodio.
-      expect(dialogo.text()).toContain("Necesitó apoyo de una persona");
+      // Una sola pregunta, corta, y las dos respuestas. Ni las anclas ni el
+      // plazo: el enunciado del contrato es de tres renglones y hay que leerlo
+      // entero antes de poder contestar sí o no.
+      expect(dialogo.text()).toContain("¿Ocurrió una desregulación en las últimas 24 horas?");
+      expect(dialogo.text()).not.toContain("Necesitó apoyo de una persona");
+      expect(dialogo.text()).not.toContain("para responder");
     });
 
     it("no se puede cerrar sin contestar: ni aspa, ni velo, ni Escape", async () => {
@@ -145,10 +148,16 @@ describe("evento de desregulación", () => {
       servidor([solicitudFalsa(EN_CURSO)]);
       const wrapper = await montar();
 
+      // Sigue sin bloquear la pantalla: eso no cambia, y es lo que impide que
+      // "sí, ocurrió" sea la única salida de un diálogo obligatorio.
       expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
-      expect(wrapper.get(".resultado").text()).toContain("El día todavía no termina");
-      // Y "no ocurrió" no se ofrece todavía, que es la razón de no bloquear.
-      expect(wrapper.find(".resultado__boton--no").exists()).toBe(false);
+
+      // La tarjeta ofrece las dos respuestas y ninguna condición de tiempo: ni
+      // cuándo se podrá decir que no, ni hasta cuándo hay plazo.
+      expect(wrapper.find(".resultado__boton--si").exists()).toBe(true);
+      expect(wrapper.find(".resultado__boton--no").exists()).toBe(true);
+      expect(wrapper.get(".resultado").text()).not.toContain("El día todavía no termina");
+      expect(wrapper.get(".resultado").text()).not.toContain("para responder");
     });
 
     it("sin pregunta abierta no aparece nada", async () => {

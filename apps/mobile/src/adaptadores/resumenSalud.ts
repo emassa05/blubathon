@@ -32,8 +32,16 @@ import {
   recomendacionDeHoy,
 } from "@/api/blubathon";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
+import { confianzaDelIntervalo } from "@/dominio/incertidumbre";
+import { rachaSinDesregulacion } from "@/dominio/rachas";
 import { reconciliar, respuestasDe } from "@/estado/respuestas";
-import type { FactorRiesgo, IconoFactor, RegistroFormulario, ResumenSalud } from "@/types/salud";
+import type {
+  EstadoRedaccion,
+  FactorRiesgo,
+  IconoFactor,
+  RegistroFormulario,
+  ResumenSalud,
+} from "@/types/salud";
 
 /** Días que lista "Últimos formularios", empezando por el visible. */
 const DIAS_EN_LISTA = 4;
@@ -77,29 +85,6 @@ function porcentaje(probabilidad: number): number {
   return Math.round(probabilidad * 100);
 }
 
-function intervalo(valor: unknown): readonly [number, number] | null {
-  if (!Array.isArray(valor) || valor.length !== 2) return null;
-  const [inferior, superior] = valor;
-  if (typeof inferior !== "number" || typeof superior !== "number") return null;
-  return [inferior, superior];
-}
-
-/**
- * La confianza sale del ancho del intervalo del modelo, que es lo único que el
- * backend publica sobre su propia incertidumbre.
- *
- * El intervalo es el 5-95 del posterior Beta: cuantos más resultados
- * verificados hay, más estrecho, y un intervalo estrecho es exactamente lo que
- * "nivel de confianza alto" quiere decir. Sin intervalo no hay confianza que
- * dar, y devolver `null` es más honesto que un número por defecto.
- */
-function confianzaDelIntervalo(valor: unknown): number | null {
-  const rango = intervalo(valor);
-  if (rango === null) return null;
-  const ancho = Math.min(1, Math.max(0, rango[1] - rango[0]));
-  return Math.round((1 - ancho) * 100);
-}
-
 /* Recomendación ----------------------------------------------------------- */
 
 const SIN_FORMULARIO =
@@ -125,17 +110,31 @@ type EstadoRecomendacion = Pick<
   "status" | "action_text_es" | "abstention_reason"
 >;
 
-function textoRecomendacion(estado: EstadoRecomendacion | null): string {
-  if (estado === null) return SIN_RECOMENDACION;
+/**
+ * El texto del día y en qué punto está su redacción.
+ *
+ * El estado no es decoración: `pendiente` significa que el RAG sigue redactando
+ * y que la respuesta va a cambiar sola, y es lo único que la tarjeta anima. Sin
+ * este dato la pantalla no puede distinguir "todavía no hay consejo" de "no va a
+ * haberlo", que para quien mira son cosas muy distintas.
+ */
+function leerRecomendacion(estado: EstadoRecomendacion | null): {
+  texto: string;
+  estado: EstadoRedaccion;
+} {
+  if (estado === null) return { texto: SIN_RECOMENDACION, estado: "abstenida" };
   switch (estado.status) {
     case "matched":
-      return estado.action_text_es ?? SIN_RECOMENDACION;
+      return { texto: estado.action_text_es ?? SIN_RECOMENDACION, estado: "lista" };
     case "pending":
-      return EN_CURSO;
+      return { texto: EN_CURSO, estado: "pendiente" };
     case "abstained":
-      return TEXTO_ABSTENCION[estado.abstention_reason ?? ""] ?? SIN_RECOMENDACION;
+      return {
+        texto: TEXTO_ABSTENCION[estado.abstention_reason ?? ""] ?? SIN_RECOMENDACION,
+        estado: "abstenida",
+      };
     case "no_submission_today":
-      return SIN_FORMULARIO;
+      return { texto: SIN_FORMULARIO, estado: "sin-formulario" };
   }
 }
 
@@ -269,10 +268,16 @@ export async function cargarResumenSalud(opciones: {
   return {
     fecha: fechaIso,
     riesgo,
+    // Sin cifra no hay confianza que dar. Y con cifra puede seguir sin haberla:
+    // el challenger logístico publica probabilidad y ningún intervalo, y es el
+    // track preferido cuando estima. `null` en los dos casos.
     confianza: riesgo === null ? null : confianzaDelIntervalo(prediccion?.interval),
-    recomendacion: { texto: textoRecomendacion(estadoRecomendacion) },
+    recomendacion: leerRecomendacion(estadoRecomendacion),
     factores: factores(plan),
     formularios: formularios(fechaIso, conEnvio),
     formularioPendiente: !presente(dia?.submission_id),
+    // De todo el historial y no solo del día visible: la racha es de la persona,
+    // no de la fecha que se esté mirando.
+    rachaSinDesregulacion: rachaSinDesregulacion(dias),
   };
 }

@@ -359,8 +359,8 @@
    * ellas.
    */
   --blubathon-curva-hoja: cubic-bezier(0.32, 0.72, 0, 1);
-  --blubathon-dur-entrada: 340ms;
-  --blubathon-dur-salida: 240ms;
+  --blubathon-dur-entrada: 300ms;
+  --blubathon-dur-salida: 210ms;
 
   /*
    * Salud en pantalla ancha. La columna de 480 sigue siendo la de móvil; a
@@ -411,5 +411,30 @@
 @media (min-width: 900px) {
   :root {
     --blubathon-ancho-lectura: var(--blubathon-ancho-amplio);
+  }
+}
+
+/*
+ * Ventanas bajas: el teléfono en horizontal, y poco más.
+ *
+ * Era el hueco que quedaba. Los dos puntos de corte de arriba miran el ancho, y
+ * un teléfono girado es ancho —844 o 932— y bajísimo: 390 o 430 px de alto. Con
+ * las medidas de siempre, el panel del riesgo se lleva 296 de esos 390 y la
+ * página entera es la cabecera, con las tarjetas empezando fuera de la pantalla.
+ * Y el segundo corte lo excluye a propósito con su `min-height: 500px`, así que
+ * hasta aquí nadie se ocupaba de él.
+ *
+ * Lo que cambia son tres medidas y ninguna regla de disposición: el panel es más
+ * bajo, la cúpula menos profunda y el alto de referencia deja de forzar una
+ * columna más alta que la ventana. La retícula, el orden de las tarjetas y el
+ * diseño de móvil en vertical no se tocan —a 390 px de ancho esta consulta no
+ * casa nunca.
+ */
+@media (max-height: 520px) and (min-width: 600px) {
+  :root {
+    --blubathon-panel-alto: 168px;
+    --blubathon-cupula: 28px;
+    --blubathon-ondas-alto: 104px;
+    --blubathon-alto-referencia: 100dvh;
   }
 }

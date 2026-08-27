@@ -149,10 +149,17 @@ function irASemana(cantidad: number): void {
   background: var(--blubathon-fondo-pagina);
 }
 
+/*
+ * Envuelve. El nombre de quien se sigue es un dato del servidor y puede ser tan
+ * largo como se quiera: con `flex: none` y sin envolver, en un teléfono estrecho
+ * se comía el ancho y dejaba "Cuestionarios" partido en dos renglones de una
+ * palabra cada uno. Ahora la pastilla baja de línea antes de estrujar el título.
+ */
 .historial__cabecera {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--blubathon-esp-12);
+  gap: var(--blubathon-esp-8) var(--blubathon-esp-12);
 }
 
 .historial__volver {
@@ -181,7 +188,9 @@ function irASemana(cantidad: number): void {
 }
 
 .historial__rotulos {
-  flex: 1;
+  /* Base 10rem: por debajo de eso el título prefiere llevarse la pastilla a la
+     línea siguiente antes que partirse él. */
+  flex: 1 1 10rem;
   min-width: 0;
 }
 
@@ -200,7 +209,11 @@ function irASemana(cantidad: number): void {
 }
 
 .historial__nino {
-  flex: none;
+  flex: 0 1 auto;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: var(--blubathon-esp-6) var(--blubathon-esp-12);
   font-size: var(--blubathon-fs-125);
   font-weight: 700;

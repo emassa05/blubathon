@@ -7,6 +7,7 @@ import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
 import DialogoDesregulacion from "@/components/salud/DialogoDesregulacion.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
+import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
@@ -62,10 +63,6 @@ async function alReportar(valor: "yes" | "no"): Promise<void> {
 // todavía no se sabe nada sería afirmar algo que la API no dijo.
 const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
-function masInfo(): void {
-  // TODO: abrir el popup que explica el riesgo de desregulación.
-}
-
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
 defineExpose({ recargar });
 </script>
@@ -89,7 +86,15 @@ defineExpose({ recargar });
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
             :confianza="resumen?.confianza ?? null"
-            @mas-info="masInfo"
+          />
+
+          <!-- La racha acompaña a la cifra dentro del panel: las dos hablan de
+               episodios de desregulación, una hacia delante y otra hacia atrás,
+               y separarlas obligaría a desplazarse para compararlas. -->
+          <RachaSinDesregulacion
+            v-if="resumen?.rachaSinDesregulacion"
+            class="pantalla__racha"
+            :racha="resumen.rachaSinDesregulacion"
           />
         </div>
       </div>
@@ -112,6 +117,23 @@ defineExpose({ recargar });
           estas piezas siguen apiladas en este mismo orden.
         -->
         <template v-else-if="resumen">
+          <!--
+            La pregunta de cierre va la primera, por encima de la recomendación.
+            Es la única pieza de la pantalla con un plazo —fuera de él el reporte
+            se guarda y no resuelve nada— y la única de la que depende que el
+            modelo vuelva a tener cifra. Estaba la cuarta de la columna, debajo
+            de dos tarjetas que solo informan, y en un teléfono había que
+            desplazarse para encontrarla.
+          -->
+          <TarjetaResultado
+            v-if="informativa"
+            class="pantalla__zona--resultado"
+            :solicitud="informativa"
+            :enviando="enviando"
+            :error="errorResultado"
+            @reportar="alReportar"
+          />
+
           <TarjetaRecomendacion
             class="pantalla__zona--recomendacion"
             :recomendacion="resumen.recomendacion"
@@ -124,14 +146,6 @@ defineExpose({ recargar });
             :registros="resumen.formularios"
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
-          />
-          <TarjetaResultado
-            v-if="informativa"
-            class="pantalla__zona--resultado"
-            :solicitud="informativa"
-            :enviando="enviando"
-            :error="errorResultado"
-            @reportar="alReportar"
           />
 
           <AvisoPendiente
@@ -190,7 +204,13 @@ defineExpose({ recargar });
   flex-direction: column;
   width: 100%;
   min-height: min(100dvh, var(--blubathon-alto-referencia));
-  padding-bottom: calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
+  /*
+   * Sin acolchado abajo: la columna no tiene fondo propio —lo lleva el
+   * contenido—, así que cualquier acolchado suyo cae por fuera del lienzo y se
+   * ve como una franja de color plano pegada al borde inferior, con un corte
+   * recto justo donde acaban las burbujas. El aire de abajo lo pone el
+   * contenido, que es quien pinta.
+   */
 }
 
 /*
@@ -234,6 +254,25 @@ defineExpose({ recargar });
 }
 
 /*
+ * La racha cuelga de la cabecera, así que se centra con ella y no con el panel:
+ * el panel es de borde a borde y la cabecera está topada a 480.
+ *
+ * Y reserva el hueco de la cúpula. El contenido sube sobre el panel y lo recorta
+ * con un arco que es **más alto en el centro** —los dos radios se encuentran al
+ * 50%—, justo por donde pasa esta línea, que va centrada. El acolchado de abajo
+ * del panel ya cubre parte de esa profundidad; lo que falta es la diferencia, y
+ * se pide aquí para que el panel crezca solo cuando hay racha: sin ella no
+ * cambia ni un píxel de lo que ya estaba validado.
+ *
+ * `max()` con cero porque en ventana baja la cúpula es más corta que el
+ * acolchado y la resta se va a negativo.
+ */
+.pantalla__racha {
+  margin-inline: auto;
+  margin-bottom: max(0px, calc(var(--blubathon-cupula) - var(--blubathon-esp-26)));
+}
+
+/*
  * El contenido no empieza donde acaba el panel: sube sobre él y lo recorta con
  * una cúpula, de modo que el panel llega más abajo por los lados que por el
  * centro. Es el mismo color de la página, así que lo único que se ve es el
@@ -258,7 +297,8 @@ defineExpose({ recargar });
   /* El mismo margen que crece del panel, por la misma razón y con la misma
      cuenta: las tarjetas y la cabecera tienen que caer sobre la misma línea. */
   padding: calc(var(--blubathon-esp-14) + var(--blubathon-cupula))
-    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2) 0;
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
   margin-top: calc(var(--blubathon-cupula) * -1);
   /* Las burbujas se dimensionan contra esta caja, así que llenan la columna
      igual en un teléfono que en una ventana ancha. */
@@ -312,25 +352,13 @@ defineExpose({ recargar });
   }
 
   /*
-   * Y llega hasta abajo, por dos motivos distintos que dejaban el mismo hueco.
-   *
-   * El tope de 844 es el alto de referencia de un teléfono y tenía sentido
-   * cuando la columna era una tira centrada; ahora que es la página, en una
-   * ventana más alta que eso el lienzo se quedaba corto. `flex: 1` del
-   * contenido hace el resto.
-   *
-   * Y el acolchado de abajo de la columna cae por fuera del lienzo: la columna
-   * no tiene fondo propio, así que esos 26 px eran una franja de color plano
-   * pegada al borde inferior incluso con la página llena. Se mueve dentro del
-   * contenido, que es quien lleva el fondo.
+   * Y llega hasta abajo. El tope de 844 es el alto de referencia de un teléfono
+   * y tenía sentido cuando la columna era una tira centrada; ahora que es la
+   * página, en una ventana más alta que eso el lienzo se quedaba corto.
+   * `flex: 1` del contenido hace el resto.
    */
   .pantalla__columna {
     min-height: 100dvh;
-    padding-bottom: 0;
-  }
-
-  .pantalla__contenido {
-    padding-bottom: calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -351,11 +379,10 @@ defineExpose({ recargar });
  */
 @media (min-width: 900px) {
   .pantalla__columna {
-    /* Repetidos y no heredados del bloque de 600: los dos puntos de corte
-       tienen condiciones distintas —ese lleva un mínimo de alto y este no—, y
-       una ventana ancha y baja casa con este solo. */
+    /* Repetido y no heredado del bloque de 600: los dos puntos de corte tienen
+       condiciones distintas —ese lleva un mínimo de alto y este no—, y una
+       ventana ancha y baja casa con este solo. */
     min-height: 100dvh;
-    padding-bottom: 0;
     --blubathon-cupula: var(--blubathon-cupula-amplia);
     --blubathon-panel-alto: var(--blubathon-panel-alto-amplio);
   }
@@ -379,9 +406,12 @@ defineExpose({ recargar });
       minmax(0, var(--blubathon-ancho-principal))
       var(--blubathon-rail-ancho)
       minmax(var(--blubathon-esp-40), 1fr);
+    /* La pregunta de cierre encabeza el rail por lo mismo que encabeza la
+       columna en móvil: es la única con plazo. El aviso del formulario baja un
+       puesto —no vence— y los últimos formularios cierran. */
     grid-template-areas:
-      ". recomendacion pendiente   ."
-      ". factores      resultado   ."
+      ". recomendacion resultado   ."
+      ". factores      pendiente   ."
       ". factores      formularios .";
     align-content: start;
     /* Cada tarjeta con su alto: la de factores ocupa dos filas y sin esto se

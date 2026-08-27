@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
 import type { OutcomeRequestView } from "@/api/contrato";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
-import { ventanaCerrada } from "@/estado/resultados";
+import IconoRombo from "@/components/icons/IconoRombo.vue";
 
-const props = defineProps<{
+defineProps<{
   solicitud: OutcomeRequestView;
   enviando: boolean;
   error: string | null;
@@ -17,37 +15,34 @@ defineEmits<{
 }>();
 
 /**
- * Mientras la ventana de 24 h sigue abierta, "no ocurrió" todavía no se puede
- * afirmar: el día no ha terminado. Y solo se acepta un `no` reportado
- * `on_time`, así que uno enviado antes se guardaría sin resolver nada. El botón
- * no se ofrece hasta que resolvería de verdad.
+ * La pregunta, en una línea.
+ *
+ * No se usa `solicitud.question_es`: el backend la redacta para el registro
+ * —"…mayor…, según las anclas acordadas para esta demostración"— y eso son tres
+ * renglones de condiciones que hay que leer enteros antes de poder contestar sí
+ * o no. Lo que se pregunta es lo mismo; lo que cambia es que se lee de un
+ * vistazo. La definición formal sigue siendo la del contrato y viaja intacta en
+ * el reporte: aquí solo se decide cómo se enuncia en pantalla.
  */
-const puedeDecirQueNo = computed(() => ventanaCerrada(props.solicitud));
-
-const FORMATO_HORA = new Intl.DateTimeFormat("es-ES", {
-  weekday: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const cierre = computed(() => FORMATO_HORA.format(new Date(props.solicitud.target_end_at)));
-const vencimiento = computed(() =>
-  FORMATO_HORA.format(new Date(props.solicitud.capture_deadline_at)),
-);
+const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
 </script>
 
 <template>
   <section class="resultado" aria-labelledby="resultado-titulo">
-    <p class="resultado__etiqueta">Resultado pendiente</p>
-    <h2 id="resultado-titulo" class="resultado__titulo">{{ solicitud.question_es }}</h2>
-
-    <!-- Las anclas son la definición acordada de qué cuenta como episodio. Sin
-         ellas cada persona respondería a una pregunta distinta. -->
-    <ul v-if="solicitud.severity_anchors_es?.length" class="resultado__anclas">
-      <li v-for="ancla in solicitud.severity_anchors_es" :key="ancla" class="resultado__ancla">
-        {{ ancla }}
-      </li>
-    </ul>
+    <!--
+      La etiqueta lleva insignia y la insignia late. Es lo que la separa de las
+      tarjetas que solo informan: hasta que esta pregunta no se contesta, el
+      baseline se queda sin resultados verificados y el modelo no da cifra. Sin
+      esto era un rótulo naranja de 11px encima de un titular, indistinguible
+      de cualquier otro sobretítulo de la pantalla.
+    -->
+    <p class="resultado__etiqueta">
+      <span class="resultado__insignia" aria-hidden="true">
+        <IconoRombo class="resultado__rombo" />
+      </span>
+      Resultado pendiente
+    </p>
+    <h2 id="resultado-titulo" class="resultado__titulo">{{ PREGUNTA }}</h2>
 
     <div class="resultado__acciones">
       <button
@@ -61,7 +56,6 @@ const vencimiento = computed(() =>
       </button>
 
       <button
-        v-if="puedeDecirQueNo"
         type="button"
         class="resultado__boton resultado__boton--no"
         :disabled="enviando"
@@ -72,12 +66,6 @@ const vencimiento = computed(() =>
       </button>
     </div>
 
-    <p v-if="!puedeDecirQueNo" class="resultado__nota">
-      El día todavía no termina. Podrás confirmar que no ocurrió a partir del {{ cierre }}, y tienes
-      hasta el {{ vencimiento }} para responder.
-    </p>
-    <p v-else class="resultado__nota">Tienes hasta el {{ vencimiento }} para responder.</p>
-
     <p v-if="error" class="resultado__error" role="alert">{{ error }}</p>
   </section>
 </template>
@@ -87,43 +75,81 @@ const vencimiento = computed(() =>
  * Fuera de las bandas, igual que el aviso pendiente y por la misma razón: no
  * habla del riesgo del día sino de algo que falta por hacer. Va en elevación 2
  * porque pide una acción, no informa.
+ *
+ * Y por encima de eso, tres cosas que ninguna otra tarjeta tiene, porque
+ * ninguna otra vence: el filete de acento en el borde de arriba, el lavado
+ * naranja que entra por esa misma esquina, y el titular un cuerpo más grande.
+ * Es el mismo naranja del aviso pendiente —no entra ningún color nuevo—, usado
+ * aquí con más superficie porque esto sí tiene plazo.
  */
 .resultado {
-  padding: var(--blubathon-esp-16);
-  background: var(--blubathon-superficie);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16) var(--blubathon-esp-16);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--blubathon-aviso-fondo), transparent 58%),
+    var(--blubathon-superficie);
+  border-top: 3px solid var(--blubathon-aviso-insignia);
   border-radius: var(--blubathon-radio-24);
   box-shadow: var(--blubathon-elev-2);
 }
 
 .resultado__etiqueta {
-  font-size: var(--blubathon-fs-11);
+  display: flex;
+  align-items: center;
+  gap: var(--blubathon-esp-8);
+  font-size: var(--blubathon-fs-12);
   font-weight: 700;
   letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
   color: var(--blubathon-aviso-etiqueta);
 }
 
+/*
+ * La insignia late despacio: dos segundos por ciclo y solo la opacidad, que no
+ * repinta ni mueve nada de alrededor. Es lo que distingue "pendiente" de
+ * "informativo" sin recurrir a un color más fuerte ni a más superficie.
+ */
+.resultado__insignia {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--blubathon-caja-icono);
+  height: var(--blubathon-caja-icono);
+  color: var(--blubathon-aviso-insignia);
+  background: var(--blubathon-aviso-fondo);
+  border-radius: 50%;
+  animation: resultado-latido 2s ease-in-out infinite;
+}
+
+.resultado__rombo {
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
+}
+
+@keyframes resultado-latido {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* El latido es un realce, no información: sin él la tarjeta sigue diciendo todo
+   lo que dice. Quien pide menos movimiento se queda con la insignia quieta. */
+@media (prefers-reduced-motion: reduce) {
+  .resultado__insignia {
+    animation: none;
+  }
+}
+
 .resultado__titulo {
-  margin-top: var(--blubathon-esp-6);
-  font-size: var(--blubathon-fs-155);
+  margin-top: var(--blubathon-esp-8);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
   line-height: 1.3;
   color: var(--blubathon-marca-profundo);
-}
-
-.resultado__anclas {
-  margin-top: var(--blubathon-esp-12);
-}
-
-.resultado__ancla {
-  padding-block: var(--blubathon-esp-6);
-  font-size: var(--blubathon-fs-125);
-  line-height: 1.45;
-  color: var(--blubathon-gris-texto);
-}
-
-.resultado__ancla + .resultado__ancla {
-  border-top: 1px solid var(--blubathon-linea);
 }
 
 /* Envuelven en pantallas estrechas: dos áreas táctiles de 44 no caben en 320
@@ -171,13 +197,6 @@ const vencimiento = computed(() =>
   flex: none;
   width: var(--blubathon-icono-16);
   height: var(--blubathon-icono-16);
-}
-
-.resultado__nota {
-  margin-top: var(--blubathon-esp-12);
-  font-size: var(--blubathon-fs-125);
-  line-height: 1.45;
-  color: var(--blubathon-gris-texto);
 }
 
 .resultado__error {

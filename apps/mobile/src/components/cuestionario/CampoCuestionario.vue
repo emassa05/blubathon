@@ -17,11 +17,23 @@ import {
 } from "@/dominio/campos";
 import type { Borrador } from "@/composables/useCuestionario";
 
-const props = defineProps<{
-  pregunta: FormQuestion;
-  borrador?: Borrador | undefined;
-  sugerencia?: DefaultSuggestion | undefined;
-}>();
+const props = withDefaults(
+  defineProps<{
+    pregunta: FormQuestion;
+    borrador?: Borrador | undefined;
+    sugerencia?: DefaultSuggestion | undefined;
+    /**
+     * Si la sugerencia se enseña.
+     *
+     * Por defecto **no**. La sugerencia sigue existiendo, sigue decidiendo el
+     * `entry_mode` de lo que se conteste a mano y sigue llegando al envío si no
+     * se toca el campo; lo que no hace ya es ocupar sitio en el formulario. Se
+     * enseña solo cuando se pide revisarla al terminar.
+     */
+    mostrarSugerencia?: boolean;
+  }>(),
+  { borrador: undefined, sugerencia: undefined, mostrarSugerencia: false },
+);
 
 const emitir = defineEmits<{
   responder: [valor: ValorCampo, interaccion: Interaccion];
@@ -45,6 +57,10 @@ const contestada = computed(() => props.borrador !== undefined);
  * servidor deriva de ahí el `entry_mode`, y decirle "manual" cuando había una
  * presentación vigente falsearía la única señal que tiene para medir cuánto
  * ayudan las sugerencias.
+ *
+ * Mira la sugerencia y no si se está enseñando: la presentación es del servidor
+ * y sigue vigente aunque la interfaz haya decidido no dibujarla. Atarlo a la
+ * visibilidad convertiría un cambio de diseño en un cambio de dato.
  */
 const interaccionManual = computed<Interaccion>(() =>
   props.sugerencia === undefined ? "manual" : "edit_default",
@@ -141,8 +157,9 @@ const motivoDestacada = computed(() => {
     <p :id="idPregunta" class="campo__enunciado">{{ enunciado }}</p>
     <p v-if="motivoDestacada" class="campo__motivo">{{ motivoDestacada }}</p>
 
-    <!-- La sugerencia es ayuda, no valor: se ve distinta y hay que aceptarla. -->
-    <div v-if="sugerencia" class="sugerencia">
+    <!-- La sugerencia es ayuda, no valor: se ve distinta y hay que aceptarla.
+         Y solo se ve cuando se pidió revisarla —ver `mostrarSugerencia`. -->
+    <div v-if="sugerencia && mostrarSugerencia" class="sugerencia">
       <p class="sugerencia__valor">
         Suele responder
         <b>{{ formatearValor(campo, sugerencia.value) }}</b>
