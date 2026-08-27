@@ -49,7 +49,7 @@ export const ApprovalStatusValues = {
  * Everything that could change a retrieval result, fixed and hashed.
  *
  * `lexical_only` is a declared mode, not a silent degradation: no model is ever
- * downloaded to make a hybrid build succeed (SPEC 9.4).
+ * downloaded to make a hybrid build succeed.
  */
 export interface AuthoringBuildManifest {
   authoring_build_manifest_id: string;
@@ -113,7 +113,7 @@ export const AuthoringRequestStatusValues = {
 } as const;
 
 /**
- * Authoring review is a different entity from a case review (SPEC 9.5).
+ * Authoring review is a different entity from a case review.
  */
 export interface AuthoringReview {
   tenant_id: string;
@@ -155,7 +155,7 @@ export const AuthoringReviewObjectTypeValues = {
 } as const;
 
 /**
- * Optimiser settings fixed before a run, not per-run flags (SPEC 8.4).
+ * Optimiser settings fixed before a run, not per-run flags.
  */
 export interface ChallengerTrainingProtocolVersion {
   protocol_version: string;
@@ -243,7 +243,7 @@ export const DataOriginValues = {
 } as const;
 
 /**
- * DQI describes quality; it is never a predictive feature or a gate (SPEC 7.1).
+ * DQI describes quality; it is never a predictive feature or a gate.
  */
 export interface DataQuality {
   coverage: number;
@@ -281,7 +281,7 @@ export interface DatasetSnapshot {
  * Proof that a suggestion was shown for this field in this session.
  *
  * Its existence is what makes any other value for that field `default_edited`,
- * however the client labels it (SPEC 5.5 rule 7).
+ * however the client labels it (rule 7).
  */
 export interface DefaultPresentation {
   default_presentation_id: string;
@@ -305,7 +305,7 @@ export interface DefaultSuggestion {
 }
 
 /**
- * A citation without a verifiable locator cannot be published (SPEC 9.3).
+ * A citation without a verifiable locator cannot be published.
  */
 export interface DocumentChunk {
   document_chunk_id: string;
@@ -327,7 +327,7 @@ export const DocumentStatusValues = {
 } as const;
 
 /**
- * Without version, rights and hashes a document is not indexed (SPEC 9.2).
+ * Without version, rights and hashes a document is not indexed.
  */
 export interface DocumentVersion {
   document_version_id: string;
@@ -347,7 +347,7 @@ export interface DocumentVersion {
 }
 
 /**
- * Derived by the server, never sent by a browser (SPEC 5.5).
+ * Derived by the server, never sent by a browser.
  */
 export type EntryMode = "manual_no_default" | "audit_manual" | "default_accepted" | "default_edited" | "professional_observed" | "imported_observed" | "explicit_unknown";
 export const EntryModeValues = {
@@ -369,11 +369,11 @@ export const EpisodeRoleValues = {
 } as const;
 
 /**
- * Stable machine codes for the SPEC 11.7 error envelope.
+ * Stable machine codes for the error envelope.
  *
  * `forbidden` covers cross-tenant and same-tenant-without-grant alike: telling
  * the caller which one it was would confirm that a subject exists somewhere
- * else. Both are audited (SPEC 13.2).
+ * else. Both are audited.
  */
 export type ErrorCode = "validation_error" | "unauthenticated" | "forbidden" | "not_found" | "idempotency_conflict" | "revision_conflict" | "recommendation_dependency_suspended" | "unmapped_source_value" | "target_definition_ambiguous" | "entry_mode_not_derivable" | "synthetic_row_in_real_snapshot" | "real_subject_not_allowed_in_demo" | "internal_error";
 export const ErrorCodeValues = {
@@ -393,7 +393,7 @@ export const ErrorCodeValues = {
 } as const;
 
 /**
- * Stable machine code plus sanitised Spanish copy (SPEC 11.7).
+ * Stable machine code plus sanitised Spanish copy.
  */
 export interface ErrorDetail {
   code: ErrorCode;
@@ -472,7 +472,7 @@ export const EvaluationReportStatusValues = {
  * The closed instant a prediction was made from.
  *
  * It stores the exact projected IDs so it is never recomputed, and it refuses
- * to mix origins: one synthetic row invalidates a real snapshot (SPEC 5.6).
+ * to mix origins: one synthetic row invalidates a real snapshot.
  */
 export interface FeatureSnapshot {
   feature_snapshot_id: string;
@@ -501,7 +501,7 @@ export interface FeedbackResponse {
 }
 
 /**
- * The 19 daily observation fields of SPEC 5.2.
+ * The 19 daily observation fields.
  *
  * `major_dysregulation_24h` is absent on purpose: it is an outcome, not a
  * daily observation.
@@ -577,7 +577,7 @@ export interface FormQuestion {
 /**
  * `opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.
  *
- * The browser never decides either one (SPEC 4.1, CONVENTIONS 8.5).
+ * The browser never decides either one.
  */
 export interface FormSession {
   form_session_id: string;
@@ -596,7 +596,7 @@ export interface FormSession {
 }
 
 /**
- * A professional observation session shows no defaults (SPEC 5.5).
+ * A professional observation session shows no defaults.
  */
 export type FormSessionKind = "caregiver_daily" | "professional_observation";
 export const FormSessionKindValues = {
@@ -654,7 +654,7 @@ export const IntendedUseValues = {
 } as const;
 
 /**
- * A closed probability interval. Both bounds or neither (CONVENTIONS 6).
+ * A closed probability interval. Both bounds or neither.
  */
 export interface Interval {
   lower: number;
@@ -667,7 +667,7 @@ export const IntervalMethodValues = {
 } as const;
 
 /**
- * A metric without support is `not_estimable`, never zero (CONVENTIONS 9.4).
+ * A metric without support is `not_estimable`, never zero.
  */
 export type MetricStatus = "estimated" | "not_estimable";
 export const MetricStatusValues = {
@@ -790,7 +790,7 @@ export interface OutcomeReportResponse {
 }
 
 /**
- * A report is not a resolution (SPEC 4.4).
+ * A report is not a resolution.
  */
 export type OutcomeReportValue = "yes" | "no" | "unknown";
 export const OutcomeReportValueValues = {
@@ -899,7 +899,7 @@ export interface OutcomeResolutionView {
 }
 
 /**
- * The estimator output behind one suggestion (SPEC 6.3, 6.4).
+ * The estimator output behind one suggestion.
  */
 export interface PosteriorDefault {
   field_code: FieldCode;
@@ -1005,7 +1005,7 @@ export interface PredictionOutput {
 }
 
 /**
- * A single track's answer as a caller sees it (SPEC 11.5).
+ * A single track's answer as a caller sees it.
  *
  * `confidence` is absent on purpose: what a track publishes about its own
  * uncertainty is its interval, and a track without one says nothing rather
@@ -1030,7 +1030,7 @@ export interface PredictionOutputView {
 }
 
 /**
- * Abstention is a valid HTTP 200 outcome (SPEC 2.11).
+ * Abstention is a valid HTTP 200 outcome.
  */
 export type PredictionStatus = "ok" | "abstained" | "unavailable";
 export const PredictionStatusValues = {
@@ -1062,7 +1062,7 @@ export interface QuestionPresentation {
 }
 
 /**
- * Why a field appears where it does in the plan (SPEC 6.9 order).
+ * Why a field appears where it does in the plan (order).
  */
 export type QuestionReason = "outcome_pending" | "staleness" | "exploration" | "voi" | "canonical_order" | "tail";
 export const QuestionReasonValues = {
@@ -1075,7 +1075,7 @@ export const QuestionReasonValues = {
 } as const;
 
 /**
- * SPEC 9.6 derives exactly one reason, in this precedence order.
+ * Derives exactly one reason, in this precedence order.
  */
 export type RecommendationAbstentionReason = "corpus_not_ready" | "clinical_review_unavailable" | "catalog_suspended" | "catalog_ambiguous" | "catalog_not_ready" | "no_approved_match" | "scenario_unavailable_conflict";
 export const RecommendationAbstentionReasonValues = {
@@ -1121,7 +1121,7 @@ export interface RecommendationListResponse {
  *
  * Without a legally usable corpus M4 and the DoD stay blocked; without an
  * authorised reviewer the catalogue can only be `blocked_clinical_review`
- * (SPEC 20).
+ * .
  */
 export interface ReleaseManifest {
   spec_version: string;
@@ -1185,7 +1185,7 @@ export interface RuntimeStrategyMatch {
 }
 
 /**
- * Outcome of the pure P1 `build_scenario` facade (SPEC 9.7).
+ * Outcome of the pure P1 `build_scenario` facade.
  *
  * P2 persists this or the abstention; it never re-derives the precedence.
  */
@@ -1203,7 +1203,7 @@ export interface ScenarioBuildResult {
  * The minimal matching payload. No identity, notes, external IDs or history.
  *
  * Treated as potentially pseudonymised while a combination of attributes could
- * be linkable; it is never presumed anonymous (SPEC 9.7).
+ * be linkable; it is never presumed anonymous.
  */
 export interface ScenarioV1 {
   schema_version?: string;
@@ -1217,7 +1217,7 @@ export interface ScenarioV1 {
  * Observation context, not the actor and not a bibliographic source.
  *
  * `source_id` is reserved for corpus documents; `actor_id` records who
- * reported and `source_mapping_id` which adapter was used (SPEC 5.4).
+ * reported and `source_mapping_id` which adapter was used.
  */
 export type Source = "home" | "therapy" | "school";
 export const SourceValues = {
@@ -1240,7 +1240,7 @@ export interface SourceMapping {
 }
 
 /**
- * Metrics broken down by observation context (SPEC 14.3).
+ * Metrics broken down by observation context.
  */
 export interface SourceMetric {
   source: Source;
@@ -1281,10 +1281,10 @@ export interface Subject {
 }
 
 /**
- * Only the attributes matching needs, from closed catalogues (SPEC 5.7).
+ * Only the attributes matching needs, from closed catalogues.
  *
  * Tags are never inferred from free notes, and `care_mode` is a token from a
- * tenant-versioned catalogue that SPEC v0.3.0 does not enumerate.
+ * tenant-versioned catalogue that the contract does not enumerate.
  */
 export interface SubjectProfile {
   tenant_id: string;
@@ -1317,7 +1317,7 @@ export const SubmitStatusValues = {
  * An imported intensity label proves a category exists in an export; it does
  * not define how a new person should answer. Without an `active` version the
  * system accepts demo fixtures and abstains from creating real labels
- * (SPEC 4.3).
+ * .
  */
 export interface TargetDefinitionVersion {
   target_definition_version: string;
@@ -1410,7 +1410,7 @@ export const TrainingRunStatusValues = {
  * Mutual information in nats, or an explicit reason it is unavailable.
  *
  * Unavailable means `voi_nats=null`. Zero would claim the value was computed
- * and found uninformative (SPEC 7.3).
+ * and found uninformative.
  */
 export interface VoiEstimate {
   field_code: FieldCode;
@@ -1422,7 +1422,7 @@ export interface VoiEstimate {
 }
 
 /**
- * Unavailable returns `voi_nats=null`, never zero (SPEC 7.3).
+ * Unavailable returns `voi_nats=null`, never zero.
  */
 export type VoiStatus = "available" | "unavailable_model" | "unavailable_field_type" | "unavailable_prediction";
 export const VoiStatusValues = {

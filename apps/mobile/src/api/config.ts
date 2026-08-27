@@ -7,7 +7,7 @@
  * backend. Así el navegador ve un solo origen y CORS no entra en juego.
  */
 
-/** Prefijo de la API. Vive en el registro de constantes (SPEC 11 / C02). */
+/** Prefijo de la API. Vive en el registro de constantes (C02). */
 export const PREFIJO_API = "/v1";
 
 /** Origen del backend. Vacío = mismo origen (proxy de Vite o build servido junto a la API). */

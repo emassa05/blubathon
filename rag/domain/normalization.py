@@ -1,6 +1,6 @@
 """Unicode NFC and LF, applied once, so a citation can be checked literally.
 
-SPEC 9.4 fixes the normalisation of extracted text: Unicode NFC and LF line
+Fixes the normalisation of extracted text: Unicode NFC and LF line
 endings. A quote is then verified against *that* text and its locator, while the
 hash of the original bytes keeps the provenance of the file the team downloaded.
 

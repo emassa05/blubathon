@@ -1,4 +1,4 @@
-"""`ml.prediction` detrás del puerto de predicción dual-track (SPEC 8, 11.5).
+"""`ml.prediction` detrás del puerto de predicción dual-track.
 
 El puerto pide `predict` y P1 no publica esa façade: publica el doble track
 separado, que es lo correcto porque los tres tracks no comparten significado.
@@ -9,7 +9,7 @@ El adaptador llama a cada uno y arma la tupla de salidas.
   es `unavailable` con `model_artifact_unavailable`, nunca un número inventado.
 - `real_personal_baseline_v1`: `build_personal_baseline` sobre los episodios
   primarios anteriores del sujeto y sus resoluciones verificadas.
-- `real_logit_challenger_v1`: `assess_trainability`, y jamás expuesto (SPEC 8.5).
+- `real_logit_challenger_v1`: `assess_trainability`, y jamás expuesto.
 """
 
 from __future__ import annotations
@@ -114,8 +114,6 @@ class P1Prediction:
                 artifact=self._artifact,
             )
         except CohortViolationError:
-            # SPEC 2.14 / INV-18: el track de simulación rechaza un sujeto real
-            # y una entrada real. La negativa es la salida, no una excepción.
             return TrackOutput(
                 track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
                 intended_use=IntendedUse.SIMULATION_ONLY.value,
@@ -211,7 +209,7 @@ class P1Prediction:
         input_data_origin: str,
         baseline: TrackOutput,
     ) -> TrackOutput:
-        """SPEC 8.4: la tasa base personal corregida por el día que se declara.
+        """La tasa base personal corregida por el día que se declara.
 
             logit(p) = logit(p_base) + b0 + b1*desv_sueno + b2*desv_regulacion
 

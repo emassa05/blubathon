@@ -1,4 +1,4 @@
-"""Fechas locales de la zona de referencia (SPEC 5.1, 5.2, 5.8).
+"""Fechas locales de la zona de referencia.
 
 `local_date` se deriva de `effective_at` en `America/Santiago` y se persiste,
 para reproducir ventanas aunque cambie la librería de zona horaria.
@@ -19,10 +19,10 @@ def local_date(moment: datetime) -> date:
 
 
 def inclusive_window(day: date, window_days: int) -> tuple[date, date]:
-    """`últimos W días, inclusivo = [D-(W-1), D]` (SPEC 5.8)."""
+    """`últimos W días, inclusivo = [D-(W-1), D]`."""
     return day - timedelta(days=window_days - 1), day
 
 
 def exclusive_window(day: date, window_days: int) -> tuple[date, date]:
-    """`W días previos, exclusivo = [D-W, D)` (SPEC 5.8)."""
+    """`W días previos, exclusivo = [D-W, D)`."""
     return day - timedelta(days=window_days), day

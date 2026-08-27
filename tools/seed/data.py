@@ -1,9 +1,9 @@
-"""Contenido ficticio de la demo (SPEC 12.3, TAREAS M0 P2.5).
+"""Contenido ficticio de la demo (M0 P2.5).
 
 Nombres, textos y documentos son inventados para la demostración. Los documentos
 del catálogo fixture llevan `publisher=FIXTURE_DEMO` y
 `rights_basis=fixture_demo_only` justamente para que nadie los confunda con
-literatura real de la allowlist de `SPEC 9.2`.
+literatura real de la allowlist.
 """
 
 from __future__ import annotations
@@ -176,8 +176,6 @@ GRANTS = (
     (ids.PROFESSIONAL_B, ids.SUBJECT_TENANT_B, PROFESSIONAL_CAPABILITIES),
 )
 
-# El objetivo demo es una definición versionada aparte, con `data_origin`
-# sintético. No se hace pasar por un label real (SPEC 4.3).
 TARGET_DEMO = {
     "target_definition_version": ids.TARGET_DEMO_FIXTURE,
     "scope": "demo_fixture",
@@ -198,11 +196,6 @@ TARGET_DEMO = {
     ),
 }
 
-# El mismo objetivo, con alcance de organización. Lo exige `select_target_definition`
-# para cualquier sujeto fuera de la cohorte de fixture: `demo_fixture` busca
-# `scope='demo_fixture'` sin tenant, y un sujeto real busca `scope='tenant'` con el
-# suyo (SPEC 4.3). Sin esta fila, un envío de cohorte real se queda en
-# `target_definition_unavailable` y nunca abre episodio.
 TARGET_TENANT_A = {
     **{key: value for key, value in TARGET_DEMO.items() if key != "scope"},
     "target_definition_version": ids.TARGET_TENANT_A,

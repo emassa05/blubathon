@@ -96,8 +96,6 @@ describe("DialogoCuestionario", () => {
     await flushPromises();
 
     expect(llamadas[0]?.url).toContain(`/children/${NINO}/form-plan`);
-    // El 1 de salida de los numéricos no viaja aquí: no lo contestó nadie, y
-    // como respuesta suprimiría la sugerencia de su propio campo (SPEC 6.6).
     expect(llamadas[0]?.cuerpo).toEqual({ source: "caregiver_daily", answers: {} });
 
     // Un solo formulario, sin índice ni bloques temáticos que abrir.

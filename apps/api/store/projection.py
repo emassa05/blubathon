@@ -1,4 +1,4 @@
-"""`project_as_of` sobre cadenas append-only (SPEC 5.8).
+"""`project_as_of` sobre cadenas append-only.
 
 Una lectura estadística nunca ve una corrección posterior al cutoff. Ramas,
 ciclos y referencias cross-tenant invalidan la cadena completa en vez de

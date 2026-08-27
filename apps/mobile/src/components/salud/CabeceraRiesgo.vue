@@ -114,7 +114,9 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
   min-width: var(--blubathon-toque);
   min-height: var(--blubathon-toque);
   margin-block: calc((var(--blubathon-toque) - var(--blubathon-icono-16)) / -2);
-  margin-inline: calc(var(--blubathon-esp-6) - (var(--blubathon-toque) - var(--blubathon-icono-16)) / 2)
+  margin-inline: calc(
+      var(--blubathon-esp-6) - (var(--blubathon-toque) - var(--blubathon-icono-16)) / 2
+    )
     calc((var(--blubathon-toque) - var(--blubathon-icono-16)) / -2);
   color: var(--blubathon-texto-suave);
   border-radius: var(--blubathon-radio-10);

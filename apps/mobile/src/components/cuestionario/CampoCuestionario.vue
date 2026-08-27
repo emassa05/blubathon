@@ -202,7 +202,6 @@ const motivoDestacada = computed(() => {
       <p v-if="anclaSeleccionada" class="escala__ancla">{{ anclaSeleccionada }}</p>
     </div>
 
-    <!-- Conductas: el catálogo todavía no está publicado (SPEC 19). -->
     <p v-else-if="especificacion?.tipo === 'tag_set'" class="campo__sin-catalogo">
       El catálogo de conductas todavía no está publicado, así que este campo no se pregunta. Lo que
       haya que contar de hoy cabe en las notas.

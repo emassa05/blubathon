@@ -1,4 +1,4 @@
-"""Okapi BM25 over document chunks (SPEC 9.4, C25).
+"""Okapi BM25 over document chunks (C25).
 
 Lexical retrieval is the part of the pipeline that always works: it needs no
 model, no licence and no network, which is why `lexical_only` is a complete mode
@@ -26,8 +26,6 @@ from packages.shared.domain.rag import DocumentChunk
 TOKENIZER_VERSION: Final = "tokenizer-unicode-word-0.3.0"
 BM25_VERSION: Final = "bm25-okapi-0.3.0"
 
-# Okapi defaults. They are library parameters, not clinical decisions, so they
-# live in the build manifest rather than in the SPEC 15 registry.
 BM25_K1: Final = 1.2
 BM25_B: Final = 0.75
 
@@ -112,7 +110,7 @@ class Bm25Index:
         return total
 
     def search(self, query: str, *, top_k: int) -> tuple[ScoredChunk, ...]:
-        """Top `k` chunks by BM25, ties broken by `chunk_sha256` (SPEC 9.4)."""
+        """Top `k` chunks by BM25, ties broken by `chunk_sha256`."""
 
         if top_k <= 0:
             raise ValueError("top_k must be positive")

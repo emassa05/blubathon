@@ -217,7 +217,8 @@ defineExpose({ recargar });
    * `max()` no cambia ni un píxel de lo que ya había.
    */
   padding: calc(var(--blubathon-esp-14) + env(safe-area-inset-top, 0px))
-    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2) var(--blubathon-esp-26);
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    var(--blubathon-esp-26);
   overflow: hidden;
   background:
     radial-gradient(130% 62% at 50% 0%, var(--blubathon-brillo), transparent 62%),

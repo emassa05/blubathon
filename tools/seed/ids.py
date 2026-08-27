@@ -1,7 +1,7 @@
 """Identificadores deterministas de la demo.
 
 Todos son UUID v4 válidos y completamente ficticios. Ningún valor procede de un
-export real: `CONVENTIONS 15` prohíbe usar datos reales en tests o seeds.
+export real: está prohibido usar datos reales en tests o seeds.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""The data quality index (SPEC 7.1).
+"""The data quality index.
 
 `DQI = coverage * recency * consistency`, and the product is deliberate: a
 perfect coverage does not compensate for a record that is two weeks old
@@ -32,8 +32,6 @@ from packages.shared.enums import DataOrigin, EntryMode, FieldCode, FieldKind, S
 from packages.shared.field_catalog import DQI_REQUIRED_FIELDS, FIELD_CATALOG
 from packages.shared.projection import project_as_of, unique_active
 
-# SPEC 7.1. An accepted suggestion counts half because the person was anchored;
-# an edited one counts fully because they overrode it.
 ENTRY_MODE_COVERAGE_WEIGHT: MappingProxyType[EntryMode, float] = MappingProxyType(
     {
         EntryMode.MANUAL_NO_DEFAULT: DQI_OBSERVED_WEIGHT,
@@ -58,7 +56,7 @@ class FieldDay:
 
 
 def _normalised_disagreement(field_code: FieldCode, left: object, right: object) -> float:
-    """Distance in [0,1] for the field's kind (SPEC 7.1).
+    """Distance in [0,1] for the field's kind.
 
     A nominal disagreement is all or nothing. Categories are never averaged to
     smooth a conflict away; the index only measures that the conflict exists.

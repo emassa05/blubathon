@@ -1,7 +1,7 @@
-"""Persistencia de Blubathon. Todo el SQL del proyecto vive aquí (CONVENTIONS 13).
+"""Persistencia de Blubathon. Todo el SQL del proyecto vive aquí.
 
 Los módulos exponen comandos y consultas concretos, no un repositorio genérico
-sobre cada tabla (CONVENTIONS 20).
+sobre cada tabla.
 """
 
 from __future__ import annotations

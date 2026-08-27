@@ -85,10 +85,6 @@ describe("evento de desregulación", () => {
     });
 
     it("no mientras la ventana del objetivo sigue abierta", () => {
-      // SPEC 4.4: un "no" reportado antes de que cierre la ventana se guarda
-      // pero no resuelve. Bloquear la pantalla ahí dejaría "sí, ocurrió" como
-      // única salida, y ese falso positivo entra en los datos de los que sale
-      // la estimación siguiente.
       expect(exigeRespuesta(solicitudFalsa(EN_CURSO) as Solicitud)).toBe(false);
     });
 

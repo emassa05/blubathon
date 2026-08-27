@@ -68,24 +68,6 @@ export function useCuestionario(opciones: Opciones) {
   const resultado = ref<FormSubmissionResponse | null>(null);
   const borradores = ref<Borradores>({});
 
-  /*
-   * Los campos numéricos que nacieron con su valor de salida y que nadie ha
-   * tocado todavía.
-   *
-   * Hay que saber cuáles son por dos motivos, y los dos son de no afirmar algo
-   * que nadie dijo:
-   *
-   * - **No suprimen la sugerencia.** El plan usa `answers` para no volver a
-   *   proponer un valor de un campo que ya está contestado (SPEC 6.6). Un 1 que
-   *   puso la pantalla no lo contestó nadie, y dejarlo viajar ahí borraría la
-   *   sugerencia de ese mismo campo.
-   * - **No sobreviven a una pregunta que no se llega a hacer.** Si el plan
-   *   acaba pidiendo menos campos de los que había sembrados, los que se caen
-   *   salen del borrador: nadie los vio y no pueden ir en el envío.
-   *
-   * En cuanto se toca uno deja de estar aquí y pasa a ser una respuesta como
-   * cualquier otra, que sí cuenta y sí se envía.
-   */
   const sembrados = new Set<FieldCode>();
 
   // Reabrir un día ya enviado no empieza de cero: lo contestado se recupera de

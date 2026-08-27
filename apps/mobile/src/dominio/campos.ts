@@ -8,7 +8,12 @@
  * uniforme que un componente puede recorrer sin preguntar por el tipo.
  */
 
-import { BLUBATHON_FIELD_CATALOG, BLUBATHON_TEXTS_ES, type FieldCode, type ValorCampo } from "@/api/contrato";
+import {
+  BLUBATHON_FIELD_CATALOG,
+  BLUBATHON_TEXTS_ES,
+  type FieldCode,
+  type ValorCampo,
+} from "@/api/contrato";
 
 export type TipoCampo =
   "continuous" | "count" | "ordinal" | "nominal" | "boolean" | "tag_set" | "text";

@@ -6,7 +6,7 @@ const FORMATO_DIA = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "nu
 
 /**
  * El día no lo decide el reloj del dispositivo sino la zona de referencia del
- * sistema (SPEC 5.1 / C03). El backend agrupa los registros por esa fecha
+ * sistema (C03). El backend agrupa los registros por esa fecha
  * local; si el móvil está en otro huso, la pantalla pediría el día equivocado.
  */
 const ZONA_REFERENCIA = BLUBATHON_CONSTANTS.C03.value;

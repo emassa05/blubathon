@@ -1,1 +1,1 @@
-"""Journeys ficticios de integración (TAREAS 3.4)."""
+"""Journeys ficticios de integración."""

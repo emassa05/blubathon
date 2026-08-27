@@ -1,4 +1,4 @@
-"""A document becomes indexable only with version, rights and hashes (SPEC 9.2).
+"""A document becomes indexable only with version, rights and hashes.
 
 The failure mode this module exists to prevent is quiet: a PDF that is publicly
 reachable gets treated as a licensed source, ends up in the index, and a claim
@@ -22,7 +22,6 @@ from rag.domain.normalization import normalize_document_text
 
 EXTRACTOR_VERSION: Final = "extractor-plaintext-0.3.0"
 
-# SPEC 16: `active -> superseded | withdrawn`. Neither may back a live citation.
 RETIRED_DOCUMENT_STATUSES: Final[frozenset[DocumentStatus]] = frozenset(
     {DocumentStatus.SUPERSEDED, DocumentStatus.WITHDRAWN}
 )

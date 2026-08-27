@@ -1,7 +1,7 @@
 """Blubathon v0.4 FastAPI application.
 
 Única frontera de traducción HTTP. La abstención es HTTP 200 con estado
-explícito y nunca usa el sobre de error (SPEC 11.7, CONVENTIONS 12.2).
+explícito y nunca usa el sobre de error.
 """
 
 from __future__ import annotations
@@ -92,7 +92,6 @@ def create_app(
         title="Blubathon API",
         version=SPEC_VERSION,
         lifespan=lifespan,
-        # CONVENTIONS 15: la documentación OpenAPI se deshabilita en piloto.
         docs_url="/docs" if resolved.expose_openapi else None,
         redoc_url=None,
         openapi_url="/openapi.json" if resolved.expose_openapi else None,
@@ -102,7 +101,6 @@ def create_app(
     app.state.event_broker = event_broker
     app.add_middleware(
         CORSMiddleware,
-        # CONVENTIONS 15: allowlist explícita, nunca comodín.
         allow_origins=list(resolved.cors_origins),
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
@@ -152,7 +150,6 @@ def _install_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation(request: Request, error: RequestValidationError) -> JSONResponse:
-        # CONVENTIONS 12.2: validación es 422 y no filtra el payload clínico.
         return _envelope(request, "validation_error", 422)
 
     @app.exception_handler(HTTPException)
@@ -167,7 +164,6 @@ def _install_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected(request: Request, error: Exception) -> JSONResponse:
-        # Stack y request ID sí; payload clínico nunca (CONVENTIONS 15).
         logger.exception(
             "error inesperado type=%s request_id=%s",
             type(error).__name__,

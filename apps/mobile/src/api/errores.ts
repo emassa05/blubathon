@@ -5,7 +5,7 @@ import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
  * Un fallo de la API, ya traducido.
  *
  * El backend responde los errores con un sobre estable
- * (`{ error: { code, message_es, request_id } }`, SPEC 11.7): código para el
+ * (`{ error: { code, message_es, request_id } }`): código para el
  * código, mensaje en español para la persona y `request_id` para el soporte.
  * Esta clase es ese sobre más los dos casos que el sobre no cubre —la red y el
  * corte por tiempo—, para que la pantalla tenga siempre algo que mostrar.

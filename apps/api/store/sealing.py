@@ -1,8 +1,8 @@
-"""Cifrado local del escenario mínimo dentro de la frontera clínica (SPEC 9.8).
+"""Cifrado local del escenario mínimo dentro de la frontera clínica.
 
 El objetivo en la demo es que el payload no quede legible en el archivo SQLite
 ni en un dump accidental. No sustituye a un gestor de claves: el piloto usa el
-cifrado institucional y una clave rotable (SPEC 13.2). El escenario nunca sale
+cifrado institucional y una clave rotable. El escenario nunca sale
 de aquí sin `AuthoringUseAuthorization`.
 """
 

@@ -156,7 +156,7 @@ export function reportarResultado(
  *
  * `status` distingue los cuatro casos que la pantalla tiene que saber
  * diferenciar: sin formulario, redactándose, lista o abstenida. La abstención
- * llega como 200 con `abstention_reason`, nunca como error (SPEC 11.7).
+ * llega como 200 con `abstention_reason`, nunca como error.
  */
 export function recomendacionDeHoy(
   idNino: string,

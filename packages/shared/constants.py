@@ -1,12 +1,12 @@
-"""The shared normative constants of SPEC 15, C01 to C50.
+"""The shared normative constants of C01 to C50.
 
-CONVENTIONS 7 forbids duplicating a literal from this registry, so every module
+Forbids duplicating a literal from this registry, so every module
 level name below reads its value back out of :data:`CONSTANTS` instead of
 restating it. A constant carries its decision class because a product policy and
 a mathematical identity are not the same kind of claim, and the difference has to
 survive into the code that uses them.
 
-`packages/shared` never imports `ml`, `rag` or `apps` (CONVENTIONS 4). Formula
+`packages/shared` never imports `ml`, `rag` or `apps`. Formula
 internals that are not shared decisions live in `ml/spec_constants.py`.
 """
 
@@ -20,8 +20,9 @@ DecisionClass = Literal["mathematical", "evidence", "policy", "engineering"]
 CONTRACT_VERSION = "blubathon-contract-0.4.0"
 """Version of the executable contract published by `packages/shared`.
 
-Distinct from ``SPEC_VERSION``: the SPEC can be clarified without regenerating
-schemas, and a schema change without a SPEC change is still a contract change.
+Distinct from ``SPEC_VERSION``: the specification can be clarified without
+regenerating schemas, and a schema change without a specification change is
+still a contract change.
 """
 
 FORM_POLICY_VERSION = "form-0.3.0"
@@ -31,10 +32,10 @@ DEFAULTS_ESTIMATOR_VERSION = "defaults-0.3.0"
 """Version of the default estimator that produced a `DefaultPresentation`."""
 
 SCENARIO_SCHEMA_VERSION = "scenario-1"
-"""The single `ScenarioV1` representation of SPEC 9.6; there is no other."""
+"""The single `ScenarioV1` representation; there is no other."""
 
 SCENARIO_BUILDER_VERSION = "scenario-builder-0.3.0"
-"""Version of the pure P1 `build_scenario` facade (SPEC 9.7)."""
+"""Version of the pure P1 `build_scenario` facade."""
 
 
 @dataclass(frozen=True, slots=True)

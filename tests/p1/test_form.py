@@ -424,7 +424,7 @@ def test_a_recently_asked_field_is_not_overdue() -> None:
 
 
 def test_sitting_in_the_tail_does_not_reset_the_clock() -> None:
-    """SPEC 6.10: only a highlighted presentation counts as having been asked."""
+    """Only a highlighted presentation counts as having been asked."""
 
     presentations = [_presentation(field, 1, highlighted=False) for field in MONITORED_FIELDS]
     plan = _plan(presentations=presentations)

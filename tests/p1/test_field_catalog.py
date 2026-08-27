@@ -1,4 +1,4 @@
-"""The 19 daily fields, the source matrix and the allowlists of SPEC 5.2-5.4, 6.7."""
+"""The 19 daily fields, the source matrix and the allowlists."""
 
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ from packages.shared.field_catalog import (
     validate_field_value,
 )
 
-# SPEC 5.4, transcribed from the matrix. `Sí` becomes True.
 SOURCE_MATRIX = {
     FieldCode.SLEEP_HOURS: (True, False, False),
     FieldCode.SLEEP_QUALITY: (True, False, False),
@@ -100,7 +99,7 @@ def test_high_signal_fields_never_get_a_default() -> None:
 
 
 def test_no_continuous_count_text_or_tag_field_can_have_a_default() -> None:
-    """SPEC 6.5: a default there would require an unvalidated tolerance or bin."""
+    """A default there would require an unvalidated tolerance or bin."""
 
     for code, spec in FIELD_CATALOG.items():
         if spec.kind in KINDS_WITHOUT_DEFAULTS:

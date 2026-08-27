@@ -149,9 +149,6 @@ describe("cargarResumenSalud", () => {
   });
 
   it("no manda al plan respuestas de un día que el servidor ya no tiene", async () => {
-    // El caso real: la base se resembró y el navegador conservó lo de antes.
-    // Esas respuestas viajaban como `answers` y el backend suprime la sugerencia
-    // de todo campo "ya respondido" (SPEC 6.6), así que no salía ninguna.
     guardarRespuestas(ID_NINO_FALSO, HOY, { food_changes: false, eating_status: 4 });
 
     instalarServidorFalso({

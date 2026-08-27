@@ -1,4 +1,4 @@
-"""Literal citation verification (SPEC 9.5, INV-24).
+"""Literal citation verification (INV-24).
 
 The automatic check answers one narrow question: does `quoted_text` appear,
 character for character, inside the normalised text of the exact hashed chunk

@@ -1,4 +1,4 @@
-"""Comandos de siembra (TAREAS M0 P2.5, P2.4)."""
+"""Comandos de siembra (M0 P2.5, P2.4)."""
 
 from __future__ import annotations
 
@@ -195,8 +195,6 @@ def _seed_identity(connection: sqlite3.Connection, *, moment: str, valid_from: s
 
 
 def _seed_target(connection: sqlite3.Connection, *, moment: str) -> None:
-    # Dos objetivos, uno por alcance. La cohorte de fixture usa el suyo sin
-    # tenant; un sujeto real exige `scope='tenant'` con el suyo (SPEC 4.3).
     for target in (data.TARGET_DEMO, data.TARGET_TENANT_A):
         _insert_target(connection, target=target, moment=moment)
 
@@ -300,7 +298,7 @@ def _seed_strategies(
     """Estrategias fixture.
 
     Sin revisor clínico autorizado quedan en `evidence_reviewed`: es el estado
-    que exige `TAREAS M0` cuando el bloqueo clínico está activo.
+    que se exige cuando el bloqueo clínico está activo.
     """
     document = data.FIXTURE_DOCUMENT
     created: list[str] = []
@@ -332,8 +330,6 @@ def _seed_strategies(
                 content=strategy["action_text_es"],
             )
 
-        # SPEC 9.5: `claim_text_es` debe coincidir con `action_text_es[start:end]`,
-        # y la cita debe existir literalmente en el fragmento normalizado.
         if strategy["claim_text_es"] not in strategy["action_text_es"]:
             raise ValueError(f"claim no literal en la estrategia {strategy['key']}")
         chunk_text = data.FIXTURE_CHUNKS[strategy["chunk_index"]]["text"]
@@ -411,7 +407,7 @@ def _seed_authoring_review(
     moment: str,
     content: str,
 ) -> str:
-    """SPEC 9.5: review de autoría con actor acreditado, hash y decisión."""
+    """Review de autoría con actor acreditado, hash y decisión."""
     review_id = _id("authoring-review", object_version_id, review_kind)
     accreditation_id = _id("accreditation", actor_id)
     connection.execute(

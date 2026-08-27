@@ -1,11 +1,11 @@
 """Dataset snapshots, training runs, model versions and evaluation reports.
 
 Every metric states its origin, dataset hash and model, and a metric without
-support is `not_estimable` rather than zero (SPEC 14.3, CONVENTIONS 9.4).
+support is `not_estimable` rather than zero.
 Synthetic metrics always carry `simulation_only` where a reader can see it.
 
 Development out-of-fold results never move a model to `shadow_evaluated`: that
-transition needs a preregistered prospective period (SPEC 14.4).
+transition needs a preregistered prospective period.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ class DatasetSnapshot(BlubathonModel):
 
 
 class ChallengerTrainingProtocolVersion(BlubathonModel):
-    """Optimiser settings fixed before a run, not per-run flags (SPEC 8.4)."""
+    """Optimiser settings fixed before a run, not per-run flags."""
 
     protocol_version: VersionLabel
     optimizer: str
@@ -213,7 +213,7 @@ class GroupMetric(BlubathonModel):
 
 
 class SourceMetric(BlubathonModel):
-    """Metrics broken down by observation context (SPEC 14.3)."""
+    """Metrics broken down by observation context."""
 
     source: Source
     metrics: tuple[MetricValue, ...] = ()
@@ -272,7 +272,7 @@ class ReleaseManifest(BlubathonModel):
 
     Without a legally usable corpus M4 and the DoD stay blocked; without an
     authorised reviewer the catalogue can only be `blocked_clinical_review`
-    (SPEC 20).
+    .
     """
 
     spec_version: VersionLabel
@@ -293,7 +293,7 @@ class ReleaseManifest(BlubathonModel):
 
 
 def development_result_cannot_promote(state: ModelState) -> bool:
-    """Guard for SPEC 14.4: offline OOF never reaches `shadow_evaluated`."""
+    """Guard: offline OOF never reaches `shadow_evaluated`."""
 
     return state is not ModelState.SHADOW_EVALUATED
 

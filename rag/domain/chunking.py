@@ -1,4 +1,4 @@
-"""Deterministic chunking that keeps a citation literal and locatable (SPEC 9.3).
+"""Deterministic chunking that keeps a citation literal and locatable.
 
 Every chunk is a contiguous span of whole paragraphs of the normalised document,
 so its text is a verbatim substring of that document and its locator names the
@@ -7,7 +7,7 @@ even when it alone exceeds the size budget: a citation that straddles an
 arbitrary cut is not something a human can verify.
 
 Size and overlap are counted in tokens of the declared tokenizer, and both, with
-the tokenizer version, are fixed and hashed in the build manifest (SPEC 9.4).
+the tokenizer version, are fixed and hashed in the build manifest.
 """
 
 from __future__ import annotations

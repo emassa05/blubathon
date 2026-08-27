@@ -1,4 +1,4 @@
-"""Canonical bytes, domain-separated hashes and local calendar windows (SPEC 5.9, 5.8)."""
+"""Canonical bytes, domain-separated hashes and local calendar windows."""
 
 from __future__ import annotations
 

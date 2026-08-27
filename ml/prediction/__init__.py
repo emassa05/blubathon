@@ -1,4 +1,4 @@
-"""Dual-track prediction (SPEC 8).
+"""Dual-track prediction.
 
 Three tracks that never borrow each other's meaning:
 
@@ -14,7 +14,7 @@ Three tracks that never borrow each other's meaning:
     model to one class.
 
 There are no risk bands anywhere in this package: without a validated decision
-policy, green, amber and red do not exist (SPEC 8.6, C37).
+policy, green, amber and red do not exist (C37).
 """
 
 from ml.prediction.baseline import (

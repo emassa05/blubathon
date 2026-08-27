@@ -18,7 +18,7 @@ defineEmits<{
 
 /**
  * Mientras la ventana de 24 h sigue abierta, "no ocurrió" todavía no se puede
- * afirmar: el día no ha terminado. Y SPEC 4.4 solo acepta un `no` reportado
+ * afirmar: el día no ha terminado. Y solo se acepta un `no` reportado
  * `on_time`, así que uno enviado antes se guardaría sin resolver nada. El botón
  * no se ofrece hasta que resolvería de verdad.
  */

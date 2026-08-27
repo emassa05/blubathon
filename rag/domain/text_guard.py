@@ -1,4 +1,4 @@
-"""The one exception to the free-text veto, enforced (SPEC 2.23, INV-22).
+"""The one exception to the free-text veto, enforced (INV-22).
 
 Only versioned, rights-cleared literature may be chunked, indexed or placed in
 an authoring prompt. Notes, messages and anything a caregiver or professional
@@ -22,8 +22,6 @@ from packages.shared.field_catalog import FIELD_CATALOG
 
 LITERATURE: Final = "literature"
 
-# SPEC 5.2: the free-text and tag fields of a daily observation. None of them
-# may ever become a chunk, an embedding input or prompt content.
 FREE_TEXT_FIELDS: Final[frozenset[FieldCode]] = frozenset(
     code for code, spec in FIELD_CATALOG.items() if spec.kind in {FieldKind.TEXT, FieldKind.TAG_SET}
 )

@@ -1,4 +1,4 @@
-"""Re-export de los textos visibles en español (CONVENTIONS 10).
+"""Re-export de los textos visibles en español.
 
 Los textos normativos viven en `packages/shared/texts.py`, que H1 publicó junto
 con su versión generada para el frontend. `apps/**` no redacta copia visible:

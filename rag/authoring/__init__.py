@@ -1,4 +1,4 @@
-"""Offline authoring: index, retrieve, optionally draft, verify, review (SPEC 9.4).
+"""Offline authoring: index, retrieve, optionally draft, verify, review.
 
 `rag/authoring` never touches the clinical database and never sees a subject, an
 observation or an outcome. It works on versioned literature and on generalised

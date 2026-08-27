@@ -1,4 +1,4 @@
-"""The preregistered logistic challenger (SPEC 8.4).
+"""The preregistered logistic challenger.
 
 Two predictors, chosen before looking at the data, on top of the personal
 baseline as a fixed offset:
@@ -44,16 +44,12 @@ from packages.shared.projection import project_as_of, unique_active
 CHALLENGER_MODEL_VERSION = "real-logit-challenger-0.3.0"
 CHALLENGER_PROTOCOL_VERSION = "challenger-protocol-0.3.0"
 
-# SPEC 8.4: fixed before the run and hashed into the training protocol, not
-# per-run flags.
 OPTIMIZER = "L-BFGS-B"
 TOLERANCE = 1e-10
 MAX_ITERATIONS = 500
 
 _PROBABILITY_FLOOR = 1e-12
 
-# SPEC 8.4. `other`, unknown, missing and conflicted all map to null: an
-# unusable answer is not a zero.
 SLEEP_DISRUPTED = {
     SleepQuality.INTERRUPTED.value: 1.0,
     SleepQuality.SLEEP_ONSET_DIFFICULTY.value: 1.0,
@@ -83,7 +79,7 @@ def sigmoid(value: float) -> float:
 
 
 def encode_predictor(field_code: FieldCode, value: object) -> float | None:
-    """1, 0 or `None`. `other`, unknown and missing are all null (SPEC 8.4)."""
+    """1, 0 or `None`. `other`, unknown and missing are all null."""
 
     encoding = PREDICTOR_ENCODINGS.get(field_code)
     if encoding is None:
@@ -116,7 +112,7 @@ def personal_predictor_rate(
 ) -> PersonalRate:
     """The previous rate over `[D-30, D)` for one subject, source and field.
 
-    Sources are never combined and a conflict never becomes a zero (SPEC 8.4).
+    Sources are never combined and a conflict never becomes a zero.
     """
 
     projection = project_as_of(observations, as_of_at)
@@ -148,7 +144,6 @@ def personal_predictor_rate(
     return PersonalRate(field_code=field_code, rate=sum(usable) / len(usable), n_days=len(usable))
 
 
-#: Los dos predictores preregistrados de SPEC 8.4, en su orden fijo.
 CHALLENGER_PREDICTOR_FIELDS: tuple[FieldCode, ...] = (
     FieldCode.SLEEP_QUALITY,
     FieldCode.DAILY_REGULATION_STATE,
@@ -211,7 +206,7 @@ class ChallengerRow:
 def negative_log_likelihood(
     coefficients: Sequence[float], rows: Sequence[ChallengerRow], penalty: float
 ) -> float:
-    """The SPEC 8.4 objective, written literally.
+    """The objective, written literally.
 
     Mean binary cross-entropy with the baseline logit as a fixed offset, plus
     `lambda/2 * (b1^2 + b2^2)`. The intercept is not penalised, there are no
@@ -300,7 +295,7 @@ class TrainabilityReport:
 
 
 def assess_trainability(rows: Sequence[ChallengerRow]) -> TrainabilityReport:
-    """Both classes overall and in every training partition (SPEC 8.4, INV-19).
+    """Both classes overall and in every training partition (INV-19).
 
     A validation fold of a single subject may hold one class, because the
     per-row Brier is still defined; the aggregate out-of-fold set may not.

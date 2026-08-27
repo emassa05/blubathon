@@ -5,7 +5,7 @@ recomendación RAG. Mono-tenant, sin autenticación/autorización/auditoría. Pa
 qué es y qué permite hacer, ver el [README](../README.md).
 
 Cubre `apps/api`, `ml`, `rag`, `packages/shared`, `tools`. UI en
-`apps/mobile` ([doc aparte](../apps/mobile/README.md)), conectada a esta API y tipada contra el mismo
+`apps/mobile`, conectada a esta API y tipada contra el mismo
 contrato generado: `packages/shared/generated` se publica como el paquete
 `@blubathon/contract` y la interfaz lo importa, así que un cambio de contrato rompe
 su compilación.

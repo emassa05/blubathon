@@ -2,7 +2,7 @@
 
 The golden numbers come from the corrected table in FUNDAMENTOS 5.4 and the
 Dirichlet worked example in FUNDAMENTOS 6.1. They are checked against SciPy, not
-against a hand-written approximation (CONVENTIONS 9.2).
+against a hand-written approximation.
 """
 
 from __future__ import annotations

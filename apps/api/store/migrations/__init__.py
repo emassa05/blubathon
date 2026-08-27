@@ -1,4 +1,4 @@
-"""Migraciones inmutables con número, nombre y checksum (CONVENTIONS 13).
+"""Migraciones inmutables con número, nombre y checksum.
 
 Una migración publicada no se modifica: se crea otra. El runner verifica el
 checksum de lo aplicado y falla si un archivo cambió.

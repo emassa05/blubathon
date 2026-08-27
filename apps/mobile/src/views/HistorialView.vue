@@ -106,7 +106,9 @@ function irASemana(cantidad: number): void {
 
         <ResumenSemana :celdas="celdas" />
 
-        <p v-if="cargando && !cargado" class="historial__estado">{{ BLUBATHON_TEXTS_ES.loadingEs }}</p>
+        <p v-if="cargando && !cargado" class="historial__estado">
+          {{ BLUBATHON_TEXTS_ES.loadingEs }}
+        </p>
 
         <!-- Sin API el calendario sigue en pie: lo que se ve son los envíos que
              guardó este dispositivo, y eso se dice, no se disimula. -->

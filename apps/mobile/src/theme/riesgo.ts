@@ -9,8 +9,8 @@
 
 /**
  * `desconocido` no es un cuarto nivel de riesgo: es la ausencia de estimación.
- * El modelo se abstiene cuando no tiene resultados verificados suficientes
- * (SPEC 8.5), y pintar eso de celeste lo leería como riesgo bajo.
+ * El modelo se abstiene cuando no tiene resultados verificados suficientes, y
+ * pintar eso de celeste lo leería como riesgo bajo.
  */
 export const BANDAS_RIESGO = ["desconocido", "bajo", "medio", "alto"] as const;
 

@@ -1,4 +1,4 @@
-"""The offline authoring CLI (TAREAS P1.6, H4).
+"""The offline authoring CLI (P1.6, H4).
 
 The build writes manifests and hashes; document bodies, extracted text and
 indices stay out of Git.

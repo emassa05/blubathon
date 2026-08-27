@@ -1,12 +1,12 @@
 """The 19 daily fields, their legal values and which sources may report them.
 
-This is the catalogue SPEC 5.2 and SPEC 5.4 describe. Changing the source matrix
+This is the catalogue of daily fields. Changing the source matrix
 requires a new contract version, and the frontend only shows fields enabled for
 the session's source.
 
 Nothing here converts a category into a number. `stable_with_support` is not a
 count, `present` is not a participation score, and a nominal value never becomes
-an ordered scale (SPEC 5.3, INV-35).
+an ordered scale (INV-35).
 """
 
 from __future__ import annotations
@@ -34,10 +34,6 @@ ORDINAL_MINIMUM: Final = 1
 ORDINAL_MAXIMUM: Final = 5
 NOTES_MAX_LENGTH: Final = 500
 
-# A closed-catalogue token. The catalogue *contents* (care modes, sensory and
-# communication tags, contraindications, behaviour tags, context tags) are
-# versioned data that SPEC v0.3.0 does not enumerate, so the contract fixes the
-# shape and refuses free text, without inventing clinical vocabulary (SPEC 19).
 TAG_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]*$")
 NAMESPACED_TAG_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$")
 TAG_REGEX: Final = TAG_PATTERN.pattern
@@ -65,7 +61,7 @@ class FieldSpec:
 
     @property
     def legal_range(self) -> float | None:
-        """Span used to normalise a numeric disagreement in the DQI (SPEC 7.1)."""
+        """Span used to normalise a numeric disagreement in the DQI."""
 
         if self.minimum is None or self.maximum is None:
             return None
@@ -228,8 +224,6 @@ FIELD_CATALOG: Final[MappingProxyType[FieldCode, FieldSpec]] = MappingProxyType(
 )
 CANONICAL_FIELD_ORDER: Final[tuple[FieldCode, ...]] = tuple(spec.code for spec in _FIELDS)
 
-# SPEC 6.7. Every field outside this allowlist has defaults disabled, and no
-# continuous, count, text, tag or outcome field is ever in it (SPEC 6.5).
 DEFAULT_ALLOWLIST_V1: Final[frozenset[FieldCode]] = frozenset(
     {
         FieldCode.FOOD_CHANGES,
@@ -240,7 +234,6 @@ DEFAULT_ALLOWLIST_V1: Final[frozenset[FieldCode]] = frozenset(
     }
 )
 
-# SPEC 6.7. High signal fields that deliberately have no default.
 HIGH_SIGNAL_NO_DEFAULT: Final[frozenset[FieldCode]] = frozenset(
     {
         FieldCode.SLEEP_QUALITY,
@@ -255,7 +248,6 @@ HIGH_SIGNAL_NO_DEFAULT: Final[frozenset[FieldCode]] = frozenset(
     }
 )
 
-# SPEC 6.10. Tuple order is the tie-break priority: lower index wins.
 MONITORED_FIELDS: Final[tuple[FieldCode, ...]] = (
     FieldCode.SLEEP_QUALITY,
     FieldCode.WAKE_STATE,
@@ -267,10 +259,8 @@ MONITORED_FIELD_PRIORITY: Final[MappingProxyType[FieldCode, int]] = MappingProxy
     {code: index + 1 for index, code in enumerate(MONITORED_FIELDS)}
 )
 
-# SPEC 7.1. The same five fields, weighted equally, over a fixed 14-day window.
 DQI_REQUIRED_FIELDS: Final[tuple[FieldCode, ...]] = MONITORED_FIELDS
 
-# SPEC 9.7. The only fields `build_scenario` may read into a matching payload.
 SCENARIO_ALLOWLIST_V1: Final[frozenset[FieldCode]] = frozenset(
     {
         FieldCode.SLEEP_QUALITY,
@@ -281,8 +271,6 @@ SCENARIO_ALLOWLIST_V1: Final[frozenset[FieldCode]] = frozenset(
     }
 )
 
-# SPEC 6.5. No default is estimated for these kinds; defining bins or tolerances
-# without validation would introduce an unjustified decision.
 KINDS_WITHOUT_DEFAULTS: Final[frozenset[FieldKind]] = frozenset(
     {FieldKind.CONTINUOUS, FieldKind.COUNT, FieldKind.TEXT, FieldKind.TAG_SET}
 )
@@ -296,7 +284,7 @@ class UnknownFieldValueError(ValueError):
 
     Never coerced to `null`: an unmapped source value fails loudly so nobody
     silently turns a category the catalogue does not know into missingness
-    (SPEC 5.3).
+    .
     """
 
 
@@ -360,7 +348,7 @@ def closed_support(code: FieldCode) -> tuple[FieldValue, ...] | None:
 
     `None` for continuous, count, text and tag fields: they have no closed
     support, which is exactly why they get no default and no categorical VoI
-    (SPEC 6.5, 7.2).
+    .
     """
 
     spec = FIELD_CATALOG[code]

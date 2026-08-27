@@ -1,4 +1,4 @@
-"""The optional local LLM draft (SPEC 9.1, 9.4, CONVENTIONS 11.2).
+"""The optional local LLM draft.
 
 This step sits at the only place in Blubathon where a language model is allowed: it
 proposes wording for a candidate strategy, offline, from fragments of versioned
@@ -8,7 +8,7 @@ an independent clinical review. Runtime makes zero LLM calls (C29).
 The prompt is versioned package data with declared input and output schemas, and
 its hash goes into the build manifest, so changing the wording changes the build.
 Everything that reaches the transport is checked first: only authorised
-literature, never a note, a message or an identifier (SPEC 2.23).
+literature, never a note, a message or an identifier.
 """
 
 from __future__ import annotations

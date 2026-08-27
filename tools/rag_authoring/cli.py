@@ -1,11 +1,11 @@
-"""Local authoring CLI (TAREAS P1.6, H4).
+"""Local authoring CLI (P1.6, H4).
 
-Authoring is offline work with a CLI, not a public endpoint (SPEC 11.1). Three
+Authoring is offline work with a CLI, not a public endpoint. Three
 commands:
 
 ``status``
     Reads the M0 candidate manifests and reports what the pipeline resolves to
-    today: which retrieval mode a build would declare, and which SPEC 9.6
+    today: which retrieval mode a build would declare, and which
     readiness reason the runtime would abstain with. With no document holding a
     verified rights basis the answer is `corpus_not_ready`, and that is the
     honest answer, not a failure to fix.
@@ -123,7 +123,7 @@ BUILD_MANIFEST_PATH: Final = DATA_DIR / "rag-build.manifest.json"
 def build_status_manifest(
     corpus_manifest: dict[str, Any], model_manifest: dict[str, Any]
 ) -> dict[str, Any]:
-    """The M4 handoff (TAREAS H4): versions, hashes and declared status.
+    """The M4 handoff (H4): versions, hashes and declared status.
 
     Everything that could change a retrieval result is named here, so P2 can
     cite the exact pipeline without holding any corpus body, index or model.

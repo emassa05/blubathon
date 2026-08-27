@@ -1,6 +1,6 @@
 """The single executable contract shared by every Blubathon process.
 
-`packages/shared` never imports `ml`, `rag` or `apps` (CONVENTIONS 4). It owns
+`packages/shared` never imports `ml`, `rag` or `apps`. It owns
 the constants, the closed vocabularies, the field catalogue, the canonical bytes
 and hashes, the append-only projection, the Spanish copy and the Pydantic models
 that every other package reads.

@@ -1,15 +1,15 @@
 """Predicción fixture (sustituye `ml/prediction` hasta H1).
 
-Este stub no entrena ni estima. Devuelve exactamente lo que el SPEC exige que se
-vea con los datos actuales (SPEC 1.2, 8.5, 20.8-20.9):
+Este stub no entrena ni estima. Devuelve exactamente lo que el contrato exige que se
+vea con los datos actuales:
 
 - `synthetic_reference_v021`: `simulation_score` de fixture, solo sobre cohorte
   `demo_fixture`, con `probability` e `interval` nulos y `intended_use=
   simulation_only`. Un sujeto real lo hace abstenerse (INV-18).
 - `real_personal_baseline_v1`: abstención `insufficient_verified_outcomes`,
-  porque el repositorio no tiene 5 outcomes verificados (SPEC 8.5 / C19).
+  porque el repositorio no tiene 5 outcomes verificados (C19).
 - `real_logit_challenger_v1`: abstención `not_trainable_single_class` y nunca
-  expuesto (SPEC 8.4, 8.5).
+  expuesto.
 """
 
 from __future__ import annotations
@@ -63,7 +63,6 @@ class MockPrediction:
     def _synthetic(self, subject_id: str, cohort_kind: str, input_data_origin: str) -> TrackOutput:
         is_demo = cohort_kind == CohortKind.DEMO_FIXTURE.value
         if not is_demo:
-            # SPEC 2.14 / INV-18: el modelo sintético rechaza sujetos reales.
             return TrackOutput(
                 track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
                 intended_use=IntendedUse.SIMULATION_ONLY.value,
@@ -85,7 +84,6 @@ class MockPrediction:
                 input_data_origin=DataOrigin.SYNTHETIC.value,
                 abstention_reasons=("simulation_fixture_unavailable",),
             )
-        # SPEC 8.2 y 11.5: score de simulación, sin probabilidad ni intervalo.
         return TrackOutput(
             track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
             intended_use=IntendedUse.SIMULATION_ONLY.value,
@@ -119,6 +117,5 @@ class MockPrediction:
             model_version=CHALLENGER_MODEL_VERSION,
             input_data_origin=input_data_origin,
             abstention_reasons=("not_trainable_single_class",),
-            # SPEC 8.5: el challenger nunca se expone en v0.3.
             exposed=False,
         )

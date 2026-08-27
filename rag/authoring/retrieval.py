@@ -1,4 +1,4 @@
-"""Retrieval in the mode the build actually declares (SPEC 9.4).
+"""Retrieval in the mode the build actually declares.
 
 Two modes exist and both are complete. `hybrid` needs a dense retriever whose
 model has a registered licence, model card and artifact hash; without one the

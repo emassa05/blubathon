@@ -1,6 +1,6 @@
-"""Timing, eligibility and resolution of outcomes (SPEC 4.4, 4.5).
+"""Timing, eligibility and resolution of outcomes.
 
-The distinctions these tests protect are the ones the SPEC repeats most: absence
+The distinctions these tests protect are the ones that matter most: absence
 is not a negative, an explicit `unknown` resolves nothing, an early `no` stays
 provisional, and once an episode has conflicted it never becomes clean again.
 """
@@ -84,7 +84,7 @@ def test_a_yes_whose_event_falls_outside_the_window_is_not_eligible() -> None:
 
 
 def test_the_window_start_is_open_so_an_event_at_the_cutoff_is_not_a_label() -> None:
-    """SPEC 4.1: the open start stops a fact used in the snapshot from being the label."""
+    """The open start stops a fact used in the snapshot from being the label."""
 
     at_cutoff = report(
         "at-cutoff", value=OutcomeReportValue.YES, reported_at=AT_END, occurred_at=NOW

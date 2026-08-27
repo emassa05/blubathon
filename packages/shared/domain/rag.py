@@ -1,4 +1,4 @@
-"""Corpus, strategies, catalogues and the minimal matching scenario (SPEC 9).
+"""Corpus, strategies, catalogues and the minimal matching scenario.
 
 The RAG works at authoring time, not per clinical query. Everything the runtime
 serves has already been retrieved, cited, verified and reviewed twice, and the
@@ -55,7 +55,7 @@ def _sorted_unique(values: tuple[str, ...]) -> tuple[str, ...]:
 
 
 class DocumentVersion(BlubathonModel):
-    """Without version, rights and hashes a document is not indexed (SPEC 9.2)."""
+    """Without version, rights and hashes a document is not indexed."""
 
     document_version_id: UUID
     source_id: UUID
@@ -80,7 +80,7 @@ class DocumentVersion(BlubathonModel):
 
 
 class DocumentChunk(BlubathonModel):
-    """A citation without a verifiable locator cannot be published (SPEC 9.3)."""
+    """A citation without a verifiable locator cannot be published."""
 
     document_chunk_id: UUID
     document_version_id: UUID
@@ -94,7 +94,7 @@ class AuthoringBuildManifest(BlubathonModel):
     """Everything that could change a retrieval result, fixed and hashed.
 
     `lexical_only` is a declared mode, not a silent degradation: no model is ever
-    downloaded to make a hybrid build succeed (SPEC 9.4).
+    downloaded to make a hybrid build succeed.
     """
 
     authoring_build_manifest_id: UUID
@@ -143,7 +143,7 @@ class CorpusVersion(BlubathonModel):
 
 
 class AuthoringReview(AppendOnlyModel):
-    """Authoring review is a different entity from a case review (SPEC 9.5)."""
+    """Authoring review is a different entity from a case review."""
 
     authoring_review_id: UUID
     object_type: AuthoringReviewObjectType
@@ -249,7 +249,7 @@ class ScenarioV1(BlubathonModel):
     """The minimal matching payload. No identity, notes, external IDs or history.
 
     Treated as potentially pseudonymised while a combination of attributes could
-    be linkable; it is never presumed anonymous (SPEC 9.7).
+    be linkable; it is never presumed anonymous.
     """
 
     schema_version: str = SCENARIO_SCHEMA_VERSION
@@ -274,7 +274,7 @@ class ScenarioV1(BlubathonModel):
         return self
 
     def canonical_payload(self) -> dict[str, Any]:
-        """Deduplicated, sorted and key-ordered before JCS (SPEC 9.7)."""
+        """Deduplicated, sorted and key-ordered before JCS."""
 
         return {
             "schema_version": self.schema_version,
@@ -345,7 +345,7 @@ class ScenarioPredicate(BlubathonModel):
         return not set(self.contraindication_tags) & contraindications
 
     def implies(self, other: ScenarioPredicate) -> bool:
-        """Conservative implication check used when activating a set (SPEC 9.6).
+        """Conservative implication check used when activating a set.
 
         Sound but not complete: it may refuse an implication that in fact holds,
         which fails closed. It never accepts one that does not.
@@ -452,7 +452,7 @@ class AuthoringRequest(AppendOnlyModel):
 
 
 class ScenarioBuildResult(BlubathonModel):
-    """Outcome of the pure P1 `build_scenario` facade (SPEC 9.7).
+    """Outcome of the pure P1 `build_scenario` facade.
 
     P2 persists this or the abstention; it never re-derives the precedence.
     """
@@ -533,7 +533,7 @@ def resolve_catalog_readiness(
     dependency_suspended: bool,
     active_catalog_count: int,
 ) -> RecommendationAbstentionReason | None:
-    """SPEC 9.6 precedence, in order. `None` means ready.
+    """Precedence, in order. `None` means ready.
 
     `clinical_review_unavailable` never collapses into `catalog_not_ready`, and
     ambiguity or suspension fails closed.

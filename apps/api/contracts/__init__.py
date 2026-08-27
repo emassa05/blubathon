@@ -1,6 +1,6 @@
 """Punto único de importación del contrato v0.3 para `apps/**`.
 
-El contrato ejecutable vive en `packages/shared` (`CONVENTIONS 6`, `TAREAS 2`) y
+El contrato ejecutable vive en `packages/shared` y
 H1 lo publicó. Los cinco módulos de este paquete son re-exports de aquel: aquí
 no se declara ningún modelo, enum, constante, texto ni entrada del catálogo.
 

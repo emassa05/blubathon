@@ -1,9 +1,9 @@
-"""Re-export del registro de constantes normativas (SPEC 15, C01-C50).
+"""Re-export del registro de constantes normativas (C01-C50).
 
 El registro vive en `packages/shared/constants.py`, que H1 publicó. Este módulo
 no declara ningún valor: reexporta el de P1 para que `apps/**` siga teniendo un
 único punto de importación. Un literal del registro no se repite en `apps/`
-(`CONVENTIONS 7`).
+.
 """
 
 from __future__ import annotations

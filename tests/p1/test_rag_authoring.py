@@ -43,7 +43,7 @@ class SimulatedDense:
 
 
 class SimulatedTransport:
-    """A simulated local LLM transport (CONVENTIONS 16)."""
+    """A simulated local LLM transport."""
 
     model_id = "fixture-llm"
     model_sha256 = "e" * 64

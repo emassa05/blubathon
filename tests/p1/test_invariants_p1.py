@@ -1,4 +1,4 @@
-"""One named test per SPEC 17 invariant P1 owns (TAREAS M6).
+"""One named test per invariant P1 owns (M6).
 
 P1 covers INV-02, INV-03, INV-04, INV-06, INV-07, INV-09, INV-10, INV-16 to
 INV-28, and INV-32 to INV-35. P2 covers the persistence, authorisation and
@@ -7,7 +7,7 @@ does not mutate the catalogue, and P2 proves the API flow does not either.
 
 These tests are short on purpose. The behaviour is exercised in depth by the
 module tests; each test below exists so that one specific rule cannot be broken
-without the suite going red, named after the rule it guards (CONVENTIONS 16).
+without the suite going red, named after the rule it guards.
 """
 
 from __future__ import annotations

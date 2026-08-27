@@ -1,4 +1,4 @@
-"""The clean window a default is estimated from (SPEC 6.2).
+"""The clean window a default is estimated from.
 
 Sixty inclusive calendar days, projected to the cutoff, stratified by tenant,
 subject, source and field. Nothing crosses a stratum: two contexts are two
@@ -7,7 +7,7 @@ different questions, and two tenants are two different organisations.
 What counts is provenance, not volume. A suggestion the person accepted, a
 suggestion they edited, a synthetic row, an explicit unknown and an absent day
 all contribute nothing, because counting them would let the estimator confirm
-its own suggestion (SPEC 6.2, FUNDAMENTOS 7).
+its own suggestion (FUNDAMENTOS 7).
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def observation_is_eligible(
     *,
     approved_mapping_ids: frozenset[UUID],
 ) -> bool:
-    """SPEC 6.2: which entry modes and origins may inform a suggestion."""
+    """Which entry modes and origins may inform a suggestion."""
 
     if observation.data_origin is not DataOrigin.REAL:
         return False

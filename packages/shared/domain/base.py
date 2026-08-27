@@ -1,6 +1,6 @@
 """Shared base model, scalar types and validators for every Blubathon contract.
 
-CONVENTIONS 6: `extra="forbid"` at API boundaries, UUID v4 identifiers,
+`extra="forbid"` at API boundaries, UUID v4 identifiers,
 timezone-aware UTC timestamps, closed enums, and an explicit model for every
 response. Models are frozen because the history they describe is append-only: a
 correction is a new row, never a mutated one.
@@ -70,7 +70,7 @@ class BlubathonModel(BaseModel):
     )
 
     def canonical_payload(self) -> dict[str, Any]:
-        """JSON-mode dump used as the input to every content hash (SPEC 5.9)."""
+        """JSON-mode dump used as the input to every content hash."""
 
         return self.model_dump(mode="json", exclude_none=False)
 
@@ -106,7 +106,7 @@ class AppendOnlyModel(BlubathonModel):
 
 
 class Interval(BlubathonModel):
-    """A closed probability interval. Both bounds or neither (CONVENTIONS 6)."""
+    """A closed probability interval. Both bounds or neither."""
 
     lower: Probability
     upper: Probability

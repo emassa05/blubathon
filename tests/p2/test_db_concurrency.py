@@ -1,4 +1,4 @@
-"""La conexión es una sola y la comparten los hilos (SPEC 12.2, CONVENTIONS 13).
+"""La conexión es una sola y la comparten los hilos.
 
 `Database` abre SQLite con `check_same_thread=False`, y FastAPI atiende los
 endpoints síncronos —y sus `BackgroundTasks`— en un threadpool. Dos hilos, una

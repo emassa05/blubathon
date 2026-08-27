@@ -88,7 +88,8 @@
    * pendiente: es la única acción de la pantalla y está un peldaño por encima
    * del contenido que se limita a informar.
    */
-  --blubathon-elev-1: 0 1px 2px oklch(0.35 0.02 250 / 0.05), 0 8px 18px -10px oklch(0.35 0.02 250 / 0.2);
+  --blubathon-elev-1:
+    0 1px 2px oklch(0.35 0.02 250 / 0.05), 0 8px 18px -10px oklch(0.35 0.02 250 / 0.2);
   --blubathon-elev-2:
     0 2px 4px oklch(0.35 0.02 250 / 0.07), 0 16px 28px -12px oklch(0.35 0.02 250 / 0.24);
 

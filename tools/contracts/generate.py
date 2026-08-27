@@ -2,7 +2,7 @@
 
 There is exactly one contract. The Pydantic models in `packages/shared` define
 it; everything under `packages/shared/generated/` is derived and is never edited
-by hand (CONVENTIONS 6).
+by hand.
 
     python -m tools.contracts.generate
     git diff --exit-code packages/shared/generated
@@ -370,7 +370,7 @@ def render_constants() -> str:
     lines = [
         BANNER,
         "",
-        "/** SPEC 15 registry C01-C50. A policy number is labelled as policy. */",
+        "/** Registry C01-C50. A policy number is labelled as policy. */",
         "export const BLUBATHON_CONSTANTS = {",
         *entries,
         "} as const;",
@@ -496,7 +496,7 @@ def render_index() -> str:
 
 
 def render_lock(schema: dict[str, Any]) -> str:
-    """The H1 handoff artifact of TAREAS M1.
+    """The H1 handoff artifact of M1.
 
     Everything the consumer needs to integrate against a published contract:
     the version, the hash of the exact schema bundle, the examples and the

@@ -80,7 +80,7 @@ def test_the_schema_bundle_is_valid_json_schema(schema: dict[str, Any]) -> None:
 
 
 def test_api_boundary_models_forbid_unknown_fields(schema: dict[str, Any]) -> None:
-    """CONVENTIONS 6: `extra="forbid"` at every API boundary."""
+    """`extra="forbid"` at every API boundary."""
 
     for name, definition in schema["$defs"].items():
         if definition.get("type") == "object" and "properties" in definition:
@@ -113,7 +113,7 @@ def test_the_frontend_gets_the_constants_and_the_source_matrix() -> None:
 
 
 def test_the_emergency_limit_reaches_the_frontend() -> None:
-    """SPEC 13.2: the limit is shown permanently, so it cannot live only in Python."""
+    """The limit is shown permanently, so it cannot live only in Python."""
 
     texts_ts = (GENERATED / "texts.ts").read_text(encoding="utf-8")
     assert "emergencyLimitEs" in texts_ts
@@ -182,7 +182,7 @@ def test_an_invalid_example_is_rejected_for_the_reason_it_documents(
 
 
 def test_no_example_carries_a_real_person_or_source() -> None:
-    """CONVENTIONS 15: versioned tests and examples use fictional data only."""
+    """Versioned tests and examples use fictional data only."""
 
     forbidden = ("PAC-00", "REG-00", "SES-00", "EVT-00", "OBJ-00")
     for path in EXAMPLES.rglob("*.json"):

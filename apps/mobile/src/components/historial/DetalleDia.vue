@@ -24,7 +24,7 @@ const ESTADO_EN_PALABRAS: Record<ResumenDia["estado"], string> = {
  * La cifra del día, solo cuando existe.
  *
  * El track personal se abstiene mientras no tenga cinco resultados verificados
- * (SPEC 8.5 / C19), y hasta entonces no hay número que dar. Antes se dibujaba
+ * (C19), y hasta entonces no hay número que dar. Antes se dibujaba
  * igualmente una caja con un guion bajo el rótulo "Riesgo", que se leía como
  * una cifra que no se actualizaba nunca. Ahora la caja no se dibuja y el porqué
  * lo dice la nota.
@@ -57,7 +57,9 @@ const recomendacion = computed(() => {
 const resultado = computed(() => {
   const estado = props.resumen.resultado?.status;
   if (estado === undefined) return null;
-  const etiquetas = BLUBATHON_TEXTS_ES.outcomeResolutionLabelsEs as Readonly<Record<string, string>>;
+  const etiquetas = BLUBATHON_TEXTS_ES.outcomeResolutionLabelsEs as Readonly<
+    Record<string, string>
+  >;
   return etiquetas[estado] ?? null;
 });
 

@@ -1,4 +1,4 @@
-"""Stable audit-day assignment (SPEC 6.8).
+"""Stable audit-day assignment.
 
 Ten percent of sessions show no suggestions, so the team can compare answers
 given with and without help. The assignment has to be stable across reloads,

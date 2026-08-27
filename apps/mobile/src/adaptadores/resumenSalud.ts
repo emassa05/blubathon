@@ -48,7 +48,7 @@ const CAMPOS_DE_SUENO: ReadonlySet<FieldCode> = new Set<FieldCode>([
   "wake_state",
 ]);
 
-/** SPEC 6.10 / C14: un campo se considera vencido a los 7 días. */
+/** C14: un campo se considera vencido a los 7 días. */
 const DIAS_VENCIMIENTO = BLUBATHON_CONSTANTS.C14.value;
 
 /**
@@ -88,7 +88,7 @@ function intervalo(valor: unknown): readonly [number, number] | null {
  * La confianza sale del ancho del intervalo del modelo, que es lo único que el
  * backend publica sobre su propia incertidumbre.
  *
- * El intervalo es el 5-95 del posterior Beta (SPEC 8.3): cuantos más resultados
+ * El intervalo es el 5-95 del posterior Beta: cuantos más resultados
  * verificados hay, más estrecho, y un intervalo estrecho es exactamente lo que
  * "nivel de confianza alto" quiere decir. Sin intervalo no hay confianza que
  * dar, y devolver `null` es más honesto que un número por defecto.
@@ -111,7 +111,7 @@ const SIN_RECOMENDACION = "Este día no tiene recomendación.";
  * Los tres motivos por los que el sistema decide **no** recomendar.
  *
  * Abstenerse no es un fallo, y el backend lo devuelve como 200 con motivo
- * explícito (SPEC 11.7): la pantalla tiene que decir por qué no hay consejo, no
+ * explícito: la pantalla tiene que decir por qué no hay consejo, no
  * dejar la tarjeta en blanco ni rellenarla con un consejo genérico.
  */
 const TEXTO_ABSTENCION: Record<string, string> = {
@@ -154,7 +154,7 @@ function desdeVistaDeEpisodio(vista: RecommendationInstanceView): EstadoRecomend
  *
  * El backend no publica importancias del modelo —el track visible es una tasa
  * observada, sin predictores que ponderar—, así que la señal más cercana y
- * honesta es la política del formulario (SPEC 6.9): los campos que hoy pide
+ * honesta es la política del formulario: los campos que hoy pide
  * primero, por antigüedad, exploración o valor de información. Por eso la
  * tarjeta habla de lo que el formulario prioriza y no de causas del riesgo.
  */

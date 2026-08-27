@@ -64,7 +64,7 @@ from packages.shared.field_catalog import FieldValue, validate_field_value
 
 
 class ErrorDetail(BlubathonModel):
-    """Stable machine code plus sanitised Spanish copy (SPEC 11.7)."""
+    """Stable machine code plus sanitised Spanish copy."""
 
     code: ErrorCode
     message_es: SpanishText
@@ -171,7 +171,7 @@ class FormSubmissionResponse(BlubathonModel):
 
 
 class FormSessionResponse(BlubathonModel):
-    """The session envelope of SPEC 11.3, recalculated after every answer."""
+    """The session envelope, recalculated after every answer."""
 
     form_session_id: UUID
     subject_id: UUID
@@ -243,7 +243,7 @@ class FormSubmitResponse(BlubathonModel):
 
 
 class PredictionOutputView(BlubathonModel):
-    """A single track's answer as a caller sees it (SPEC 11.5).
+    """A single track's answer as a caller sees it.
 
     `confidence` is absent on purpose: what a track publishes about its own
     uncertainty is its interval, and a track without one says nothing rather
@@ -507,7 +507,7 @@ class StrategyItem(BlubathonModel):
 
 
 class HumanPlanItem(BlubathonModel):
-    """A human plan never inherits the RAG citations (SPEC 10.2)."""
+    """A human plan never inherits the RAG citations."""
 
     item_type: Literal[RecommendationItemType.HUMAN_PLAN] = RecommendationItemType.HUMAN_PLAN
     human_plan_version_id: UUID
@@ -725,7 +725,7 @@ class EvaluationResponse(BlubathonModel):
 
 
 class IdempotencyScope(BlubathonModel):
-    """`(tenant, actor, method, concrete path, key)` (SPEC 11.2).
+    """`(tenant, actor, method, concrete path, key)`.
 
     The concrete path includes every normalised ID, so the same key on two
     different resources can never replay one another's response.
@@ -756,7 +756,7 @@ def request_fingerprint(
     query: dict[str, Any],
     body: Any,
 ) -> str:
-    """Hash of scope, path params, canonical query and body (SPEC 11.2)."""
+    """Hash of scope, path params, canonical query and body."""
 
     payload = {
         "scope": scope.canonical_payload(),

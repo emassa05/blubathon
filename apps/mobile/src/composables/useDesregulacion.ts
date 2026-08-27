@@ -7,8 +7,8 @@
  * y el modelo no da cifra nunca. Por eso deja de ser una tarjeta que se puede
  * pasar por alto y pasa a ser un diálogo obligatorio delante de la pantalla.
  *
- * Ahora bien: obligatorio no puede significar "obligatorio siempre". SPEC 4.4
- * dice que un `no` solo resuelve si se reporta con la ventana del objetivo ya
+ * Ahora bien: obligatorio no puede significar "obligatorio siempre": un `no`
+ * solo resuelve si se reporta con la ventana del objetivo ya
  * cerrada. Si el diálogo bloqueara la pantalla mientras la ventana sigue
  * abierta, la única respuesta ofrecible sería "sí, ocurrió", y quien solo
  * quiere ver la pantalla acabaría pulsándola. Eso no es una molestia de

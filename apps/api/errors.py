@@ -1,4 +1,4 @@
-"""Errores de dominio y su traducción HTTP (SPEC 11.7, CONVENTIONS 12.2).
+"""Errores de dominio y su traducción HTTP.
 
 Un error lleva código estable, mensaje en español sanitizado y `request_id`.
 La abstención **no** usa este sobre: es HTTP 200 con estado explícito.

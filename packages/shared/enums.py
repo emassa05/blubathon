@@ -1,10 +1,10 @@
 """Closed vocabularies of the Blubathon contract.
 
-Every value here comes from SPEC v0.3.0. Where the SPEC names a catalogue but
+Every value here comes from the contract. Where the contract names a catalogue but
 does not enumerate it (care modes, sensory and communication tags,
 contraindications, behaviour tags, context tags), this module deliberately stops
 at a token *shape* and leaves the contents to a versioned catalogue, because
-SPEC 19 says a missing decision is recorded as a question, never invented.
+Says a missing decision is recorded as a question, never invented.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ class Source(StrEnum):
     """Observation context, not the actor and not a bibliographic source.
 
     `source_id` is reserved for corpus documents; `actor_id` records who
-    reported and `source_mapping_id` which adapter was used (SPEC 5.4).
+    reported and `source_mapping_id` which adapter was used.
     """
 
     HOME = "home"
@@ -25,7 +25,7 @@ class Source(StrEnum):
 
 
 class FieldCode(StrEnum):
-    """The 19 daily observation fields of SPEC 5.2.
+    """The 19 daily observation fields.
 
     `major_dysregulation_24h` is absent on purpose: it is an outcome, not a
     daily observation.
@@ -53,7 +53,7 @@ class FieldCode(StrEnum):
 
 
 class FieldKind(StrEnum):
-    """How a field may be estimated, aggregated and compared (SPEC 5.3, 7.1)."""
+    """How a field may be estimated, aggregated and compared."""
 
     CONTINUOUS = "continuous"
     COUNT = "count"
@@ -86,7 +86,7 @@ class GiStatus(StrEnum):
 
 
 class MedicationAdherence(StrEnum):
-    """`not_applicable` is a present answer, not a missing one (SPEC 7.1)."""
+    """`not_applicable` is a present answer, not a missing one."""
 
     TAKEN = "taken"
     MISSED = "missed"
@@ -115,7 +115,7 @@ class AttendanceStatus(StrEnum):
 
 
 class EntryMode(StrEnum):
-    """Derived by the server, never sent by a browser (SPEC 5.5)."""
+    """Derived by the server, never sent by a browser."""
 
     MANUAL_NO_DEFAULT = "manual_no_default"
     AUDIT_MANUAL = "audit_manual"
@@ -158,7 +158,7 @@ class IntendedUse(StrEnum):
 
 
 class FormSessionKind(StrEnum):
-    """A professional observation session shows no defaults (SPEC 5.5)."""
+    """A professional observation session shows no defaults."""
 
     CAREGIVER_DAILY = "caregiver_daily"
     PROFESSIONAL_OBSERVATION = "professional_observation"
@@ -192,7 +192,7 @@ class PredictionEpisodeStatus(StrEnum):
 
 
 class PredictionStatus(StrEnum):
-    """Abstention is a valid HTTP 200 outcome (SPEC 2.11)."""
+    """Abstention is a valid HTTP 200 outcome."""
 
     OK = "ok"
     ABSTAINED = "abstained"
@@ -237,7 +237,7 @@ class PredictionAbstentionReason(StrEnum):
 
 
 class RecommendationAbstentionReason(StrEnum):
-    """SPEC 9.6 derives exactly one reason, in this precedence order."""
+    """Derives exactly one reason, in this precedence order."""
 
     CORPUS_NOT_READY = "corpus_not_ready"
     CLINICAL_REVIEW_UNAVAILABLE = "clinical_review_unavailable"
@@ -249,7 +249,7 @@ class RecommendationAbstentionReason(StrEnum):
 
 
 class CatalogReadiness(StrEnum):
-    """The derived state P2 persists before calling the runtime (SPEC 9.6)."""
+    """The derived state P2 persists before calling the runtime."""
 
     CORPUS_NOT_READY = "corpus_not_ready"
     CLINICAL_REVIEW_UNAVAILABLE = "clinical_review_unavailable"
@@ -260,7 +260,7 @@ class CatalogReadiness(StrEnum):
 
 
 class VoiStatus(StrEnum):
-    """Unavailable returns `voi_nats=null`, never zero (SPEC 7.3)."""
+    """Unavailable returns `voi_nats=null`, never zero."""
 
     AVAILABLE = "available"
     UNAVAILABLE_MODEL = "unavailable_model"
@@ -269,7 +269,7 @@ class VoiStatus(StrEnum):
 
 
 class QuestionReason(StrEnum):
-    """Why a field appears where it does in the plan (SPEC 6.9 order)."""
+    """Why a field appears where it does in the plan (order)."""
 
     OUTCOME_PENDING = "outcome_pending"
     STALENESS = "staleness"
@@ -280,7 +280,7 @@ class QuestionReason(StrEnum):
 
 
 class FormAnomalyTrigger(StrEnum):
-    """Any one of these opens the full queue (SPEC 6.11)."""
+    """Any one of these opens the full queue."""
 
     RELEVANT_EVENT_FLAG = "relevant_event_flag"
     MEDICATION_MISSED = "medication_missed"
@@ -291,7 +291,7 @@ class FormAnomalyTrigger(StrEnum):
 
 
 class OutcomeReportValue(StrEnum):
-    """A report is not a resolution (SPEC 4.4)."""
+    """A report is not a resolution."""
 
     YES = "yes"
     NO = "no"
@@ -357,7 +357,7 @@ class StrategyStatus(StrEnum):
 
 
 class CatalogStatus(StrEnum):
-    """Shared by `RecommendationSetVersion` and `CatalogVersion` (SPEC 9.6)."""
+    """Shared by `RecommendationSetVersion` and `CatalogVersion`."""
 
     DRAFT = "draft"
     REVIEWED = "reviewed"
@@ -398,7 +398,7 @@ class ReviewDecision(StrEnum):
 
 
 class ReviewStatus(StrEnum):
-    """Absence of an active review means pending; it is never stored (SPEC 10.1)."""
+    """Absence of an active review means pending; it is never stored."""
 
     PENDING = "pending"
     APPROVED = "approved"
@@ -409,7 +409,7 @@ class ReviewStatus(StrEnum):
 
 
 class ExecutionStatus(StrEnum):
-    """Approval never proves application (SPEC 10.3)."""
+    """Approval never proves application."""
 
     APPLIED = "applied"
     NOT_APPLIED = "not_applied"
@@ -432,7 +432,7 @@ class Role(StrEnum):
 
 
 class ConsentPurpose(StrEnum):
-    """Purposes are never substituted for one another (SPEC 13.1)."""
+    """Purposes are never substituted for one another."""
 
     OPERATIONAL_SUPPORT = "operational_support"
     SECONDARY_MODEL_USE = "secondary_model_use"
@@ -534,18 +534,18 @@ class EvaluationReportStatus(StrEnum):
 
 
 class MetricStatus(StrEnum):
-    """A metric without support is `not_estimable`, never zero (CONVENTIONS 9.4)."""
+    """A metric without support is `not_estimable`, never zero."""
 
     ESTIMATED = "estimated"
     NOT_ESTIMABLE = "not_estimable"
 
 
 class ErrorCode(StrEnum):
-    """Stable machine codes for the SPEC 11.7 error envelope.
+    """Stable machine codes for the error envelope.
 
     `forbidden` covers cross-tenant and same-tenant-without-grant alike: telling
     the caller which one it was would confirm that a subject exists somewhere
-    else. Both are audited (SPEC 13.2).
+    else. Both are audited.
     """
 
     VALIDATION_ERROR = "validation_error"

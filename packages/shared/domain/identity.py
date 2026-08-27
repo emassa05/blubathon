@@ -1,4 +1,4 @@
-"""Consent, accreditation, grants and the stable subject profile (SPEC 13.1).
+"""Consent, accreditation, grants and the stable subject profile.
 
 Tenant and role never authorise on their own. A clinical operation needs an
 active `SubjectAccessGrant` with the right capability, a professional needs a
@@ -53,7 +53,7 @@ class _TimeBoundAuthorization(AppendOnlyModel):
         return self
 
     def is_active_at(self, cutoff: datetime) -> bool:
-        """SPEC 13.1: active leaf, in window, and not revoked before the cutoff."""
+        """Active leaf, in window, and not revoked before the cutoff."""
 
         if self.status is not AuthorizationStatus.ACTIVE:
             return False
@@ -173,10 +173,10 @@ class AuthoringUseAuthorization(_TimeBoundAuthorization):
 
 
 class SubjectProfile(AppendOnlyModel):
-    """Only the attributes matching needs, from closed catalogues (SPEC 5.7).
+    """Only the attributes matching needs, from closed catalogues.
 
     Tags are never inferred from free notes, and `care_mode` is a token from a
-    tenant-versioned catalogue that SPEC v0.3.0 does not enumerate.
+    tenant-versioned catalogue that the contract does not enumerate.
     """
 
     subject_profile_id: UUID
@@ -202,7 +202,7 @@ class SubjectProfile(AppendOnlyModel):
         return self.effective_from
 
     def namespaced_profile_tags(self) -> tuple[NamespacedTag, ...]:
-        """Sensory and communication tags, namespaced for a scenario (SPEC 9.7)."""
+        """Sensory and communication tags, namespaced for a scenario."""
 
         tags = [f"sensory:{tag}" for tag in self.sensory_profile_tags]
         tags += [f"communication:{tag}" for tag in self.communication_support_tags]
@@ -244,7 +244,7 @@ class AuthorizationContext(BlubathonModel):
 
 
 class OperationRequirement(BlubathonModel):
-    """One row of the SPEC 13.1 minimum operation matrix."""
+    """One row of the minimum operation matrix."""
 
     operation: str
     allowed_roles: frozenset[Role]
@@ -306,7 +306,7 @@ class ConsentRevocationImpact(BlubathonModel):
     """What a revocation does to artifacts that already used the data.
 
     A snapshot stays immutable for audit, but it can no longer feed a new run
-    (SPEC 13.2).
+    .
     """
 
     subject_id: UUID

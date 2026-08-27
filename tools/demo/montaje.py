@@ -36,9 +36,6 @@ from tools.seed import ids
 from tools.seed.seeder import seed
 from tools.train.run import train
 
-#: Los dos sujetos de cohorte real. Son los únicos sobre los que el baseline
-#: puede estimar: `_origin_for` marca `synthetic` toda la cohorte de fixture, y
-#: el modelo descarta lo sintético (SPEC 8.5).
 NINOS: tuple[tuple[str, str, int], ...] = (
     (ids.SUBJECT_REAL, "Niña demo 4", 26),
     (ids.SUBJECT_REAL_B, "Niño demo 5", 30),

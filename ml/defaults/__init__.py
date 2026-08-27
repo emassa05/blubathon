@@ -1,4 +1,4 @@
-"""Smart defaults: what value is usual enough to suggest (SPEC 6.2-6.8).
+"""Smart defaults: what value is usual enough to suggest.
 
 Pure functions over already-loaded rows. Nothing here reads a database, a clock
 or a configuration file; a caller passes the history, the cutoff and the secret,

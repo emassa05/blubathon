@@ -175,7 +175,7 @@ def test_five_verified_outcomes_produce_a_beta_posterior() -> None:
 
 
 def test_the_interval_is_ninety_percent_and_has_no_width_gate() -> None:
-    """SPEC 8.5 / C20: the old 0.60 width cut was unreachable and was retired."""
+    """C20: the old 0.60 width cut was unreachable and was retired."""
 
     candidates = [
         _candidate(f"yes-{index}", outcome=OutcomeResolutionStatus.YES, days_ago=index + 3)
@@ -319,7 +319,7 @@ def test_the_predictor_encoding_maps_other_and_unknown_to_null() -> None:
 
 
 def test_only_the_two_preregistered_predictors_exist() -> None:
-    """SPEC 8.4 / C23: nothing selects a third predictor from the data."""
+    """C23: nothing selects a third predictor from the data."""
 
     with pytest.raises(ValueError, match="preregistered"):
         encode_predictor(FieldCode.GI_STATUS, "normal")
@@ -476,7 +476,7 @@ def test_the_baseline_offset_carries_a_fixed_coefficient_of_one() -> None:
 
 
 def test_a_tie_within_tolerance_chooses_the_larger_penalty() -> None:
-    """SPEC 8.4 / C44: equal Brier picks more regularisation."""
+    """C44: equal Brier picks more regularisation."""
 
     rows = _rows([0, 1, 0, 1, 1, 0, 1, 0])
     selection = select_penalty(rows)

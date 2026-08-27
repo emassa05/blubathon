@@ -1,12 +1,12 @@
 """Recommendation instances, professional review, human plans and execution.
 
-Three different facts, three different rows (SPEC 10.4). A professional's
+Three different facts, three different rows. A professional's
 preference is a `RecommendationReview`, exposure to a strategy is a
 `StrategyExecution`, and what happened afterwards is an `OutcomeReport`.
 Approved plus no event is not evidence of efficacy.
 
 `review_status` is never stored on the instance: the absence of an active review
-means pending, and storing it would create a second source of truth (SPEC 10.1).
+means pending, and storing it would create a second source of truth.
 """
 
 from __future__ import annotations
@@ -103,7 +103,7 @@ class HumanPlanVersion(AppendOnlyModel):
         return self
 
     def roles_are_subset_of(self, strategy_roles: frozenset[Role]) -> bool:
-        """A substitution may only narrow who is allowed to apply it (SPEC 10.2)."""
+        """A substitution may only narrow who is allowed to apply it."""
 
         return self.allowed_executor_roles <= strategy_roles
 
@@ -200,7 +200,7 @@ def exposure_is_eligible(
     target_end_at: datetime,
     outcome_occurred_at: datetime | None,
 ) -> bool:
-    """The SPEC 10.3 chronology for attributing an exposure to a window.
+    """The chronology for attributing an exposure to a window.
 
     A late or retrospectively reported application is kept as history but is not
     attributed to the outcome of that window.

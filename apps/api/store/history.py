@@ -1,6 +1,6 @@
 """Lecturas de historial que el dominio puro de P1 necesita como entrada.
 
-Todo el SQL del proyecto vive bajo `apps/api/store` (CONVENTIONS 12.1), así que
+Todo el SQL del proyecto vive bajo `apps/api/store`, así que
 los adaptadores de `apps/api/adapters/p1` piden aquí las filas y traducen ellos
 a los modelos de `packages/shared`.
 
@@ -12,11 +12,6 @@ from __future__ import annotations
 
 import sqlite3
 
-# La estimación que se publica: el challenger corrige la tasa base con el día
-# declarado (SPEC 8.4), así que cuando tiene número manda él. Si se abstiene
-# —sin modelo, sin tasa base, sin historia del predictor— queda la tasa base,
-# que es la misma cifra sin la corrección del día. La caída es continua: con
-# coeficientes y desviaciones nulas las dos coinciden.
 TRACK_PREFERENCE = (
     "real_logit_challenger_v1",
     "real_personal_baseline_v1",
@@ -72,7 +67,7 @@ def observations_for_session(
 def presentations_for_subject(
     connection: sqlite3.Connection, *, tenant_id: str, subject_id: str
 ) -> list[sqlite3.Row]:
-    """Presentaciones de preguntas, que fijan el reloj de antigüedad (SPEC 6.10)."""
+    """Presentaciones de preguntas, que fijan el reloj de antigüedad."""
     return list(
         connection.execute(
             "SELECT * FROM question_presentations WHERE tenant_id = ? AND subject_id = ?"
@@ -83,7 +78,7 @@ def presentations_for_subject(
 
 
 def approved_mapping_ids(connection: sqlite3.Connection, *, tenant_id: str) -> tuple[str, ...]:
-    """SPEC 6.2: una fila importada solo cuenta con mapping aprobado."""
+    """Una fila importada solo cuenta con mapping aprobado."""
     rows = connection.execute(
         "SELECT source_mapping_id FROM source_mappings"
         " WHERE tenant_id = ? AND approval_status = 'approved'",

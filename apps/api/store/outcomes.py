@@ -1,4 +1,4 @@
-"""Reportes, resoluciones y estado derivado del request (SPEC 4.4, 4.5).
+"""Reportes, resoluciones y estado derivado del request.
 
 Tres conceptos distintos y ningún estado mutable compartido:
 
@@ -29,7 +29,7 @@ from apps.api.store.projection import project_as_of
 def derive_timing_status(
     *, reported_at: str, target_end_at: str, capture_deadline_at: str
 ) -> TimingStatus:
-    """SPEC 4.5. Los límites son exactos y los extremos on_time son inclusivos."""
+    """Los límites son exactos y los extremos on_time son inclusivos."""
     if reported_at < target_end_at:
         return TimingStatus.EARLY
     if reported_at <= capture_deadline_at:
@@ -171,7 +171,7 @@ def compute_resolution(
     now: str,
     previously_conflicted: bool,
 ) -> ResolutionOutcome:
-    """SPEC 4.4, algoritmo literal sobre la proyección vigente al cutoff."""
+    """Algoritmo literal sobre la proyección vigente al cutoff."""
 
     def in_window(occurred_at: str | None) -> bool:
         # Ventana `(target_start_at, target_end_at]`: extremo inicial abierto.
@@ -301,7 +301,7 @@ def materialize_resolution(
 def derive_request_status(
     *, resolution_status: str, capture_deadline_at: str, now: str
 ) -> OutcomeRequestState:
-    """SPEC 4.4. El request no guarda estado: se deriva de resolución y reloj."""
+    """El request no guarda estado: se deriva de resolución y reloj."""
     if resolution_status in (OutcomeResolutionStatus.YES.value, OutcomeResolutionStatus.NO.value):
         return OutcomeRequestState.REPORTED
     if resolution_status == OutcomeResolutionStatus.CONFLICTED.value:

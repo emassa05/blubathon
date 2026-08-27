@@ -1,8 +1,8 @@
 """Spanish (Chile) copy shared by the API and every client.
 
 Visible text lives here or in the versioned catalogue, never inline in a
-component (CONVENTIONS 10). The language is affirmative and non-diagnostic, an
-abstention is never presented as an error, and the emergency limit of SPEC 13.2
+component. The language is affirmative and non-diagnostic, an
+abstention is never presented as an error, and the emergency limit
 is available for every screen that needs it.
 """
 
@@ -27,9 +27,6 @@ from packages.shared.enums import (
     WakeState,
 )
 
-# SPEC 13.2 and CONVENTIONS 14: shown on entry, abstention, results and
-# recommendations. Blubathon is not emergency monitoring and must never delay a local
-# urgent or safeguarding protocol.
 EMERGENCY_LIMIT_ES = (
     "Blubathon no vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmediato "
     "los protocolos de emergencia o resguardo de tu localidad."
