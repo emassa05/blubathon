@@ -32,3 +32,6 @@ Datos base/
 rag/corpus/
 rag/index/
 .DS_Store
+
+# Notas locales para probar. No se sube.
+PROBAR-LOCAL.md
