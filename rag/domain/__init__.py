@@ -40,7 +40,6 @@ from rag.domain.hashing import (
 from rag.domain.normalization import (
     NORMALIZATION_VERSION,
     normalize_document_text,
-    normalize_quote,
 )
 from rag.domain.text_guard import (
     FREE_TEXT_FIELDS,
@@ -81,7 +80,6 @@ __all__ = [
     "is_indexable",
     "literature",
     "normalize_document_text",
-    "normalize_quote",
     "seal",
     "split_paragraphs",
     "verify_citation",

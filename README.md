@@ -31,10 +31,11 @@ no hay historial suficiente menos de cinco resultados confirmados, o
 información en conflicto no muestra número. Dice que no sabe.
 
 **Recibir una sugerencia que se puede rastrear.** La recomendación del día se
-redacta a partir de documentos cargados en el corpus, y cada cita tiene que ser
-literal de uno de ellos. Si el texto generado no se puede anclar a una fuente,
-la recomendación no se muestra: se declara abstenida, con el motivo. No hay
-consejo sin procedencia.
+redacta a partir de documentos cargados en el corpus. El texto está escrito en
+palabras propias, pero cada afirmación declara de qué fragmento salió, y ese
+fragmento tiene que ser uno de los que se le entregaron al redactar. Si una cita
+apunta a una fuente que no se recuperó, la recomendación no se muestra: se
+declara abstenida, con el motivo. No hay consejo sin procedencia.
 
 **Cerrar el círculo.** Después de cada día registrado queda abierta una pregunta
 ¿ocurrió el evento en la ventana declarada? con plazo. Responderla es lo que
@@ -55,27 +56,68 @@ No vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmedi
 
 ## Cómo correrlo
 
-El backend, con datos de demostración:
+Requisitos: Python 3.12, pnpm 9 y [Ollama](https://ollama.com).
+
+**1. Instalar.**
 
 ```bash
-python -m tools.seed
-uvicorn "apps.api.main:create_app" --factory --port 8000
-```
-
-Y después la interfaz:
-
-```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
 pnpm install
-pnpm --dir apps/mobile dev        # http://localhost:5173
+ollama pull qwen2.5:14b
 ```
 
-Para correr el dominio real y el RAG completo:
-
-
-(`BLUBATHON_DRAFT_LLM=ollama`).
-
+**2. Montar la base.**
 
 ```bash
-python -m tools.rag_authoring.load_local --db data/blubathon.db \
-    --title "Guía de apoyos" --file guia.pdf
+.venv/bin/python -m tools.demo --reset
+```
+
+**3. Levantar Ollama.**
+
+```bash
+ollama serve
+```
+
+**4. Levantar el backend.**
+
+```bash
+BLUBATHON_P1_ADAPTERS=real \
+BLUBATHON_DRAFT_LLM=ollama \
+BLUBATHON_OLLAMA_MODEL=qwen2.5:14b \
+  .venv/bin/python -m uvicorn "apps.api.main:create_app" --factory --port 8000
+```
+
+**5. Levantar la interfaz.**
+
+```bash
+pnpm --dir apps/mobile dev
+```
+
+http://localhost:5173
+
+---
+
+### Corpus propio
+
+Los archivos en `data/local_corpus/` (`.pdf`, `.txt`, `.md`) entran en el
+próximo `tools.demo`. Para cargar uno desde otra ruta:
+
+```bash
+.venv/bin/python -m tools.rag_authoring.load_local --db data/blubathon.db \
+    --title "Guía de apoyos" --file /ruta/guia.pdf
+```
+
+### Pruebas
+
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/ruff check .
+pnpm --dir apps/mobile test
+```
+
+Después de tocar `rag/authoring/prompts/`:
+
+```bash
+.venv/bin/python -m tools.rag_authoring manifest
 ```

@@ -1,0 +1,117 @@
+{
+  "prompt_version": "authoring-draft-0.5.0",
+  "purpose": "Optional local draft of a candidate strategy from retrieved literature fragments. The draft paraphrases the fragments and attributes each claim to the document it came from. It is never activated without an evidence review and an independent clinical review.",
+  "runtime_use": "forbidden",
+  "input_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "generalized_question_es",
+      "fragments"
+    ],
+    "properties": {
+      "generalized_question_es": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A generalised authoring question written by a curator inside the clinical boundary and certified by a privacy reviewer. It carries no case attributes."
+      },
+      "fragments": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "document_version_id",
+            "locator",
+            "text"
+          ],
+          "properties": {
+            "document_version_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "locator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "purpose_es",
+      "action_text_es",
+      "claims"
+    ],
+    "properties": {
+      "purpose_es": {
+        "type": "string",
+        "minLength": 120,
+        "description": "Dos o tres frases sobre para que sirve la accion y por que ayuda."
+      },
+      "action_text_es": {
+        "type": "string",
+        "minLength": 250,
+        "description": "Cuatro a seis frases: la accion, como llevarla a cabo paso a paso, y que observar."
+      },
+      "claims": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "parafrasis_es",
+            "source_fragment"
+          ],
+          "properties": {
+            "parafrasis_es": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300,
+              "description": "Una o dos frases: la idea tomada del fragmento, REESCRITA en palabras propias y en lenguaje cotidiano. Nunca una copia del fragmento."
+            },
+            "source_fragment": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "El NUMERO del fragmento del que salio esta idea, tal como aparece en su etiqueta [fragmento N]."
+            }
+          }
+        }
+      }
+    }
+  },
+  "template": [
+    "Eres un asistente de redaccion documental. Trabajas sin conexion y solo con los fragmentos entregados.",
+    "",
+    "FRAGMENTOS FUENTE (la UNICA fuente de contenido). Cada uno viene numerado con una etiqueta [fragmento N]:",
+    "{fragments}",
+    "",
+    "CONTEXTO DEL DIA (esto NO es una fuente: describe como estuvo la persona, nunca lo uses como fuente):",
+    "{generalized_question_es}",
+    "",
+    "Reglas:",
+    "1. Escribe con tus propias palabras. Puedes parafrasear y explicar en detalle; no copies frases textuales de los fragmentos.",
+    "2. Cada elemento de `claims` debe declarar de que fragmento salio en `source_fragment`: el NUMERO de la etiqueta [fragmento N] de ese fragmento, como entero. No inventes numeros ni cites un fragmento que no aparezca arriba.",
+    "3. `parafrasis_es` es la idea que tomaste de ese fragmento REESCRITA en una o dos frases, en tus palabras y en lenguaje cotidiano. Si una frase tuya aparece igual en el fragmento, reescribila: cambia el orden, usa sinonimos, explicala como se la contarias a alguien. Copiar y pegar del fragmento NO es una respuesta valida.",
+    "4. `action_text_es` es la accion concreta que el cuidador puede hacer, apoyada en los fragmentos. Escribe entre CUATRO y SEIS frases completas: primero que hacer, despues como llevarlo a cabo paso a paso en el dia a dia, y por ultimo en que fijarse para saber si esta resultando. Una sola frase NO es una respuesta valida. No resumas el contexto del dia.",
+    "5. `purpose_es` explica en DOS o TRES frases para que sirve esa accion y por que ayuda, con otras palabras. Nunca repitas literalmente `action_text_es`.",
+    "6. Usa TODOS los fragmentos que aporten algo, no solo uno, y agrega un elemento a `claims` por cada fragmento que hayas usado.",
+    "7. No inventes fuentes, cifras, dosis ni recomendaciones que no esten en los fragmentos. Toda afirmacion debe poder rastrearse a un fragmento entregado.",
+    "8. No emitas diagnosticos ni indiques tratamientos.",
+    "9. Escribe en espanol de Chile, en lenguaje afirmativo y no diagnostico.",
+    "10. Devuelve unicamente JSON valido segun el esquema de salida.",
+    "",
+    "Elegi los fragmentos pertinentes al contexto del dia y redacta desde ahi, desarrollando la idea.",
+    "Un borrador no revisado no es una recomendacion."
+  ]
+}

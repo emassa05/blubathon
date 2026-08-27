@@ -133,7 +133,7 @@ class TestDocumentRights:
 
 
 class TestCitations:
-    def test_a_literal_quote_verifies(self) -> None:
+    def test_a_citation_naming_a_retrieved_chunk_verifies(self) -> None:
         build = rf.fixture_build()
         citation = _citation(build)
         result = verify_citation(
@@ -141,15 +141,28 @@ class TestCitations:
         )
         assert result.verified
 
-    def test_a_quote_that_is_not_in_the_chunk_fails(self) -> None:
+    def test_a_paraphrase_of_the_chunk_verifies(self) -> None:
         build = rf.fixture_build()
-        fabricated = _citation(build).model_copy(
-            update={"quoted_text": "una frase que nadie escribio"}
+        paraphrased = _citation(build).model_copy(
+            update={"quoted_text": "el documento describe una rutina de sueno estable"}
         )
         result = verify_citation(
-            fabricated, {chunk.document_chunk_id: chunk for chunk in build.chunks}
+            paraphrased, {chunk.document_chunk_id: chunk for chunk in build.chunks}
         )
-        assert result.failure == "quote_not_literal"
+        assert result.verified
+
+    def test_a_citation_naming_a_chunk_that_was_not_retrieved_fails(self) -> None:
+        build = rf.fixture_build()
+        citation = _citation(build)
+        assert verify_citation(citation, {}).failure == "chunk_unknown"
+
+    def test_a_locator_that_does_not_match_the_chunk_fails(self) -> None:
+        build = rf.fixture_build()
+        citation = _citation(build).model_copy(update={"locator": "paragraphs 99-100"})
+        result = verify_citation(
+            citation, {chunk.document_chunk_id: chunk for chunk in build.chunks}
+        )
+        assert result.failure == "locator_mismatch"
 
     def test_a_chunk_whose_hash_changed_fails(self) -> None:
         build = rf.fixture_build()

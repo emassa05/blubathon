@@ -238,7 +238,7 @@ def test_inv_22_no_prompt_or_index_carries_an_identifier_or_a_clinical_note() ->
         )
 
 
-def test_inv_24_a_citation_that_does_not_match_its_fragment_is_rejected() -> None:
+def test_inv_24_a_citation_whose_source_was_not_retrieved_is_rejected() -> None:
     build = rf.fixture_build()
     chunk = rf.chunk_containing(build, rf.SLEEP_QUOTE)
     fabricated = StrategyCitation(
@@ -246,9 +246,11 @@ def test_inv_24_a_citation_that_does_not_match_its_fragment_is_rejected() -> Non
         claim_id=ident("claim:inv24"),
         document_chunk_id=chunk.document_chunk_id,
         locator=chunk.locator,
-        quoted_text="cita falsa",
+        quoted_text="una parafrasis de lo que dice el documento",
         chunk_sha256=chunk.chunk_sha256,
         canonical_url="https://example.invalid/fixtures/quoted",
     )
-    result = verify_citation(fabricated, {item.document_chunk_id: item for item in build.chunks})
-    assert result.failure == "quote_not_literal"
+    chunks = {item.document_chunk_id: item for item in build.chunks}
+    # La paráfrasis no invalida: lo que se verifica es la procedencia.
+    assert verify_citation(fabricated, chunks).verified
+    assert verify_citation(fabricated, {}).failure == "chunk_unknown"

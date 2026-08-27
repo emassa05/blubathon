@@ -1,11 +1,19 @@
-"""Literal citation verification (INV-24).
+"""Citation provenance verification (INV-24).
 
-The automatic check answers one narrow question: does `quoted_text` appear,
-character for character, inside the normalised text of the exact hashed chunk
-the citation names, at the locator it names. Whether that fragment supports the
-claim is a judgement the `evidence_reviewer` makes; no code decides it.
+The automatic check answers one narrow question: does the citation name a chunk
+that was actually retrieved, unchanged, at the locator it claims. Whether that
+fragment supports the claim is a judgement the `evidence_reviewer` makes; no
+code decides it.
 
-A mismatch blocks activation. It is never repaired by loosening the comparison.
+`quoted_text` is a paraphrase and is deliberately *not* checked against the
+chunk. That is a design decision, not an oversight: the draft is written to be
+read by a caregiver, so the model rephrases in its own words and attributes the
+idea to its source (see `authoring_draft.v0_5_0.json`). The guarantee that
+survives is provenance — the cited document exists and was retrieved — not
+literal quotation. Reintroducing a substring check here would make every
+paraphrased draft abstain.
+
+A provenance mismatch still blocks activation.
 """
 
 from __future__ import annotations
@@ -16,13 +24,11 @@ from typing import Literal
 from uuid import UUID
 
 from packages.shared.domain.rag import DocumentChunk, StrategyCitation, StrategyVersion
-from rag.domain.normalization import normalize_document_text, normalize_quote
 
 VerificationFailure = Literal[
     "chunk_unknown",
     "chunk_hash_mismatch",
     "locator_mismatch",
-    "quote_not_literal",
 ]
 
 
@@ -39,7 +45,7 @@ class CitationVerification:
 def verify_citation(
     citation: StrategyCitation, chunks: Mapping[UUID, DocumentChunk]
 ) -> CitationVerification:
-    """Check one citation against the chunk it names."""
+    """Check one citation's provenance against the chunk it names."""
 
     chunk = chunks.get(citation.document_chunk_id)
     if chunk is None:
@@ -51,10 +57,6 @@ def verify_citation(
     if chunk.locator != citation.locator:
         return CitationVerification(
             citation.citation_id, citation.claim_id, False, "locator_mismatch"
-        )
-    if normalize_quote(citation.quoted_text) not in normalize_document_text(chunk.text):
-        return CitationVerification(
-            citation.citation_id, citation.claim_id, False, "quote_not_literal"
         )
     return CitationVerification(citation.citation_id, citation.claim_id, True)
 

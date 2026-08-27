@@ -27,7 +27,7 @@ from packages.shared.domain.rag import DocumentChunk
 from rag.domain.text_guard import assert_literature_only, assert_no_clinical_text, literature
 
 PROMPT_PACKAGE: Final = "rag.authoring.prompts"
-AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_4_0.json"
+AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_5_0.json"
 
 logger = logging.getLogger("blubathon.rag")
 
@@ -108,12 +108,28 @@ class DraftResult:
             raise ValueError("the local draft is not valid JSON and cannot be reviewed") from error
 
 
+def fragment_order(chunks: Iterable[DocumentChunk]) -> tuple[DocumentChunk, ...]:
+    """The stable order the prompt numbers fragments in.
+
+    A claim cites a fragment by that number, so the caller resolving a citation
+    has to walk the same order this rendered.
+    """
+
+    return tuple(sorted(chunks, key=lambda item: item.chunk_sha256))
+
+
 def render_fragments(chunks: Iterable[DocumentChunk]) -> str:
-    """Fragments in a stable, quotable form. Nothing but literature goes in."""
+    """Fragments in a stable, numbered form. Nothing but literature goes in.
+
+    The label is an ordinal, not the document's identifier and locator. A model
+    asked to copy `paragraphs 7-12` back rewrites it — it translates it, or
+    splits the range into `paragraph 7` — and the citation then names a fragment
+    that was never retrieved. A number survives being copied.
+    """
 
     lines = [
-        f"[{chunk.document_version_id} | {chunk.locator}]\n{chunk.text}"
-        for chunk in sorted(chunks, key=lambda item: item.chunk_sha256)
+        f"[fragmento {index}]\n{chunk.text}"
+        for index, chunk in enumerate(fragment_order(chunks), start=1)
     ]
     return "\n\n".join(lines)
 

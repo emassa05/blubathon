@@ -12,6 +12,7 @@ from apps.api.settings import load_settings
 from apps.api.store.db import connect
 from apps.api.store.migrations import migrate
 from tools.demo.montaje import DIAS_POR_DEFECTO, montar_demo
+from tools.rag_authoring.load_local import export_corpus, restore_corpus
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -39,6 +40,12 @@ def main(argv: list[str] | None = None) -> int:
         os.environ["BLUBATHON_DB_PATH"] = str(args.db)
     ruta = Path(load_settings().db_path)
 
+    # El corpus local es lo único de la base que no se puede volver a fabricar:
+    # sale de PDFs que quizá ya no estén, y re-extraerlos cuesta. Se copia antes
+    # de borrar y se reinserta después, así `--reset` limpia el historial sin
+    # tocarlo. Si además están los PDFs, `load_local_corpus` no duplica nada.
+    corpus = export_corpus(ruta) if args.reset else {}
+
     if args.reset:
         for sufijo in ("", "-shm", "-wal"):
             Path(str(ruta) + sufijo).unlink(missing_ok=True)
@@ -46,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     connection = connect(ruta)
     try:
         migrate(connection, canonical_timestamp(datetime.now(UTC)))
+        preservados = restore_corpus(connection, corpus)
         resultado = montar_demo(connection, dias=args.dias)
     finally:
         connection.close()
@@ -53,6 +61,15 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print(f"base                 {ruta}")
     print(f"corpus               {resultado.fragmentos} fragmentos indexados")
+    if preservados:
+        print(f"corpus preservado    {preservados} fragmentos locales sobrevivieron al reset")
+    if resultado.documentos_locales:
+        print(
+            f"corpus local         {resultado.documentos_locales}"
+            " documentos de data/local_corpus"
+        )
+    for motivo in resultado.omitidos:
+        print(f"                     omitido: {motivo}")
     for nino in resultado.ninos:
         print(f"{nino.etiqueta:20s} {nino.dias} días, {nino.verificados} resultados verificados")
         print(f"                     {nino.child_id}")

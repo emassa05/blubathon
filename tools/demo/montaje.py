@@ -32,6 +32,7 @@ from dataclasses import dataclass
 
 from apps.api.context import DEMO_TENANT_ID
 from tools.demo_history import build_history
+from tools.rag_authoring.load_local import load_local_corpus
 from tools.seed import ids
 from tools.seed.seeder import seed
 from tools.train.run import train
@@ -61,6 +62,10 @@ class DemoResult:
     fragmentos: int
     modelo: str | None
     motivo_sin_modelo: str | None
+    #: Documentos de `data/local_corpus/` cargados en este montaje.
+    documentos_locales: int = 0
+    #: Archivos de ese directorio que no se pudieron cargar, con su motivo.
+    omitidos: tuple[str, ...] = ()
 
     @property
     def entrenado(self) -> bool:
@@ -90,6 +95,13 @@ def montar_demo(
     # vigencia: los episodios nacen sin `care_mode` y el dominio los rechaza al
     # releerlos.
     seed(connection, catalog_profile="fixture-active")
+    connection.commit()
+
+    # El corpus sembrado son fragmentos ficticios cortos, suficientes para que
+    # la recuperación case pero no para juzgar cómo redacta el modelo. Si hay
+    # documentos en `data/local_corpus/`, entran acá: así un `--reset` no
+    # obliga a recargarlos a mano. Sin ese directorio esto no hace nada.
+    documentos, _, omitidos = load_local_corpus(connection)
     connection.commit()
 
     fragmentos = connection.execute("SELECT COUNT(*) FROM document_chunks").fetchone()[0]
@@ -125,6 +137,8 @@ def montar_demo(
         fragmentos=fragmentos,
         modelo=informe.model_version,
         motivo_sin_modelo=informe.reason,
+        documentos_locales=documentos,
+        omitidos=omitidos,
     )
 
 

@@ -28,8 +28,8 @@
     "lexical_top_k": 20,
     "normalization_version": "normalize-nfc-lf-0.3.0",
     "ocr_version": null,
-    "prompt_sha256": "cbb7b2d6eaf09bb3d2d7ed440cc2100ede2ac1ac894315081b2a0fc62aa80c38",
-    "prompt_version": "authoring-draft-0.4.0",
+    "prompt_sha256": "774d2a5d472e133044adab05eb637cd7548df150a3fc792a54245b4c486aa95b",
+    "prompt_version": "authoring-draft-0.5.0",
     "rrf_k": 60,
     "tokenizer_version": "tokenizer-unicode-word-0.3.0"
   },
