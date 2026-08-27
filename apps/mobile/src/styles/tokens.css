@@ -167,6 +167,22 @@
   --blubathon-icono-26: 26px;
   --blubathon-punto: 9px;
 
+  /* Panel del terapeuta.
+   *
+   * Es la única pantalla que no es una columna de lectura: compara varios niños
+   * a la vez, así que su ancho no lo decide el texto sino cuántas fichas caben
+   * sin que la lista se vuelva un desplazamiento infinito.
+   *
+   * La columna de la cartera es fija y no proporcional: los nombres y las
+   * cifras que lleva miden lo mismo tenga la ventana el ancho que tenga, y una
+   * columna elástica solo añadiría aire entre el nombre y su porcentaje.
+   */
+  --blubathon-panel-ancho: 1180px;
+  --blubathon-columna-cartera: 340px;
+  /* Alto del gráfico de riesgo. El eje vertical es 0-100 fijo, así que este
+     valor decide cuánta resolución tiene un punto porcentual. */
+  --blubathon-grafico-alto: 132px;
+
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */
   --blubathon-dur: 5s;

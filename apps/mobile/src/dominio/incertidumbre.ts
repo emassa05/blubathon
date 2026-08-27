@@ -20,7 +20,15 @@
  * un número por defecto.
  */
 
-function intervalo(valor: unknown): readonly [number, number] | null {
+/**
+ * El intervalo del contrato, estrechado a un par de números o descartado.
+ *
+ * Se exporta porque el gráfico del terapeuta necesita el mismo estrechamiento:
+ * el generador publica `interval` como `Array<unknown>`, así que quien lo lea
+ * tiene que comprobarlo, y comprobarlo dos veces con dos criterios distintos
+ * acabaría dibujando bandas que la cifra de confianza había descartado.
+ */
+export function intervalo(valor: unknown): readonly [number, number] | null {
   if (!Array.isArray(valor) || valor.length !== 2) return null;
   const [inferior, superior] = valor;
   if (typeof inferior !== "number" || typeof superior !== "number") return null;

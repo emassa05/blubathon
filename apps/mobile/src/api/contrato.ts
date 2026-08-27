@@ -34,6 +34,10 @@ export type {
   OutcomeRequestListResponse,
   OutcomeRequestView,
   RecommendationCitation,
+  RecommendationDecisionRequest,
+  RecommendationDecisionResponse,
+  RecommendationInstanceView,
+  ReviewQueueResponse,
   TodayRecommendationResponse,
 } from "@contrato/contract";
 

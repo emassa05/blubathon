@@ -1,0 +1,216 @@
+<script setup lang="ts">
+import IconoAlerta from "@/components/icons/IconoAlerta.vue";
+import { CLASE_BANDA, bandaRiesgo } from "@/theme/riesgo";
+import type { FichaNino } from "@/types/terapeuta";
+
+defineProps<{
+  fichas: readonly FichaNino[];
+  seleccionado: string | null;
+  cargando: boolean;
+}>();
+
+const emitir = defineEmits<{ seleccionar: [id: string] }>();
+
+/** El riesgo escrito, o la abstención dicha con palabras.
+ *
+ * "—" o un guion no valen: en una columna de cifras, un hueco se lee como un
+ * cero pequeño. Sin estimación hay que decirlo. */
+function cifra(riesgo: number | null): string {
+  return riesgo === null ? "s/d" : `${Math.round(riesgo)}%`;
+}
+
+function descripcion(ficha: FichaNino): string {
+  const riesgo =
+    ficha.riesgo === null
+      ? "sin estimación de riesgo"
+      : `riesgo ${Math.round(ficha.riesgo)} por ciento`;
+  const pendientes =
+    ficha.pendientes === 0
+      ? ""
+      : `, ${ficha.pendientes} ${ficha.pendientes === 1 ? "cierre pendiente" : "cierres pendientes"}`;
+  return `${ficha.etiqueta}, ${riesgo}${pendientes}`;
+}
+</script>
+
+<template>
+  <section class="lista" aria-labelledby="lista-ninos-titulo">
+    <h2 id="lista-ninos-titulo" class="lista__titulo">Niños en seguimiento</h2>
+
+    <p v-if="cargando" class="lista__aviso" role="status">Cargando la cartera…</p>
+
+    <p v-else-if="fichas.length === 0" class="lista__aviso">
+      No hay niños asignados en esta organización.
+    </p>
+
+    <!--
+      Una lista de botones y no una lista de enlaces: no se navega a ninguna
+      parte, se cambia lo que muestran los otros dos widgets. `aria-current`
+      dice cuál está activo, que es lo que un lector necesita para no perder
+      dónde está al recorrer la columna.
+    -->
+    <ul v-else class="lista__filas">
+      <li v-for="ficha in fichas" :key="ficha.id">
+        <button
+          type="button"
+          class="fila"
+          :class="[
+            CLASE_BANDA[bandaRiesgo(ficha.riesgo)],
+            { 'fila--activa': ficha.id === seleccionado },
+          ]"
+          :aria-current="ficha.id === seleccionado ? 'true' : undefined"
+          :aria-label="descripcion(ficha)"
+          @click="emitir('seleccionar', ficha.id)"
+        >
+          <span class="fila__punto" aria-hidden="true"></span>
+
+          <span class="fila__cuerpo">
+            <span class="fila__nombre">{{ ficha.etiqueta }}</span>
+            <span class="fila__detalle">
+              {{ ficha.serie.length }} {{ ficha.serie.length === 1 ? "día" : "días" }} registrados
+            </span>
+          </span>
+
+          <!-- Los cierres pendientes van en la fila y no en el perfil: son la
+               razón por la que el terapeuta elegiría mirar a este niño antes
+               que a otro, y en el perfil solo los vería después de elegirlo. -->
+          <span v-if="ficha.pendientes > 0" class="fila__pendientes" aria-hidden="true">
+            <IconoAlerta class="fila__alerta" />
+            {{ ficha.pendientes }}
+          </span>
+
+          <span class="fila__riesgo" aria-hidden="true">{{ cifra(ficha.riesgo) }}</span>
+        </button>
+      </li>
+    </ul>
+  </section>
+</template>
+
+<style scoped>
+.lista {
+  display: flex;
+  flex-direction: column;
+  padding: var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
+}
+
+.lista__titulo {
+  font-size: var(--blubathon-fs-11);
+  font-weight: 700;
+  letter-spacing: var(--blubathon-track-014);
+  text-transform: uppercase;
+  color: var(--blubathon-gris-texto);
+}
+
+.lista__aviso {
+  margin-top: var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-gris-texto);
+}
+
+.lista__filas {
+  margin-top: var(--blubathon-esp-12);
+  list-style: none;
+}
+
+/* Filete entre filas, no una caja por fila: la tarjeta ya es la caja, y meter
+   otra dentro dibujaría dos bordes concéntricos. */
+.lista__filas > li + li {
+  border-top: 1px solid var(--blubathon-linea);
+}
+
+.fila {
+  display: flex;
+  gap: var(--blubathon-esp-10);
+  align-items: center;
+  width: 100%;
+  min-height: var(--blubathon-toque);
+  padding: var(--blubathon-esp-10) var(--blubathon-esp-8);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--blubathon-radio-10);
+}
+
+.fila:hover {
+  background: var(--blubathon-fila-activa);
+}
+
+.fila:focus-visible {
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-marca-accion);
+  outline-offset: calc(var(--blubathon-foco-offset) * -1);
+}
+
+.fila--activa {
+  background: var(--blubathon-fila-activa);
+}
+
+/*
+ * El punto lleva el color de la banda. Es lo único de la fila que lo lleva: la
+ * fila entera teñida convertiría la columna en un semáforo de seis luces donde
+ * ninguna destaca, y el color aquí tiene que servir para comparar de un vistazo.
+ *
+ * Nunca va solo: la cifra de la derecha dice lo mismo escrito, así que quien no
+ * distingue los tonos no pierde el dato.
+ */
+.fila__punto {
+  flex: none;
+  width: var(--blubathon-punto);
+  height: var(--blubathon-punto);
+  background: var(--blubathon-onda-3, var(--blubathon-punto-inactivo));
+  border-radius: 50%;
+}
+
+.fila__cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.fila__nombre {
+  overflow: hidden;
+  font-size: var(--blubathon-fs-15);
+  font-weight: 700;
+  color: var(--blubathon-marca-titulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fila__detalle {
+  font-size: var(--blubathon-fs-12);
+  color: var(--blubathon-gris-texto);
+}
+
+.fila__pendientes {
+  display: inline-flex;
+  flex: none;
+  gap: var(--blubathon-esp-4);
+  align-items: center;
+  padding: 2px var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-11);
+  font-weight: 700;
+  color: var(--blubathon-aviso-etiqueta);
+  background: var(--blubathon-aviso-fondo);
+  border-radius: var(--blubathon-radio-pastilla);
+}
+
+.fila__alerta {
+  width: var(--blubathon-icono-12);
+  height: var(--blubathon-icono-12);
+}
+
+.fila__riesgo {
+  flex: none;
+  min-width: 3ch;
+  font-size: var(--blubathon-fs-135);
+  font-weight: 700;
+  color: var(--blubathon-marca-texto);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+</style>
