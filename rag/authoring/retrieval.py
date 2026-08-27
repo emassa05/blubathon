@@ -119,7 +119,7 @@ def retrieve(
         logger.warning("retrieve abortado mode=hybrid motivo=dense_retriever_no_registrado")
         raise DenseModelNotRegisteredError(
             "a hybrid build needs a registered embedding model; no model is downloaded "
-            "implicitly and retrieval is never simulated (SPEC 9.4)"
+            "implicitly and retrieval is never simulated"
         )
 
     lexical = index.search(query, top_k=plan.lexical_top_k)

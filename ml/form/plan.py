@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from uuid import UUID
 
-from ml.spec_constants import (
+from ml.formula_constants import (
     DEFAULT_WINDOW_DAYS,
     EXPLORATION_WEEKDAY_MODULUS,
     FORM_HIGHLIGHTED_DEFAULT,

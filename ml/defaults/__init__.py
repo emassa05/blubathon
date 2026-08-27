@@ -6,7 +6,7 @@ and gets a decision plus the evidence behind it.
 
 The estimator is deliberately unable to confirm itself: an accepted suggestion
 and an edited suggestion are both excluded from the window that produces the
-next one (FUNDAMENTOS 7).
+next one.
 """
 
 from ml.defaults.audit import AuditAssignment, assign_audit_mode

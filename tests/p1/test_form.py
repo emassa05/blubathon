@@ -1,7 +1,4 @@
-"""DQI, VoI, the form plan and `build_scenario`.
-
-The worked numbers come from FUNDAMENTOS 9, 10 and 11.
-"""
+"""DQI, VoI, the form plan and `build_scenario`."""
 
 from __future__ import annotations
 
@@ -23,7 +20,7 @@ from ml.form import (
     estimate_voi,
     exploration_weekday,
 )
-from ml.spec_constants import (
+from ml.formula_constants import (
     DQI_WINDOW_DAYS,
     LOW_COVERAGE_THRESHOLD,
 )
@@ -57,7 +54,7 @@ def _daily(label: str, day_offset: int, **overrides):
 
 
 def test_the_denominator_is_five_fields_times_fourteen_days() -> None:
-    """FUNDAMENTOS 10.1: 70 observation opportunities, fixed."""
+    """70 observation opportunities, fixed."""
 
     rows = [
         _daily(f"{field}-{day}", day, field_code=field, value=value)

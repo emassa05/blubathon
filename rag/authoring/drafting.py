@@ -131,7 +131,7 @@ def request_draft(
         logger.warning("draft abortado motivo=transport_no_registrado")
         raise DraftUnavailableError(
             "no local model is registered with a licence, model card and artifact hash; "
-            "authoring stays manual (TAREAS 13)"
+            "authoring stays manual"
         )
     if not request.chunks:
         raise ValueError("a draft is grounded in at least one retrieved fragment")

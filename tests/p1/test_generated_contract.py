@@ -14,7 +14,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
-from packages.shared.constants import CONTRACT_VERSION, SPEC_VERSION
+from packages.shared.constants import CONTRACT_VERSION, DOMAIN_VERSION
 from packages.shared.schema.registry import PUBLISHED_MODELS
 from tools.contracts import examples as example_tool
 from tools.contracts import generate as generator
@@ -67,7 +67,7 @@ def test_committed_artifacts_match_a_fresh_generation() -> None:
 def test_the_lock_publishes_the_contract_version_and_schema_hash() -> None:
     lock = json.loads((GENERATED / "contract.lock.json").read_text(encoding="utf-8"))
     assert lock["contract_version"] == CONTRACT_VERSION
-    assert lock["spec_version"] == SPEC_VERSION
+    assert lock["domain_version"] == DOMAIN_VERSION
     assert len(lock["schema_hash"]) == 64
     assert lock["schema_hash"] == generator.schema_hash(generator.build_schema())
     assert sorted(lock["published_models"]) == sorted(PUBLISHED_MODELS)

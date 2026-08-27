@@ -51,7 +51,7 @@ export interface VistaReporteResultado extends OutcomeReportResponse {
 
 export interface EstadoServicio {
   status: string;
-  spec_version: string;
+  domain_version: string;
   mode: string;
   adapters: string;
 }

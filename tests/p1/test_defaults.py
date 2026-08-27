@@ -1,8 +1,7 @@
 """Smart defaults: golden vectors, the clean window and the presentation rule.
 
-The golden numbers come from the corrected table in FUNDAMENTOS 5.4 and the
-Dirichlet worked example in FUNDAMENTOS 6.1. They are checked against SciPy, not
-against a hand-written approximation.
+The golden numbers are checked against SciPy, not against a hand-written
+approximation.
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ from ml.defaults import (
     compute_default_decision,
     eligible_history,
 )
-from ml.spec_constants import (
+from ml.formula_constants import (
     AUDIT_BUCKET_MODULUS,
     AUDIT_BUCKET_THRESHOLD,
     DEFAULT_LOWER_QUANTILE,
@@ -37,7 +36,6 @@ STRATUM = Stratum(
     tenant_id=TENANT, subject_id=SUBJECT, source=Source.HOME, field_code=FieldCode.FOOD_CHANGES
 )
 
-# FUNDAMENTOS 5.4, the corrected table.
 GOLDEN_BINARY = (
     (2, 0, 3, 1, 0.7500, 0.3684, False),
     (8, 2, 9, 3, 0.7500, 0.5299, False),
@@ -67,7 +65,7 @@ def test_the_lower_bound_comes_from_scipy() -> None:
 
 
 def test_two_of_two_is_not_the_clopper_pearson_bound() -> None:
-    """FUNDAMENTOS 5.4: 22.36% answers a different, frequentist question."""
+    """22.36% answers a different, frequentist question."""
 
     estimate = compute_binary_default(true_count=2, false_count=0)
     assert estimate.lower_bound == pytest.approx(0.3684, abs=5e-5)

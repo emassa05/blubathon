@@ -71,7 +71,7 @@ def build_document_version(
     if not document.rights_basis.strip() or document.rights_basis == _UNDECLARED:
         raise RightsNotDeclaredError(
             f"{document.publisher} {document.document_version}: reuse terms are not declared, "
-            "so this version cannot be indexed (SPEC 9.2)"
+            "so this version cannot be indexed"
         )
     return DocumentVersion(
         document_version_id=document_version_id,

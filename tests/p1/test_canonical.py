@@ -121,7 +121,7 @@ def test_bucket_assignment_is_stable_and_needs_a_secret() -> None:
         stable_bucket(b"", parts, 1000)
 
 
-def test_inclusive_and_exclusive_windows_match_the_spec_arithmetic() -> None:
+def test_inclusive_and_exclusive_windows_match_the_declared_arithmetic() -> None:
     cutoff = date(2026, 8, 25)
     assert inclusive_window(cutoff, 14) == (date(2026, 8, 12), cutoff)
     assert inclusive_window(cutoff, 60) == (date(2026, 6, 27), cutoff)

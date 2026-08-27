@@ -24,6 +24,7 @@ from apps.api.canonical import parse_timestamp
 from apps.api.ports.prediction import TrackOutput
 from apps.api.store import history
 from apps.api.store.db import Database
+from ml.formula_constants import PERSONAL_DEVIATION_WINDOW_DAYS
 from ml.prediction import (
     BASELINE_MODEL_VERSION,
     CHALLENGER_MODEL_VERSION,
@@ -38,7 +39,6 @@ from ml.prediction.challenger import (
     predictor_deviations,
 )
 from ml.prediction.synthetic_reference import CohortViolationError
-from ml.spec_constants import PERSONAL_DEVIATION_WINDOW_DAYS
 from packages.shared.enums import (
     CohortKind,
     DataOrigin,

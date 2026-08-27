@@ -30,13 +30,13 @@ from pathlib import Path
 from typing import Any, Final
 
 from packages.shared.constants import (
+    DOMAIN_VERSION,
     MAX_RUNTIME_STRATEGIES,
     RAG_DENSE_TOP_K,
     RAG_FINAL_CHUNKS,
     RAG_LEXICAL_TOP_K,
     RAG_RRF_K,
     RUNTIME_LLM_CALLS,
-    SPEC_VERSION,
     STRATEGY_REQUIRED_DISTINCT_REVIEWERS,
 )
 from packages.shared.domain.rag import resolve_catalog_readiness
@@ -134,10 +134,10 @@ def build_status_manifest(
     return {
         "manifest_kind": "rag_build",
         "manifest_version": "1",
-        "spec_version": SPEC_VERSION,
+        "domain_version": DOMAIN_VERSION,
         "schema_version": RAG_SCHEMA_VERSION,
         "purpose": (
-            "TAREAS M4/H4 - the authoring pipeline this repository would run today, with the "
+            "The authoring pipeline this repository would run today, with the "
             "versions and hashes that fix its result. No corpus body, index or model is tracked."
         ),
         "retrieval_mode": status["retrieval_mode"],

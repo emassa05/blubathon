@@ -1,8 +1,7 @@
 """The data quality index.
 
 `DQI = coverage * recency * consistency`, and the product is deliberate: a
-perfect coverage does not compensate for a record that is two weeks old
-(FUNDAMENTOS 10.4).
+perfect coverage does not compensate for a record that is two weeks old.
 
 The DQI describes quality. It is never a predictive feature and never a gate:
 v0.3 defines no universal cut, so a track abstains for its own explicit reasons,
@@ -18,7 +17,7 @@ from datetime import date, datetime
 from types import MappingProxyType
 
 from ml.errors import OriginMixError
-from ml.spec_constants import (
+from ml.formula_constants import (
     DQI_ACCEPTED_DEFAULT_WEIGHT,
     DQI_CONSISTENCY_FLOOR,
     DQI_OBSERVED_WEIGHT,

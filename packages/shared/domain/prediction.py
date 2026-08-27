@@ -130,7 +130,7 @@ class PredictionEpisode(BlubathonModel):
     created_at: UtcDatetime
 
     @model_validator(mode="after")
-    def _window_is_exactly_the_spec_window(self) -> PredictionEpisode:
+    def _window_is_exactly_the_declared_window(self) -> PredictionEpisode:
         if self.prediction_at != self.as_of_at:
             raise ValueError("prediction_at is as_of_at")
         if self.target_start_at != self.prediction_at:

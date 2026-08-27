@@ -8,7 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from apps.api.canonical import content_hash
-from apps.api.contracts.constants import SPEC_VERSION
+from apps.api.contracts.constants import DOMAIN_VERSION
 from apps.api.contracts.enums import EpisodeRole, PredictionEpisodeStatus
 from apps.api.errors import conflict
 from apps.api.ports.prediction import TrackOutput
@@ -124,7 +124,7 @@ def create_feature_snapshot(
             dump(sorted(consent_ids)),
             profile_version,
             care_mode,
-            content_hash("feature_snapshot", SPEC_VERSION, payload),
+            content_hash("feature_snapshot", DOMAIN_VERSION, payload),
             created_at,
         ),
     )

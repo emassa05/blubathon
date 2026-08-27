@@ -59,11 +59,9 @@ def guard_cohort(*, cohort_kind: CohortKind, input_data_origin: DataOrigin) -> N
     """Refuse a real subject or real input data before anything is computed."""
 
     if cohort_kind is not CohortKind.DEMO_FIXTURE:
-        raise CohortViolationError(
-            "the simulation track only runs on demo_fixture cohorts (SPEC 8.2)"
-        )
+        raise CohortViolationError("the simulation track only runs on demo_fixture cohorts")
     if input_data_origin is not DataOrigin.SYNTHETIC:
-        raise CohortViolationError("the simulation track never runs on real input data (SPEC 2.14)")
+        raise CohortViolationError("the simulation track never runs on real input data")
 
 
 def score_simulation(

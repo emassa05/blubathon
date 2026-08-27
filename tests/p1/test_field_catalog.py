@@ -59,7 +59,9 @@ def test_the_outcome_is_not_a_daily_field() -> None:
 @pytest.mark.parametrize(
     ("code", "expected"), sorted(SOURCE_MATRIX.items(), key=lambda i: str(i[0]))
 )
-def test_source_matrix_matches_the_spec(code: FieldCode, expected: tuple[bool, bool, bool]) -> None:
+def test_source_matrix_matches_the_catalogue(
+    code: FieldCode, expected: tuple[bool, bool, bool]
+) -> None:
     spec = FIELD_CATALOG[code]
     actual = (
         spec.allows(Source.HOME),
@@ -77,7 +79,7 @@ def test_applicable_fields_keeps_canonical_order_and_only_permitted_fields() -> 
             assert FIELD_CATALOG[code].allows(source)
 
 
-def test_default_allowlist_is_exactly_the_five_fields_of_spec_6_7() -> None:
+def test_default_allowlist_is_exactly_five_fields() -> None:
     assert {
         FieldCode.FOOD_CHANGES,
         FieldCode.ACTIVITY_PARTICIPATION,
@@ -123,7 +125,7 @@ def test_dqi_uses_the_same_five_fields() -> None:
     assert len(DQI_REQUIRED_FIELDS) == 5
 
 
-def test_scenario_allowlist_is_the_five_fields_of_spec_9_7() -> None:
+def test_scenario_allowlist_is_five_fields() -> None:
     assert {
         FieldCode.SLEEP_QUALITY,
         FieldCode.ALERTNESS,

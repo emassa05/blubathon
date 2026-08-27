@@ -7,7 +7,7 @@ root_packages =
     tools
 include_external_packages = True
 
-# CONVENTIONS 4. A comment does not enforce a boundary; these contracts do.
+# A comment does not enforce a boundary; these contracts do.
 
 [importlinter:contract:shared-is-independent]
 name = The shared contract depends on nobody

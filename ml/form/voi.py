@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Protocol
 
 from ml.defaults.window import EligibleHistory
-from ml.spec_constants import DEFAULT_PRIOR_PER_CATEGORY
+from ml.formula_constants import DEFAULT_PRIOR_PER_CATEGORY
 from packages.shared.constants import DEFAULTS_ESTIMATOR_VERSION
 from packages.shared.domain.prediction import VoiEstimate
 from packages.shared.enums import FieldCode, VoiStatus

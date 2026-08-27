@@ -428,7 +428,7 @@ BLUBATHON_P1_ADAPTERS=real BLUBATHON_DRAFT_LLM=ollama \
   uvicorn "apps.api.main:create_app" --factory --port 8000
 ```
 
-`GET /health` → `{"status": "ok", "spec_version": "0.4.0", "mode": "demo",
+`GET /health` → `{"status": "ok", "domain_version": "0.4.0", "mode": "demo",
 "adapters": "p1"}`. OpenAPI en `/docs`, deshabilitado en modo piloto
 (`BLUBATHON_MODE=pilot`).
 

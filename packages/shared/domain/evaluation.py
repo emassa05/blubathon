@@ -275,7 +275,7 @@ class ReleaseManifest(BlubathonModel):
     .
     """
 
-    spec_version: VersionLabel
+    domain_version: VersionLabel
     contract_version: VersionLabel
     implementation_status: str
     corpus_status: str

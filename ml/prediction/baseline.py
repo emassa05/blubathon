@@ -18,7 +18,7 @@ from uuid import UUID
 
 from scipy.stats import beta as beta_dist
 
-from ml.spec_constants import (
+from ml.formula_constants import (
     BASELINE_LOWER_QUANTILE,
     BASELINE_MIN_OUTCOMES,
     BASELINE_UPPER_QUANTILE,

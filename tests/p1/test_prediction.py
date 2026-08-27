@@ -8,6 +8,7 @@ import pytest
 from scipy.stats import beta as beta_dist
 
 from ml.errors import CohortViolationError
+from ml.formula_constants import BASELINE_MIN_OUTCOMES, CHALLENGER_L2_GRID
 from ml.prediction import (
     BaselineCandidate,
     ChallengerRow,
@@ -23,7 +24,6 @@ from ml.prediction import (
     sigmoid,
     train_challenger,
 )
-from ml.spec_constants import BASELINE_MIN_OUTCOMES, CHALLENGER_L2_GRID
 from packages.shared.domain.outcome import OutcomeResolution
 from packages.shared.enums import (
     CohortKind,
@@ -434,7 +434,7 @@ def test_one_subject_cannot_support_leave_one_group_out() -> None:
     assert report.reason is NotTrainableReason.INSUFFICIENT_SAMPLE_PLAN
 
 
-def test_the_objective_is_the_literal_spec_formula() -> None:
+def test_the_objective_is_the_literal_formula() -> None:
     rows = _rows([0, 1, 0, 1])
     coefficients = [0.1, 0.2, -0.3]
     expected = 0.0

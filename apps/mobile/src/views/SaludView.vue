@@ -63,7 +63,7 @@ async function alReportar(valor: "yes" | "no"): Promise<void> {
 const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
 function masInfo(): void {
-  // TODO(spec): abrir el popup que explica el riesgo de desregulación.
+  // TODO: abrir el popup que explica el riesgo de desregulación.
 }
 
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.

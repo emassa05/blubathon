@@ -54,7 +54,7 @@ def _resolution(status: OutcomeResolutionStatus, **overrides: object) -> Outcome
 # --- timing ---------------------------------------------------------------
 
 
-def test_timing_boundaries_are_exactly_the_spec_boundaries() -> None:
+def test_timing_boundaries_are_exact() -> None:
     assert classify_timing(BEFORE_END, WINDOW) is TimingStatus.EARLY
     assert classify_timing(AT_END - timedelta(seconds=1), WINDOW) is TimingStatus.EARLY
     assert classify_timing(AT_END, WINDOW) is TimingStatus.ON_TIME

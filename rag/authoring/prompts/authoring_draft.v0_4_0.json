@@ -1,6 +1,6 @@
 {
   "prompt_version": "authoring-draft-0.4.0",
-  "purpose": "Optional local draft of a candidate strategy from retrieved literature fragments. The draft is never activated without an evidence review and an independent clinical review (SPEC 9.5).",
+  "purpose": "Optional local draft of a candidate strategy from retrieved literature fragments. The draft is never activated without an evidence review and an independent clinical review.",
   "runtime_use": "forbidden",
   "input_schema": {
     "type": "object",
@@ -13,7 +13,7 @@
       "generalized_question_es": {
         "type": "string",
         "minLength": 1,
-        "description": "A generalised authoring question written by a curator inside the clinical boundary and certified by a privacy reviewer. It carries no case attributes (SPEC 9.8)."
+        "description": "A generalised authoring question written by a curator inside the clinical boundary and certified by a privacy reviewer. It carries no case attributes."
       },
       "fragments": {
         "type": "array",

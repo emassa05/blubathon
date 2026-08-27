@@ -1124,7 +1124,7 @@ export interface RecommendationListResponse {
  * .
  */
 export interface ReleaseManifest {
-  spec_version: string;
+  domain_version: string;
   contract_version: string;
   implementation_status: string;
   corpus_status: string;

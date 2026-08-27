@@ -43,7 +43,7 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
         <span class="riesgo__linea">
           <span class="riesgo__sobretitulo" aria-hidden="true">{{ SOBRETITULO }}</span>
 
-          <!-- TODO(spec): abrir el popup que explica la métrica. Por ahora solo
+          <!-- TODO: abrir el popup que explica la métrica. Por ahora solo
                existe el disparador; el contenido llega en otra pasada. -->
           <button
             type="button"

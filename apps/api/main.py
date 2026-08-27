@@ -22,7 +22,7 @@ from starlette.exceptions import HTTPException
 
 from apps.api.adapters import build_ports
 from apps.api.clock import Clock, system_clock
-from apps.api.contracts.constants import SPEC_VERSION
+from apps.api.contracts.constants import DOMAIN_VERSION
 from apps.api.errors import ERROR_MESSAGES_ES, BlubathonApiError
 from apps.api.events import EventBroker
 from apps.api.routes import router
@@ -90,7 +90,7 @@ def create_app(
 
     app = FastAPI(
         title="Blubathon API",
-        version=SPEC_VERSION,
+        version=DOMAIN_VERSION,
         lifespan=lifespan,
         docs_url="/docs" if resolved.expose_openapi else None,
         redoc_url=None,
@@ -120,7 +120,7 @@ def create_app(
     def health() -> dict[str, str]:
         return {
             "status": "ok",
-            "spec_version": SPEC_VERSION,
+            "domain_version": DOMAIN_VERSION,
             "mode": resolved.deployment_mode.value,
             "adapters": core.ports.source,
         }

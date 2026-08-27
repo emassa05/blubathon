@@ -15,6 +15,7 @@
   ],
   "contract_version": "blubathon-contract-0.4.0",
   "definition_count": 118,
+  "domain_version": "0.4.0",
   "examples": [
     "invalid/form_submission.created_without_resources.invalid.json",
     "invalid/form_submission.unknown_with_value.invalid.json",
@@ -105,6 +106,5 @@
     "TrainingRun",
     "VoiEstimate"
   ],
-  "schema_hash": "755a7af574a53c724503734747adf76207744a640a0a6d79c948e1b469e6387f",
-  "spec_version": "0.4.0"
+  "schema_hash": "0b3c263b7c267a2f776d793b3e5bfde7f66c159c14168b4a72fd97d174197b5f"
 }

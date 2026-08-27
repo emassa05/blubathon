@@ -25,7 +25,7 @@ from uuid import UUID
 import numpy as np
 from scipy.optimize import minimize
 
-from ml.spec_constants import (
+from ml.formula_constants import (
     CHALLENGER_L2_GRID,
     CHALLENGER_TIE_TOLERANCE,
     PERSONAL_DEVIATION_WINDOW_DAYS,

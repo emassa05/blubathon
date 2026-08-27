@@ -8,7 +8,7 @@ from tools.seed import ids
 def test_health_reports_v04_without_authentication(client) -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["spec_version"] == "0.4.0"
+    assert response.json()["domain_version"] == "0.4.0"
 
 
 def test_children_are_filtered_to_the_fixed_tenant(client) -> None:

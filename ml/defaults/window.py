@@ -7,7 +7,7 @@ different questions, and two tenants are two different organisations.
 What counts is provenance, not volume. A suggestion the person accepted, a
 suggestion they edited, a synthetic row, an explicit unknown and an absent day
 all contribute nothing, because counting them would let the estimator confirm
-its own suggestion (FUNDAMENTOS 7).
+its own suggestion.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from ml.spec_constants import DEFAULT_WINDOW_DAYS
+from ml.formula_constants import DEFAULT_WINDOW_DAYS
 from packages.shared.canonical import in_window, inclusive_window, local_date
 from packages.shared.domain.observation import DEFAULT_ESTIMATOR_MODES, FieldObservation
 from packages.shared.enums import DataOrigin, EntryMode, FieldCode, Source

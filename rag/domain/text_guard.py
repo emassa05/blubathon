@@ -59,7 +59,7 @@ def assert_literature_only(
     for item in checked:
         if not item.is_literature:
             raise FreeTextLeakError(
-                f"text of kind {item.kind!r} cannot be chunked, embedded or prompted (SPEC 2.23)"
+                f"text of kind {item.kind!r} cannot be chunked, embedded or prompted"
             )
         if item.document_version_id not in authorised:
             raise FreeTextLeakError(

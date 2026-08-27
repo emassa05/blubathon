@@ -6,7 +6,7 @@ same arithmetic: the binary case is the K=2 marginal.
 
 Blubathon shows the lower bound, not the mean. Two histories with the same mean can
 carry very different evidence, and the product rule asks how high the value
-still is under a conservative reading of the posterior (FUNDAMENTOS 5.5).
+still is under a conservative reading of the posterior.
 
 An ordinal keeps its anchors. The estimator never averages categories and never
 assumes the distance between 1 and 2 equals the distance between 4 and 5.
@@ -22,7 +22,7 @@ from enum import StrEnum
 from scipy.stats import beta as beta_dist
 
 from ml.defaults.window import EligibleHistory
-from ml.spec_constants import (
+from ml.formula_constants import (
     DEFAULT_LOWER_QUANTILE,
     DEFAULT_LOWER_THRESHOLD,
     DEFAULT_PRIOR_PER_CATEGORY,

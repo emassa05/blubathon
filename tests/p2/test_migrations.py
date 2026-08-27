@@ -13,7 +13,7 @@ from apps.api.store.db import Database, connect
 from apps.api.store.migrations import MigrationError, discover, migrate
 from tests.p2.conftest import START
 
-SPEC_TABLES = {
+EXPECTED_TABLES = {
     "audit_events",
     "authoring_build_manifests",
     "authoring_requests",
@@ -75,7 +75,7 @@ def _tables(connection: sqlite3.Connection) -> set[str]:
 def test_migrations_create_exactly_the_resulting_tables(tmp_path) -> None:
     database = Database(Settings(db_path=tmp_path / "fresh.db"))
     assert database.migrate() == len(discover())
-    assert _tables(database.connection) == SPEC_TABLES
+    assert _tables(database.connection) == EXPECTED_TABLES
     database.close()
 
 

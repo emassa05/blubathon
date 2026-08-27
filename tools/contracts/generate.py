@@ -28,10 +28,10 @@ from packages.shared.constants import (
     CONSTANTS,
     CONTRACT_VERSION,
     DEFAULTS_ESTIMATOR_VERSION,
+    DOMAIN_VERSION,
     FORM_POLICY_VERSION,
     SCENARIO_BUILDER_VERSION,
     SCENARIO_SCHEMA_VERSION,
-    SPEC_VERSION,
 )
 from packages.shared.field_catalog import (
     CANONICAL_FIELD_ORDER,
@@ -69,7 +69,7 @@ def build_schema() -> dict[str, Any]:
         "title": "Blubathon contract",
         "description": JSON_BANNER,
         "x-blubathon-contract-version": CONTRACT_VERSION,
-        "x-blubathon-spec-version": SPEC_VERSION,
+        "x-blubathon-domain-version": DOMAIN_VERSION,
         "x-blubathon-published-models": sorted(PUBLISHED_MODELS),
         "$defs": defs,
     }
@@ -354,14 +354,12 @@ def render_constants() -> str:
             + _json(value)
             + ", decisionClass: "
             + _json(spec.decision_class)
-            + ", specRef: "
-            + _json(spec.spec_ref)
             + (", note: " + _json(spec.note) if spec.note else "")
             + " },"
         )
     versions = {
         "contractVersion": CONTRACT_VERSION,
-        "specVersion": SPEC_VERSION,
+        "domainVersion": DOMAIN_VERSION,
         "formPolicyVersion": FORM_POLICY_VERSION,
         "defaultsEstimatorVersion": DEFAULTS_ESTIMATOR_VERSION,
         "scenarioSchemaVersion": SCENARIO_SCHEMA_VERSION,
@@ -509,7 +507,7 @@ def render_lock(schema: dict[str, Any]) -> str:
     payload = {
         "handoff": "H1",
         "contract_version": CONTRACT_VERSION,
-        "spec_version": SPEC_VERSION,
+        "domain_version": DOMAIN_VERSION,
         "schema_hash": schema_hash(schema),
         "hash_input": (
             f"blubathon:{SCHEMA_ARTIFACT}:{CONTRACT_VERSION}\\0<JCS(blubathon.schema.json)>"

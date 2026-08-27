@@ -10,7 +10,7 @@ from typing import Any, Literal
 from uuid import NAMESPACE_URL, uuid5
 
 from apps.api.canonical import canonical_timestamp, content_hash
-from apps.api.contracts.constants import SPEC_VERSION
+from apps.api.contracts.constants import DOMAIN_VERSION
 from apps.api.store.json_columns import dump
 from tools.seed import data, ids
 
@@ -217,7 +217,7 @@ def _insert_target(connection: sqlite3.Connection, *, target: dict[str, Any], mo
             dump(target["eligible_source_mappings"]),
             "2026-01-01T00:00:00.000Z",
             target["evidence_basis"],
-            content_hash("target_definition_version", SPEC_VERSION, payload),
+            content_hash("target_definition_version", DOMAIN_VERSION, payload),
             moment,
         ),
     )
@@ -372,7 +372,7 @@ def _seed_strategies(
                 clinical_review_id,
                 "2026-01-01T00:00:00.000Z",
                 "active" if activate else "evidence_reviewed",
-                content_hash("strategy_version", SPEC_VERSION, payload),
+                content_hash("strategy_version", DOMAIN_VERSION, payload),
                 moment,
             ),
         )
