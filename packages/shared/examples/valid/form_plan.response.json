@@ -1,0 +1,13 @@
+{
+  "questions": [
+    {
+      "field_code": "routine_changes",
+      "highlighted": true,
+      "reason": "staleness",
+      "voi_nats": null
+    }
+  ],
+  "defaults": [],
+  "voi_status": "unavailable_model",
+  "coverage": 0.62
+}

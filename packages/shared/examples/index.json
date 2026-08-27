@@ -1,0 +1,64 @@
+{
+  "contract_version": "faro-contract-0.4.0",
+  "generated_by": "python -m tools.contracts.examples",
+  "note": "Fictional payloads only.",
+  "valid": [
+    {
+      "file": "valid/child.list.json",
+      "model": "ChildListResponse"
+    },
+    {
+      "file": "valid/feedback.request.json",
+      "model": "FeedbackRequest"
+    },
+    {
+      "file": "valid/form_plan.request.json",
+      "model": "FormPlanRequest"
+    },
+    {
+      "file": "valid/form_plan.response.json",
+      "model": "FormPlanResponse"
+    },
+    {
+      "file": "valid/form_submission.request.json",
+      "model": "FormSubmissionRequest"
+    },
+    {
+      "file": "valid/form_submission.response.json",
+      "model": "FormSubmissionResponse"
+    },
+    {
+      "file": "valid/notification.ready.json",
+      "model": "NotificationEvent"
+    },
+    {
+      "file": "valid/recommendation.abstained.json",
+      "model": "RecommendationInstanceView"
+    },
+    {
+      "file": "valid/recommendation.matched.json",
+      "model": "RecommendationInstanceView"
+    },
+    {
+      "file": "valid/recommendation.today.json",
+      "model": "TodayRecommendationResponse"
+    }
+  ],
+  "invalid": [
+    {
+      "file": "invalid/form_submission.created_without_resources.invalid.json",
+      "model": "FormSubmissionResponse",
+      "violates": "An episode_created response names every created resource"
+    },
+    {
+      "file": "invalid/form_submission.unknown_with_value.invalid.json",
+      "model": "FormSubmissionRequest",
+      "violates": "An unknown answer cannot carry a value"
+    },
+    {
+      "file": "invalid/recommendation.abstained_with_text.invalid.json",
+      "model": "RecommendationInstanceView",
+      "violates": "An abstention cannot expose an ungrounded draft"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "catalog_readiness": "corpus_not_ready",
+  "catalog_status": "blocked_corpus",
+  "catalog_versions": [],
+  "cleared_document_count": 0,
+  "consequences": [
+    "P1.6 authoring builds run only against fixtures until one document clears rights review.",
+    "rag/runtime abstains with corpus_not_ready (SPEC 9.6 precedence).",
+    "M4 and the SPEC 20 DoD stay blocked (TAREAS 5)."
+  ],
+  "corpus_status": "blocked",
+  "corpus_versions": [],
+  "manifest_kind": "rag_build",
+  "manifest_version": "1",
+  "pipeline": {
+    "bm25_parameters": {
+      "b": 0.75,
+      "k1": 1.2
+    },
+    "bm25_version": "bm25-okapi-0.3.0",
+    "chunk_overlap": 40,
+    "chunk_size": 220,
+    "chunker_version": "chunker-paragraph-0.3.0",
+    "dense_top_k": 20,
+    "extractor_version": "extractor-plaintext-0.3.0",
+    "final_chunk_count": 8,
+    "lexical_top_k": 20,
+    "normalization_version": "normalize-nfc-lf-0.3.0",
+    "ocr_version": null,
+    "prompt_sha256": "0ef509be901c82cff9045ab3c278a39273cb79f9975e8f3e8c62d5f95037a14b",
+    "prompt_version": "authoring-draft-0.3.0",
+    "rrf_k": 60,
+    "tokenizer_version": "tokenizer-unicode-word-0.3.0"
+  },
+  "purpose": "TAREAS M4/H4 - the authoring pipeline this repository would run today, with the versions and hashes that fix its result. No corpus body, index or model is tracked.",
+  "retrieval_mode": "lexical_only",
+  "retrieval_mode_reason": "no embedding model is registered, so dense retrieval and RRF are skipped and BM25 returns the final chunks directly (SPEC 9.4)",
+  "runtime": {
+    "llm_calls": 0,
+    "max_strategies": 3,
+    "required_distinct_reviewers": 2
+  },
+  "schema_version": "rag-0.3.0",
+  "spec_version": "0.4.0"
+}

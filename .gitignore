@@ -1,0 +1,37 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.import_linter_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+
+# Generated artifacts (databases, parquet, model binaries) stay out of Git.
+# Manifests are the exception: they are non-identifiable descriptions of those
+# artifacts and are the only way the repository can cite counts and hashes.
+data/*
+!data/manifest.json
+!data/*.manifest.json
+
+Datos base/
+*.joblib
+*.pkl
+*.txt
+
+# RAG artifacts. Document bodies, extracted text and indices never enter Git
+# (TAREAS handoff H4); only manifests and hashes do.
+rag/corpus/
+rag/index/
+.DS_Store
+
+# Notas locales para probar. No se sube.
+PROBAR-LOCAL.md

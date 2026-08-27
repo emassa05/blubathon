@@ -1,0 +1,1 @@
+"""Faro application processes."""

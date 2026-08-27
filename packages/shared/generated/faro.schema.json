@@ -1,0 +1,5704 @@
+{
+  "$defs": {
+    "AbstentionBreakdown": {
+      "additionalProperties": false,
+      "description": "Abstention rate per reason, over the same denominator as coverage.",
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Rate",
+          "type": "number"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason",
+        "count",
+        "rate"
+      ],
+      "title": "AbstentionBreakdown",
+      "type": "object"
+    },
+    "AnswerInteraction": {
+      "description": "What the client declares. The server derives `EntryMode` from it.",
+      "enum": [
+        "manual",
+        "accept_default",
+        "edit_default",
+        "unknown"
+      ],
+      "title": "AnswerInteraction",
+      "type": "string"
+    },
+    "AnswerItem": {
+      "additionalProperties": false,
+      "properties": {
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "interaction": {
+          "enum": [
+            "manual",
+            "accept_default",
+            "edit_default",
+            "unknown"
+          ],
+          "title": "Interaction",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "field_code",
+        "interaction"
+      ],
+      "title": "AnswerItem",
+      "type": "object"
+    },
+    "AnswerSubmission": {
+      "additionalProperties": false,
+      "description": "What a client may declare. The server derives `entry_mode` from it.",
+      "properties": {
+        "default_presentation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Presentation Id"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "interaction": {
+          "$ref": "#/$defs/AnswerInteraction"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "field_code",
+        "interaction"
+      ],
+      "title": "AnswerSubmission",
+      "type": "object"
+    },
+    "ApprovalStatus": {
+      "enum": [
+        "draft",
+        "active",
+        "retired"
+      ],
+      "title": "ApprovalStatus",
+      "type": "string"
+    },
+    "AuthoringBuildManifest": {
+      "additionalProperties": false,
+      "description": "Everything that could change a retrieval result, fixed and hashed.\n\n`lexical_only` is a declared mode, not a silent degradation: no model is ever\ndownloaded to make a hybrid build succeed (SPEC 9.4).",
+      "properties": {
+        "authoring_build_manifest_id": {
+          "format": "uuid",
+          "title": "Authoring Build Manifest Id",
+          "type": "string"
+        },
+        "bm25_parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Bm25 Parameters",
+          "type": "object"
+        },
+        "built_at": {
+          "format": "date-time",
+          "title": "Built At",
+          "type": "string"
+        },
+        "chunk_overlap": {
+          "minimum": 0,
+          "title": "Chunk Overlap",
+          "type": "integer"
+        },
+        "chunk_size": {
+          "exclusiveMinimum": 0,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "chunker_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Chunker Version",
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "dense_model_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dense Model Id"
+        },
+        "dense_model_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dense Model Sha256"
+        },
+        "dense_top_k": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dense Top K"
+        },
+        "extractor_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Extractor Version",
+          "type": "string"
+        },
+        "final_chunk_count": {
+          "exclusiveMinimum": 0,
+          "title": "Final Chunk Count",
+          "type": "integer"
+        },
+        "lexical_top_k": {
+          "exclusiveMinimum": 0,
+          "title": "Lexical Top K",
+          "type": "integer"
+        },
+        "library_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Library Versions",
+          "type": "object"
+        },
+        "normalization_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Normalization Version",
+          "type": "string"
+        },
+        "ocr_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ocr Version"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "prompt_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Version"
+        },
+        "retrieval_mode": {
+          "$ref": "#/$defs/RetrievalMode"
+        },
+        "rrf_k": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rrf K"
+        },
+        "tokenizer_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Tokenizer Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "authoring_build_manifest_id",
+        "retrieval_mode",
+        "extractor_version",
+        "normalization_version",
+        "chunker_version",
+        "chunk_size",
+        "chunk_overlap",
+        "tokenizer_version",
+        "bm25_parameters",
+        "lexical_top_k",
+        "final_chunk_count",
+        "library_versions",
+        "platform",
+        "built_at",
+        "content_sha256"
+      ],
+      "title": "AuthoringBuildManifest",
+      "type": "object"
+    },
+    "AuthoringRequest": {
+      "additionalProperties": false,
+      "description": "Persisted intent. Its scenario payload stays encrypted inside the clinic.",
+      "properties": {
+        "authoring_request_id": {
+          "format": "uuid",
+          "title": "Authoring Request Id",
+          "type": "string"
+        },
+        "catalog_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Catalog Version"
+        },
+        "corpus_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corpus Version"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "encrypted_scenario_payload": {
+          "minLength": 1,
+          "title": "Encrypted Scenario Payload",
+          "type": "string"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/RecommendationAbstentionReason"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "scenario_hash": {
+          "minLength": 1,
+          "title": "Scenario Hash",
+          "type": "string"
+        },
+        "scenario_schema_version": {
+          "default": "scenario-1",
+          "title": "Scenario Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AuthoringRequestStatus"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "authoring_request_id",
+        "subject_id",
+        "prediction_episode_id",
+        "scenario_hash",
+        "encrypted_scenario_payload",
+        "reasons",
+        "status",
+        "created_at"
+      ],
+      "title": "AuthoringRequest",
+      "type": "object"
+    },
+    "AuthoringRequestIntent": {
+      "additionalProperties": false,
+      "description": "What the pure runtime returns for an uncovered scenario. It writes nothing.",
+      "properties": {
+        "catalog_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Catalog Version"
+        },
+        "corpus_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corpus Version"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/RecommendationAbstentionReason"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "scenario_hash": {
+          "minLength": 1,
+          "title": "Scenario Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenario_hash",
+        "reasons"
+      ],
+      "title": "AuthoringRequestIntent",
+      "type": "object"
+    },
+    "AuthoringRequestStatus": {
+      "enum": [
+        "open",
+        "exported",
+        "closed"
+      ],
+      "title": "AuthoringRequestStatus",
+      "type": "string"
+    },
+    "AuthoringReview": {
+      "additionalProperties": false,
+      "description": "Authoring review is a different entity from a case review (SPEC 9.5).",
+      "properties": {
+        "accreditation_id": {
+          "format": "uuid",
+          "title": "Accreditation Id",
+          "type": "string"
+        },
+        "actor_id": {
+          "format": "uuid",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "authoring_review_id": {
+          "format": "uuid",
+          "title": "Authoring Review Id",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/AuthoringReviewDecision"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "object_type": {
+          "$ref": "#/$defs/AuthoringReviewObjectType"
+        },
+        "object_version_id": {
+          "format": "uuid",
+          "title": "Object Version Id",
+          "type": "string"
+        },
+        "review_kind": {
+          "$ref": "#/$defs/AuthoringReviewKind"
+        },
+        "reviewed_at": {
+          "format": "date-time",
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "reviewed_content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reviewed Content Sha256",
+          "type": "string"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "authoring_review_id",
+        "object_type",
+        "object_version_id",
+        "review_kind",
+        "actor_id",
+        "accreditation_id",
+        "decision",
+        "reviewed_content_sha256",
+        "reviewed_at"
+      ],
+      "title": "AuthoringReview",
+      "type": "object"
+    },
+    "AuthoringReviewDecision": {
+      "enum": [
+        "approved",
+        "changes_requested",
+        "rejected"
+      ],
+      "title": "AuthoringReviewDecision",
+      "type": "string"
+    },
+    "AuthoringReviewKind": {
+      "enum": [
+        "evidence",
+        "clinical",
+        "privacy",
+        "catalog_activation"
+      ],
+      "title": "AuthoringReviewKind",
+      "type": "string"
+    },
+    "AuthoringReviewObjectType": {
+      "enum": [
+        "target_definition",
+        "document",
+        "strategy",
+        "recommendation_set",
+        "catalog"
+      ],
+      "title": "AuthoringReviewObjectType",
+      "type": "string"
+    },
+    "ChallengerTrainingProtocolVersion": {
+      "additionalProperties": false,
+      "description": "Optimiser settings fixed before a run, not per-run flags (SPEC 8.4).",
+      "properties": {
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "l2_grid": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "L2 Grid",
+          "type": "array"
+        },
+        "library_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Library Versions",
+          "type": "object"
+        },
+        "max_iterations": {
+          "exclusiveMinimum": 0,
+          "title": "Max Iterations",
+          "type": "integer"
+        },
+        "optimizer": {
+          "title": "Optimizer",
+          "type": "string"
+        },
+        "protocol_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "tie_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Tie Tolerance",
+          "type": "number"
+        },
+        "tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Tolerance",
+          "type": "number"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "optimizer",
+        "tolerance",
+        "max_iterations",
+        "l2_grid",
+        "tie_tolerance",
+        "library_versions",
+        "content_sha256"
+      ],
+      "title": "ChallengerTrainingProtocolVersion",
+      "type": "object"
+    },
+    "ChildHistoryDay": {
+      "additionalProperties": false,
+      "properties": {
+        "local_date": {
+          "format": "date",
+          "title": "Local Date",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChildHistoryOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prediction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChildHistoryPrediction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "recommendation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChildHistoryRecommendation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "submission_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Submission Id"
+        }
+      },
+      "required": [
+        "local_date"
+      ],
+      "title": "ChildHistoryDay",
+      "type": "object"
+    },
+    "ChildHistoryOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "reported_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reported At"
+        },
+        "status": {
+          "enum": [
+            "yes",
+            "no",
+            "unknown",
+            "conflicted",
+            "pending"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ChildHistoryOutcome",
+      "type": "object"
+    },
+    "ChildHistoryPrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "interval": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probability"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ChildHistoryPrediction",
+      "type": "object"
+    },
+    "ChildHistoryRecommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "matched",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_instance_id",
+        "status"
+      ],
+      "title": "ChildHistoryRecommendation",
+      "type": "object"
+    },
+    "ChildHistoryResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "days": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ChildHistoryDay"
+          },
+          "title": "Days",
+          "type": "array"
+        }
+      },
+      "required": [
+        "child_id"
+      ],
+      "title": "ChildHistoryResponse",
+      "type": "object"
+    },
+    "ChildListItem": {
+      "additionalProperties": false,
+      "properties": {
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "display_label": {
+          "minLength": 1,
+          "title": "Display Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "child_id",
+        "display_label"
+      ],
+      "title": "ChildListItem",
+      "type": "object"
+    },
+    "ChildListResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ChildListItem"
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "title": "ChildListResponse",
+      "type": "object"
+    },
+    "ChildView": {
+      "additionalProperties": false,
+      "properties": {
+        "care_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Care Mode"
+        },
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "communication_support_tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Communication Support Tags",
+          "type": "array"
+        },
+        "contraindication_tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Contraindication Tags",
+          "type": "array"
+        },
+        "display_label": {
+          "minLength": 1,
+          "title": "Display Label",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "profile_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Version"
+        },
+        "sensory_profile_tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensory Profile Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "child_id",
+        "display_label"
+      ],
+      "title": "ChildView",
+      "type": "object"
+    },
+    "CohortKind": {
+      "enum": [
+        "real_subject",
+        "demo_fixture"
+      ],
+      "title": "CohortKind",
+      "type": "string"
+    },
+    "CorpusVersion": {
+      "additionalProperties": false,
+      "description": "The exact set of document versions a catalogue was built from.",
+      "properties": {
+        "authoring_build_manifest_id": {
+          "format": "uuid",
+          "title": "Authoring Build Manifest Id",
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "corpus_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Corpus Version",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "document_version_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Document Version Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "corpus_version",
+        "document_version_ids",
+        "authoring_build_manifest_id",
+        "created_at",
+        "content_sha256"
+      ],
+      "title": "CorpusVersion",
+      "type": "object"
+    },
+    "DataOrigin": {
+      "enum": [
+        "real",
+        "synthetic"
+      ],
+      "title": "DataOrigin",
+      "type": "string"
+    },
+    "DataQuality": {
+      "additionalProperties": false,
+      "description": "DQI describes quality; it is never a predictive feature or a gate (SPEC 7.1).",
+      "properties": {
+        "consistency": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Consistency",
+          "type": "number"
+        },
+        "coverage": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "days_since_last_observation": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Days Since Last Observation"
+        },
+        "detail": {
+          "additionalProperties": true,
+          "title": "Detail",
+          "type": "object"
+        },
+        "dqi": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Dqi",
+          "type": "number"
+        },
+        "overlapping_field_days": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Overlapping Field Days",
+          "type": "integer"
+        },
+        "recency": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Recency",
+          "type": "number"
+        },
+        "required_fields": {
+          "items": {
+            "$ref": "#/$defs/FieldCode"
+          },
+          "title": "Required Fields",
+          "type": "array"
+        },
+        "window_days": {
+          "exclusiveMinimum": 0,
+          "title": "Window Days",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "coverage",
+        "recency",
+        "consistency",
+        "dqi",
+        "window_days",
+        "required_fields"
+      ],
+      "title": "DataQuality",
+      "type": "object"
+    },
+    "DatasetSnapshot": {
+      "additionalProperties": false,
+      "description": "Immutable, hashed, and separated by origin. Real and synthetic never mix.",
+      "properties": {
+        "consent_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Consent Ids",
+          "type": "array"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "cutoff_at": {
+          "format": "date-time",
+          "title": "Cutoff At",
+          "type": "string"
+        },
+        "data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "dataset_snapshot_id": {
+          "format": "uuid",
+          "title": "Dataset Snapshot Id",
+          "type": "string"
+        },
+        "episode_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Episode Ids",
+          "type": "array"
+        },
+        "negative_count": {
+          "minimum": 0,
+          "title": "Negative Count",
+          "type": "integer"
+        },
+        "observation_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "outcome_resolution_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Outcome Resolution Ids",
+          "type": "array"
+        },
+        "positive_count": {
+          "minimum": 0,
+          "title": "Positive Count",
+          "type": "integer"
+        },
+        "subject_count": {
+          "minimum": 0,
+          "title": "Subject Count",
+          "type": "integer"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_snapshot_id",
+        "tenant_id",
+        "data_origin",
+        "target_definition_version",
+        "cutoff_at",
+        "subject_count",
+        "positive_count",
+        "negative_count",
+        "content_sha256",
+        "created_at"
+      ],
+      "title": "DatasetSnapshot",
+      "type": "object"
+    },
+    "DefaultPresentation": {
+      "additionalProperties": false,
+      "description": "Proof that a suggestion was shown for this field in this session.\n\nIts existence is what makes any other value for that field `default_edited`,\nhowever the client labels it (SPEC 5.5 rule 7).",
+      "properties": {
+        "default_presentation_id": {
+          "format": "uuid",
+          "title": "Default Presentation Id",
+          "type": "string"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "form_session_id": {
+          "format": "uuid",
+          "title": "Form Session Id",
+          "type": "string"
+        },
+        "posterior": {
+          "$ref": "#/$defs/PosteriorDefault"
+        },
+        "presented_at": {
+          "format": "date-time",
+          "title": "Presented At",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "default_presentation_id",
+        "tenant_id",
+        "form_session_id",
+        "field_code",
+        "value",
+        "posterior",
+        "presented_at"
+      ],
+      "title": "DefaultPresentation",
+      "type": "object"
+    },
+    "DefaultSuggestion": {
+      "additionalProperties": false,
+      "description": "Stateless default shown by the form plan.",
+      "properties": {
+        "basis": {
+          "const": "personal_median",
+          "default": "personal_median",
+          "title": "Basis",
+          "type": "string"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "sample_size": {
+          "minimum": 0,
+          "title": "Sample Size",
+          "type": "integer"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        },
+        "window_days": {
+          "minimum": 1,
+          "title": "Window Days",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "field_code",
+        "value",
+        "window_days",
+        "sample_size"
+      ],
+      "title": "DefaultSuggestion",
+      "type": "object"
+    },
+    "DocumentChunk": {
+      "additionalProperties": false,
+      "description": "A citation without a verifiable locator cannot be published (SPEC 9.3).",
+      "properties": {
+        "chunk_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chunk Sha256",
+          "type": "string"
+        },
+        "chunker_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Chunker Version",
+          "type": "string"
+        },
+        "document_chunk_id": {
+          "format": "uuid",
+          "title": "Document Chunk Id",
+          "type": "string"
+        },
+        "document_version_id": {
+          "format": "uuid",
+          "title": "Document Version Id",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_chunk_id",
+        "document_version_id",
+        "locator",
+        "text",
+        "chunk_sha256",
+        "chunker_version"
+      ],
+      "title": "DocumentChunk",
+      "type": "object"
+    },
+    "DocumentStatus": {
+      "enum": [
+        "draft",
+        "verified",
+        "indexed",
+        "active",
+        "superseded",
+        "withdrawn"
+      ],
+      "title": "DocumentStatus",
+      "type": "string"
+    },
+    "DocumentVersion": {
+      "additionalProperties": false,
+      "description": "Without version, rights and hashes a document is not indexed (SPEC 9.2).",
+      "properties": {
+        "canonical_url": {
+          "format": "uri",
+          "minLength": 1,
+          "title": "Canonical Url",
+          "type": "string"
+        },
+        "document_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Document Version",
+          "type": "string"
+        },
+        "document_version_id": {
+          "format": "uuid",
+          "title": "Document Version Id",
+          "type": "string"
+        },
+        "extracted_text_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extracted Text Sha256",
+          "type": "string"
+        },
+        "extraction_manifest_id": {
+          "format": "uuid",
+          "title": "Extraction Manifest Id",
+          "type": "string"
+        },
+        "language": {
+          "title": "Language",
+          "type": "string"
+        },
+        "original_bytes_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Original Bytes Sha256",
+          "type": "string"
+        },
+        "publication_date": {
+          "title": "Publication Date",
+          "type": "string"
+        },
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "rights_basis": {
+          "title": "Rights Basis",
+          "type": "string"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/DocumentStatus"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_version_id",
+        "source_id",
+        "publisher",
+        "title",
+        "document_version",
+        "publication_date",
+        "retrieved_at",
+        "canonical_url",
+        "rights_basis",
+        "original_bytes_sha256",
+        "extracted_text_sha256",
+        "extraction_manifest_id",
+        "language",
+        "status"
+      ],
+      "title": "DocumentVersion",
+      "type": "object"
+    },
+    "EntryMode": {
+      "description": "Derived by the server, never sent by a browser (SPEC 5.5).",
+      "enum": [
+        "manual_no_default",
+        "audit_manual",
+        "default_accepted",
+        "default_edited",
+        "professional_observed",
+        "imported_observed",
+        "explicit_unknown"
+      ],
+      "title": "EntryMode",
+      "type": "string"
+    },
+    "EpisodeRole": {
+      "description": "v0.3 creates exactly one role. Baseline and evaluation use only this one.",
+      "enum": [
+        "primary"
+      ],
+      "title": "EpisodeRole",
+      "type": "string"
+    },
+    "ErrorCode": {
+      "description": "Stable machine codes for the SPEC 11.7 error envelope.\n\n`forbidden` covers cross-tenant and same-tenant-without-grant alike: telling\nthe caller which one it was would confirm that a subject exists somewhere\nelse. Both are audited (SPEC 13.2).",
+      "enum": [
+        "validation_error",
+        "unauthenticated",
+        "forbidden",
+        "not_found",
+        "idempotency_conflict",
+        "revision_conflict",
+        "recommendation_dependency_suspended",
+        "unmapped_source_value",
+        "target_definition_ambiguous",
+        "entry_mode_not_derivable",
+        "synthetic_row_in_real_snapshot",
+        "real_subject_not_allowed_in_demo",
+        "internal_error"
+      ],
+      "title": "ErrorCode",
+      "type": "string"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "description": "Stable machine code plus sanitised Spanish copy (SPEC 11.7).",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message_es": {
+          "minLength": 1,
+          "title": "Message Es",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message_es",
+        "request_id"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "EstimateKind": {
+      "description": "What the number means, so a track cannot borrow another track's meaning.",
+      "enum": [
+        "personal_observed_episode_rate",
+        "simulation_score",
+        "shadow_challenger_score"
+      ],
+      "title": "EstimateKind",
+      "type": "string"
+    },
+    "EvaluationProtocolVersion": {
+      "additionalProperties": false,
+      "description": "Splits, seeds, interval method and estimability rules, all versioned.",
+      "properties": {
+        "bootstrap_replicates": {
+          "exclusiveMinimum": 0,
+          "title": "Bootstrap Replicates",
+          "type": "integer"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "group_min_negatives": {
+          "minimum": 0,
+          "title": "Group Min Negatives",
+          "type": "integer"
+        },
+        "group_min_positives": {
+          "minimum": 0,
+          "title": "Group Min Positives",
+          "type": "integer"
+        },
+        "group_min_subjects": {
+          "minimum": 0,
+          "title": "Group Min Subjects",
+          "type": "integer"
+        },
+        "inner_split": {
+          "title": "Inner Split",
+          "type": "string"
+        },
+        "interval_level": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Interval Level",
+          "type": "number"
+        },
+        "library_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Library Versions",
+          "type": "object"
+        },
+        "min_valid_bootstrap_fraction": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Min Valid Bootstrap Fraction",
+          "type": "number"
+        },
+        "outer_split": {
+          "title": "Outer Split",
+          "type": "string"
+        },
+        "protocol_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "random_seed": {
+          "title": "Random Seed",
+          "type": "integer"
+        },
+        "reveal_schedule_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reveal Schedule Sha256"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "outer_split",
+        "inner_split",
+        "random_seed",
+        "bootstrap_replicates",
+        "interval_level",
+        "min_valid_bootstrap_fraction",
+        "group_min_subjects",
+        "group_min_positives",
+        "group_min_negatives",
+        "library_versions",
+        "content_sha256"
+      ],
+      "title": "EvaluationProtocolVersion",
+      "type": "object"
+    },
+    "EvaluationReport": {
+      "additionalProperties": false,
+      "description": "One report, one exact target definition version. No pooling in v0.3.",
+      "properties": {
+        "abstentions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AbstentionBreakdown"
+          },
+          "title": "Abstentions",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "dataset_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Dataset Sha256",
+          "type": "string"
+        },
+        "dataset_snapshot_id": {
+          "format": "uuid",
+          "title": "Dataset Snapshot Id",
+          "type": "string"
+        },
+        "decision_coverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "detail": {
+          "additionalProperties": true,
+          "title": "Detail",
+          "type": "object"
+        },
+        "evaluation_report_id": {
+          "format": "uuid",
+          "title": "Evaluation Report Id",
+          "type": "string"
+        },
+        "group_metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/GroupMetric"
+          },
+          "title": "Group Metrics",
+          "type": "array"
+        },
+        "intended_use": {
+          "$ref": "#/$defs/IntendedUse"
+        },
+        "limitations_es": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations Es",
+          "type": "array"
+        },
+        "metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MetricValue"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "model_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Model Version",
+          "type": "string"
+        },
+        "protocol_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "source_metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SourceMetric"
+          },
+          "title": "Source Metrics",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/EvaluationReportStatus"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "track_id": {
+          "$ref": "#/$defs/TrackId"
+        }
+      },
+      "required": [
+        "evaluation_report_id",
+        "tenant_id",
+        "model_version",
+        "track_id",
+        "dataset_snapshot_id",
+        "dataset_sha256",
+        "data_origin",
+        "intended_use",
+        "target_definition_version",
+        "protocol_version",
+        "status",
+        "limitations_es",
+        "created_at"
+      ],
+      "title": "EvaluationReport",
+      "type": "object"
+    },
+    "EvaluationReportStatus": {
+      "enum": [
+        "draft",
+        "published",
+        "suspended_for_consent_review",
+        "retired"
+      ],
+      "title": "EvaluationReportStatus",
+      "type": "string"
+    },
+    "FeatureSnapshot": {
+      "additionalProperties": false,
+      "description": "The closed instant a prediction was made from.\n\nIt stores the exact projected IDs so it is never recomputed, and it refuses\nto mix origins: one synthetic row invalidates a real snapshot (SPEC 5.6).",
+      "properties": {
+        "as_of_at": {
+          "format": "date-time",
+          "title": "As Of At",
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "feature_snapshot_id": {
+          "format": "uuid",
+          "title": "Feature Snapshot Id",
+          "type": "string"
+        },
+        "input_data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "observed_data_origins": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DataOrigin"
+          },
+          "title": "Observed Data Origins",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "projected_consent_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Projected Consent Ids",
+          "type": "array"
+        },
+        "projected_observation_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Projected Observation Ids",
+          "type": "array"
+        },
+        "projected_outcome_resolution_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Projected Outcome Resolution Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feature_snapshot_id",
+        "tenant_id",
+        "subject_id",
+        "prediction_episode_id",
+        "as_of_at",
+        "input_data_origin",
+        "schema_version",
+        "content_sha256"
+      ],
+      "title": "FeatureSnapshot",
+      "type": "object"
+    },
+    "FeedbackRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "note_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note Es"
+        },
+        "rating": {
+          "enum": [
+            "good",
+            "bad"
+          ],
+          "title": "Rating",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rating"
+      ],
+      "title": "FeedbackRequest",
+      "type": "object"
+    },
+    "FeedbackResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "feedback_id": {
+          "format": "uuid",
+          "title": "Feedback Id",
+          "type": "string"
+        },
+        "rating": {
+          "enum": [
+            "good",
+            "bad"
+          ],
+          "title": "Rating",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feedback_id",
+        "rating",
+        "attempt"
+      ],
+      "title": "FeedbackResponse",
+      "type": "object"
+    },
+    "FieldCode": {
+      "description": "The 19 daily observation fields of SPEC 5.2.\n\n`major_dysregulation_24h` is absent on purpose: it is an outcome, not a\ndaily observation.",
+      "enum": [
+        "sleep_hours",
+        "sleep_quality",
+        "night_awakenings",
+        "wake_state",
+        "morning_support_need",
+        "gi_status",
+        "medication_adherence",
+        "food_changes",
+        "routine_changes",
+        "alertness",
+        "dysregulation_event_count",
+        "daily_regulation_state",
+        "activity_participation",
+        "social_interactions",
+        "eating_status",
+        "attendance_status",
+        "relevant_event_flag",
+        "behavior_tags",
+        "notes"
+      ],
+      "title": "FieldCode",
+      "type": "string"
+    },
+    "FieldObservation": {
+      "additionalProperties": false,
+      "description": "One observed value, with the provenance that decides how it may be used.",
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "cohort_kind": {
+          "title": "Cohort Kind",
+          "type": "string"
+        },
+        "data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "effective_at": {
+          "format": "date-time",
+          "title": "Effective At",
+          "type": "string"
+        },
+        "entry_mode": {
+          "$ref": "#/$defs/EntryMode"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "field_observation_id": {
+          "format": "uuid",
+          "title": "Field Observation Id",
+          "type": "string"
+        },
+        "form_session_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Form Session Id"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "local_date": {
+          "format": "date",
+          "title": "Local Date",
+          "type": "string"
+        },
+        "raw_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Value"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "source_mapping_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Mapping Id"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "field_observation_id",
+        "subject_id",
+        "field_code",
+        "source",
+        "actor_id",
+        "entry_mode",
+        "data_origin",
+        "cohort_kind",
+        "effective_at",
+        "local_date"
+      ],
+      "title": "FieldObservation",
+      "type": "object"
+    },
+    "FormPlanRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "answers": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/FieldCode"
+          },
+          "title": "Answers",
+          "type": "object"
+        },
+        "source": {
+          "const": "caregiver_daily",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "FormPlanRequest",
+      "type": "object"
+    },
+    "FormPlanResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "defaults": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DefaultSuggestion"
+          },
+          "title": "Defaults",
+          "type": "array"
+        },
+        "questions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FormQuestion"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "voi_status": {
+          "const": "unavailable_model",
+          "default": "unavailable_model",
+          "title": "Voi Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "coverage"
+      ],
+      "title": "FormPlanResponse",
+      "type": "object"
+    },
+    "FormQuestion": {
+      "additionalProperties": false,
+      "description": "One field in the stateless plan.",
+      "properties": {
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "highlighted": {
+          "title": "Highlighted",
+          "type": "boolean"
+        },
+        "reason": {
+          "enum": [
+            "staleness",
+            "exploration",
+            "canonical_order"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "voi_nats": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voi Nats"
+        }
+      },
+      "required": [
+        "field_code",
+        "highlighted",
+        "reason"
+      ],
+      "title": "FormQuestion",
+      "type": "object"
+    },
+    "FormSession": {
+      "additionalProperties": false,
+      "description": "`opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.\n\nThe browser never decides either one (SPEC 4.1, CONVENTIONS 8.5).",
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "audit_mode": {
+          "title": "Audit Mode",
+          "type": "boolean"
+        },
+        "form_policy_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Form Policy Version",
+          "type": "string"
+        },
+        "form_session_id": {
+          "format": "uuid",
+          "title": "Form Session Id",
+          "type": "string"
+        },
+        "linked_prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Linked Prediction Episode Id"
+        },
+        "opened_at": {
+          "format": "date-time",
+          "title": "Opened At",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "session_kind": {
+          "$ref": "#/$defs/FormSessionKind"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "status": {
+          "$ref": "#/$defs/FormSessionStatus"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Submitted At"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "form_session_id",
+        "tenant_id",
+        "subject_id",
+        "actor_id",
+        "source",
+        "session_kind",
+        "status",
+        "audit_mode",
+        "form_policy_version",
+        "opened_at"
+      ],
+      "title": "FormSession",
+      "type": "object"
+    },
+    "FormSessionKind": {
+      "description": "A professional observation session shows no defaults (SPEC 5.5).",
+      "enum": [
+        "caregiver_daily",
+        "professional_observation"
+      ],
+      "title": "FormSessionKind",
+      "type": "string"
+    },
+    "FormSessionStatus": {
+      "enum": [
+        "draft",
+        "submitted",
+        "abandoned",
+        "expired"
+      ],
+      "title": "FormSessionStatus",
+      "type": "string"
+    },
+    "FormSubmissionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "answers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AnswerItem"
+          },
+          "title": "Answers",
+          "type": "array"
+        },
+        "local_date": {
+          "format": "date",
+          "title": "Local Date",
+          "type": "string"
+        },
+        "source": {
+          "const": "caregiver_daily",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "local_date"
+      ],
+      "title": "FormSubmissionRequest",
+      "type": "object"
+    },
+    "FormSubmissionResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome_request_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome Request Id"
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "recommendation_instance_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommendation Instance Id"
+        },
+        "status": {
+          "$ref": "#/$defs/SubmitStatus"
+        },
+        "submission_id": {
+          "format": "uuid",
+          "title": "Submission Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "submission_id",
+        "status"
+      ],
+      "title": "FormSubmissionResponse",
+      "type": "object"
+    },
+    "GroupMetric": {
+      "additionalProperties": false,
+      "description": "A per-group metric, suppressed unless the privacy minimums are met.",
+      "properties": {
+        "group_kind": {
+          "title": "Group Kind",
+          "type": "string"
+        },
+        "group_value": {
+          "title": "Group Value",
+          "type": "string"
+        },
+        "metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MetricValue"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "negative_count": {
+          "minimum": 0,
+          "title": "Negative Count",
+          "type": "integer"
+        },
+        "positive_count": {
+          "minimum": 0,
+          "title": "Positive Count",
+          "type": "integer"
+        },
+        "subject_count": {
+          "minimum": 0,
+          "title": "Subject Count",
+          "type": "integer"
+        },
+        "suppressed": {
+          "title": "Suppressed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "group_kind",
+        "group_value",
+        "subject_count",
+        "positive_count",
+        "negative_count",
+        "suppressed"
+      ],
+      "title": "GroupMetric",
+      "type": "object"
+    },
+    "IntakeChannel": {
+      "enum": [
+        "form",
+        "import"
+      ],
+      "title": "IntakeChannel",
+      "type": "string"
+    },
+    "IntendedUse": {
+      "enum": [
+        "simulation_only",
+        "operational_support",
+        "shadow_evaluation",
+        "authoring_only"
+      ],
+      "title": "IntendedUse",
+      "type": "string"
+    },
+    "Interval": {
+      "additionalProperties": false,
+      "description": "A closed probability interval. Both bounds or neither (CONVENTIONS 6).",
+      "properties": {
+        "lower": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "title": "Interval",
+      "type": "object"
+    },
+    "IntervalMethod": {
+      "enum": [
+        "beta_posterior_quantile"
+      ],
+      "title": "IntervalMethod",
+      "type": "string"
+    },
+    "MetricStatus": {
+      "description": "A metric without support is `not_estimable`, never zero (CONVENTIONS 9.4).",
+      "enum": [
+        "estimated",
+        "not_estimable"
+      ],
+      "title": "MetricStatus",
+      "type": "string"
+    },
+    "MetricValue": {
+      "additionalProperties": false,
+      "description": "A number with its estimability, or an explicit reason there is none.",
+      "properties": {
+        "denominator": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Denominator"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "not_estimable_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Estimable Reason"
+        },
+        "status": {
+          "$ref": "#/$defs/MetricStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "MetricValue",
+      "type": "object"
+    },
+    "ModelState": {
+      "enum": [
+        "candidate",
+        "validated_offline",
+        "shadow",
+        "shadow_evaluated",
+        "rejected",
+        "suspended_for_consent_review",
+        "retired"
+      ],
+      "title": "ModelState",
+      "type": "string"
+    },
+    "ModelVersion": {
+      "additionalProperties": false,
+      "description": "A trained artifact and the only states it is allowed to be in.\n\nThere is no automatic promotion to an operational champion in v0.3.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "intended_use": {
+          "$ref": "#/$defs/IntendedUse"
+        },
+        "model_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Model Version",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/ModelState"
+        },
+        "suspended_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suspended At"
+        },
+        "track_id": {
+          "$ref": "#/$defs/TrackId"
+        },
+        "training_data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "training_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Training Run Id"
+        }
+      },
+      "required": [
+        "model_version",
+        "track_id",
+        "training_data_origin",
+        "intended_use",
+        "state",
+        "created_at"
+      ],
+      "title": "ModelVersion",
+      "type": "object"
+    },
+    "NotTrainableReason": {
+      "enum": [
+        "not_trainable_single_class",
+        "not_trainable_insufficient_sample_plan",
+        "not_trainable_convergence_failure",
+        "not_trainable_consent_not_reauthorized"
+      ],
+      "title": "NotTrainableReason",
+      "type": "string"
+    },
+    "NotificationEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_indexed_match",
+                "draft_unavailable",
+                "draft_not_grounded"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        },
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "attempt": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attempt"
+        },
+        "child_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Id"
+        },
+        "prediction_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prediction Episode Id"
+        },
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "matched",
+                "abstained"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "type": {
+          "enum": [
+            "recommendation.ready",
+            "recommendation.redrafted",
+            "feedback.recorded"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "recommendation_instance_id",
+        "at"
+      ],
+      "title": "NotificationEvent",
+      "type": "object"
+    },
+    "OutcomeAdjudication": {
+      "additionalProperties": false,
+      "description": "An operational decision on a conflict. It does not restore eligibility.",
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "actor_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/OutcomeReportValue"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "outcome_adjudication_id": {
+          "format": "uuid",
+          "title": "Outcome Adjudication Id",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "reason_es": {
+          "minLength": 1,
+          "title": "Reason Es",
+          "type": "string"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "outcome_adjudication_id",
+        "prediction_episode_id",
+        "actor_id",
+        "actor_role",
+        "decision",
+        "reason_es",
+        "decided_at"
+      ],
+      "title": "OutcomeAdjudication",
+      "type": "object"
+    },
+    "OutcomeReport": {
+      "additionalProperties": false,
+      "description": "One person's answer, kept forever even when it arrives too late.",
+      "properties": {
+        "data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "intake_channel": {
+          "$ref": "#/$defs/IntakeChannel"
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurred At"
+        },
+        "outcome_report_id": {
+          "format": "uuid",
+          "title": "Outcome Report Id",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "reported_at": {
+          "format": "date-time",
+          "title": "Reported At",
+          "type": "string"
+        },
+        "reporter_actor_id": {
+          "format": "uuid",
+          "title": "Reporter Actor Id",
+          "type": "string"
+        },
+        "reporter_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "source_mapping_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Mapping Id"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "timing_status": {
+          "$ref": "#/$defs/TimingStatus"
+        },
+        "value": {
+          "$ref": "#/$defs/OutcomeReportValue"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "outcome_report_id",
+        "prediction_episode_id",
+        "target_definition_version",
+        "reporter_actor_id",
+        "reporter_role",
+        "value",
+        "reported_at",
+        "timing_status",
+        "data_origin",
+        "intake_channel"
+      ],
+      "title": "OutcomeReport",
+      "type": "object"
+    },
+    "OutcomeReportRequest": {
+      "additionalProperties": false,
+      "description": "The client sends the answer only. Actor, role, timing and target are server-side.",
+      "properties": {
+        "occurred_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurred At"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "value": {
+          "$ref": "#/$defs/OutcomeReportValue"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "OutcomeReportRequest",
+      "type": "object"
+    },
+    "OutcomeReportResponse": {
+      "additionalProperties": false,
+      "description": "Report and resolution are returned separately; they are different facts.",
+      "properties": {
+        "report": {
+          "$ref": "#/$defs/OutcomeReportView"
+        },
+        "resolution": {
+          "$ref": "#/$defs/OutcomeResolutionView"
+        }
+      },
+      "required": [
+        "report",
+        "resolution"
+      ],
+      "title": "OutcomeReportResponse",
+      "type": "object"
+    },
+    "OutcomeReportValue": {
+      "description": "A report is not a resolution (SPEC 4.4).",
+      "enum": [
+        "yes",
+        "no",
+        "unknown"
+      ],
+      "title": "OutcomeReportValue",
+      "type": "string"
+    },
+    "OutcomeReportView": {
+      "additionalProperties": false,
+      "description": "The wire view refuses exactly what `OutcomeReport` refuses.",
+      "properties": {
+        "intake_channel": {
+          "$ref": "#/$defs/IntakeChannel"
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurred At"
+        },
+        "outcome_report_id": {
+          "format": "uuid",
+          "title": "Outcome Report Id",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "reported_at": {
+          "format": "date-time",
+          "title": "Reported At",
+          "type": "string"
+        },
+        "reporter_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "timing_status": {
+          "$ref": "#/$defs/TimingStatus"
+        },
+        "value": {
+          "$ref": "#/$defs/OutcomeReportValue"
+        }
+      },
+      "required": [
+        "outcome_report_id",
+        "prediction_episode_id",
+        "value",
+        "reported_at",
+        "timing_status",
+        "reporter_role",
+        "intake_channel",
+        "target_definition_version"
+      ],
+      "title": "OutcomeReportView",
+      "type": "object"
+    },
+    "OutcomeRequest": {
+      "additionalProperties": false,
+      "description": "Immutable scheduling record. Its state is derived, never mutated.",
+      "properties": {
+        "capture_deadline_at": {
+          "format": "date-time",
+          "title": "Capture Deadline At",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "eligible_reporter_roles": {
+          "items": {
+            "$ref": "#/$defs/Role"
+          },
+          "title": "Eligible Reporter Roles",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "outcome_request_id": {
+          "format": "uuid",
+          "title": "Outcome Request Id",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "target_end_at": {
+          "format": "date-time",
+          "title": "Target End At",
+          "type": "string"
+        },
+        "target_start_at": {
+          "format": "date-time",
+          "title": "Target Start At",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome_request_id",
+        "tenant_id",
+        "subject_id",
+        "prediction_episode_id",
+        "target_definition_version",
+        "eligible_reporter_roles",
+        "target_start_at",
+        "target_end_at",
+        "capture_deadline_at",
+        "created_at"
+      ],
+      "title": "OutcomeRequest",
+      "type": "object"
+    },
+    "OutcomeRequestListResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OutcomeRequestView"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "title": "OutcomeRequestListResponse",
+      "type": "object"
+    },
+    "OutcomeRequestState": {
+      "description": "Derived from the active resolution and the clock, never mutated.",
+      "enum": [
+        "open",
+        "reported",
+        "conflicted",
+        "missing"
+      ],
+      "title": "OutcomeRequestState",
+      "type": "string"
+    },
+    "OutcomeRequestView": {
+      "additionalProperties": false,
+      "description": "One pending item of the actor's inbox, with its derived state.",
+      "properties": {
+        "capture_deadline_at": {
+          "format": "date-time",
+          "title": "Capture Deadline At",
+          "type": "string"
+        },
+        "outcome_request_id": {
+          "format": "uuid",
+          "title": "Outcome Request Id",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "question_es": {
+          "minLength": 1,
+          "title": "Question Es",
+          "type": "string"
+        },
+        "resolution_status": {
+          "$ref": "#/$defs/OutcomeResolutionStatus"
+        },
+        "severity_anchors_es": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Severity Anchors Es",
+          "type": "array"
+        },
+        "state": {
+          "$ref": "#/$defs/OutcomeRequestState"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "target_end_at": {
+          "format": "date-time",
+          "title": "Target End At",
+          "type": "string"
+        },
+        "target_start_at": {
+          "format": "date-time",
+          "title": "Target Start At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome_request_id",
+        "prediction_episode_id",
+        "subject_id",
+        "target_definition_version",
+        "question_es",
+        "target_start_at",
+        "target_end_at",
+        "capture_deadline_at",
+        "state",
+        "resolution_status"
+      ],
+      "title": "OutcomeRequestView",
+      "type": "object"
+    },
+    "OutcomeResolution": {
+      "additionalProperties": false,
+      "description": "An append-only materialisation recomputed after every correction.",
+      "properties": {
+        "ever_conflicted": {
+          "title": "Ever Conflicted",
+          "type": "boolean"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "outcome_resolution_id": {
+          "format": "uuid",
+          "title": "Outcome Resolution Id",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "qualifying_report_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Qualifying Report Id"
+        },
+        "resolution_version": {
+          "minimum": 1,
+          "title": "Resolution Version",
+          "type": "integer"
+        },
+        "resolved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved At"
+        },
+        "status": {
+          "$ref": "#/$defs/OutcomeResolutionStatus"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "outcome_resolution_id",
+        "prediction_episode_id",
+        "status",
+        "ever_conflicted",
+        "resolution_version"
+      ],
+      "title": "OutcomeResolution",
+      "type": "object"
+    },
+    "OutcomeResolutionStatus": {
+      "enum": [
+        "pending",
+        "yes",
+        "no",
+        "unknown",
+        "conflicted"
+      ],
+      "title": "OutcomeResolutionStatus",
+      "type": "string"
+    },
+    "OutcomeResolutionView": {
+      "additionalProperties": false,
+      "description": "A resolution is not a report, and a conflict never becomes clean again.",
+      "properties": {
+        "ever_conflicted": {
+          "title": "Ever Conflicted",
+          "type": "boolean"
+        },
+        "qualifying_report_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Qualifying Report Id"
+        },
+        "resolution_version": {
+          "minimum": 1,
+          "title": "Resolution Version",
+          "type": "integer"
+        },
+        "resolved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved At"
+        },
+        "status": {
+          "$ref": "#/$defs/OutcomeResolutionStatus"
+        }
+      },
+      "required": [
+        "status",
+        "ever_conflicted",
+        "resolution_version"
+      ],
+      "title": "OutcomeResolutionView",
+      "type": "object"
+    },
+    "PosteriorDefault": {
+      "additionalProperties": false,
+      "description": "The estimator output behind one suggestion (SPEC 6.3, 6.4).",
+      "properties": {
+        "candidate_count": {
+          "minimum": 0,
+          "title": "Candidate Count",
+          "type": "integer"
+        },
+        "candidate_value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Candidate Value"
+        },
+        "estimator_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Estimator Version",
+          "type": "string"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "lower_bound": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Lower Bound",
+          "type": "number"
+        },
+        "n_observations": {
+          "minimum": 0,
+          "title": "N Observations",
+          "type": "integer"
+        },
+        "posterior_mean": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Posterior Mean",
+          "type": "number"
+        },
+        "quantile": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Quantile",
+          "type": "number"
+        }
+      },
+      "required": [
+        "field_code",
+        "candidate_value",
+        "candidate_count",
+        "n_observations",
+        "posterior_mean",
+        "lower_bound",
+        "quantile",
+        "estimator_version"
+      ],
+      "title": "PosteriorDefault",
+      "type": "object"
+    },
+    "PredictionAbstentionReason": {
+      "description": "Closed catalogue of why a track produced no visible estimate.",
+      "enum": [
+        "collecting_data",
+        "insufficient_verified_outcomes",
+        "unresolved_conflict",
+        "care_mode_history_unavailable",
+        "target_definition_unavailable",
+        "target_definition_ambiguous",
+        "model_state_not_shadow",
+        "predictor_missing",
+        "personal_predictor_history_insufficient",
+        "feature_conflict",
+        "unsupported_mapping",
+        "calibration_failure",
+        "cohort_not_eligible",
+        "model_artifact_unavailable"
+      ],
+      "title": "PredictionAbstentionReason",
+      "type": "string"
+    },
+    "PredictionEpisode": {
+      "additionalProperties": false,
+      "description": "An immutable opportunity with a 24-hour window and a 48-hour deadline.",
+      "properties": {
+        "as_of_at": {
+          "format": "date-time",
+          "title": "As Of At",
+          "type": "string"
+        },
+        "capture_deadline_at": {
+          "format": "date-time",
+          "title": "Capture Deadline At",
+          "type": "string"
+        },
+        "care_mode": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Care Mode",
+          "type": "string"
+        },
+        "cohort_kind": {
+          "$ref": "#/$defs/CohortKind"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "feature_snapshot_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feature Snapshot Id"
+        },
+        "form_session_id": {
+          "format": "uuid",
+          "title": "Form Session Id",
+          "type": "string"
+        },
+        "input_data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "prediction_at": {
+          "format": "date-time",
+          "title": "Prediction At",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "profile_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Profile Version",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/EpisodeRole",
+          "default": "primary"
+        },
+        "status": {
+          "$ref": "#/$defs/PredictionEpisodeStatus"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "target_end_at": {
+          "format": "date-time",
+          "title": "Target End At",
+          "type": "string"
+        },
+        "target_start_at": {
+          "format": "date-time",
+          "title": "Target Start At",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prediction_episode_id",
+        "tenant_id",
+        "subject_id",
+        "form_session_id",
+        "status",
+        "as_of_at",
+        "prediction_at",
+        "target_start_at",
+        "target_end_at",
+        "capture_deadline_at",
+        "target_definition_version",
+        "care_mode",
+        "profile_version",
+        "cohort_kind",
+        "input_data_origin",
+        "created_at"
+      ],
+      "title": "PredictionEpisode",
+      "type": "object"
+    },
+    "PredictionEpisodeResponse": {
+      "additionalProperties": false,
+      "description": "The authorised view of one episode: window, tracks and data quality.",
+      "properties": {
+        "as_of_at": {
+          "format": "date-time",
+          "title": "As Of At",
+          "type": "string"
+        },
+        "capture_deadline_at": {
+          "format": "date-time",
+          "title": "Capture Deadline At",
+          "type": "string"
+        },
+        "data_quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DataQuality"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "decision_policy_version": {
+          "default": null,
+          "title": "Decision Policy Version",
+          "type": "null"
+        },
+        "outputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PredictionOutputView"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "risk_band": {
+          "default": null,
+          "title": "Risk Band",
+          "type": "null"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "target_end_at": {
+          "format": "date-time",
+          "title": "Target End At",
+          "type": "string"
+        },
+        "target_start_at": {
+          "format": "date-time",
+          "title": "Target Start At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prediction_episode_id",
+        "subject_id",
+        "as_of_at",
+        "target_start_at",
+        "target_end_at",
+        "capture_deadline_at",
+        "target_definition_version"
+      ],
+      "title": "PredictionEpisodeResponse",
+      "type": "object"
+    },
+    "PredictionEpisodeStatus": {
+      "enum": [
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "title": "PredictionEpisodeStatus",
+      "type": "string"
+    },
+    "PredictionOutput": {
+      "additionalProperties": false,
+      "description": "One track's answer for one episode, including its abstention.",
+      "properties": {
+        "abstention_reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PredictionAbstentionReason"
+          },
+          "title": "Abstention Reasons",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "detail": {
+          "additionalProperties": true,
+          "title": "Detail",
+          "type": "object"
+        },
+        "estimate_kind": {
+          "$ref": "#/$defs/EstimateKind"
+        },
+        "input_data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "intended_use": {
+          "$ref": "#/$defs/IntendedUse"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interval_method": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntervalMethod"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "model_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Model Version",
+          "type": "string"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "prediction_output_id": {
+          "format": "uuid",
+          "title": "Prediction Output Id",
+          "type": "string"
+        },
+        "probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probability"
+        },
+        "shadow_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shadow Score"
+        },
+        "simulation_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Simulation Score"
+        },
+        "status": {
+          "$ref": "#/$defs/PredictionStatus"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "track_id": {
+          "$ref": "#/$defs/TrackId"
+        }
+      },
+      "required": [
+        "prediction_output_id",
+        "tenant_id",
+        "prediction_episode_id",
+        "track_id",
+        "intended_use",
+        "status",
+        "estimate_kind",
+        "model_version",
+        "input_data_origin",
+        "created_at"
+      ],
+      "title": "PredictionOutput",
+      "type": "object"
+    },
+    "PredictionOutputView": {
+      "additionalProperties": false,
+      "description": "A single track's answer as a caller sees it (SPEC 11.5).\n\n`confidence` is absent on purpose: what a track publishes about its own\nuncertainty is its interval, and a track without one says nothing rather\nthan borrowing another's.\n\nThe challenger appears here now. It used to be barred outright because it\nran in shadow; it is an operational track since it started answering the\n24-hour question, and the bar came off with the intended use.",
+      "properties": {
+        "abstention_reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PredictionAbstentionReason"
+          },
+          "title": "Abstention Reasons",
+          "type": "array"
+        },
+        "estimate_kind": {
+          "$ref": "#/$defs/EstimateKind"
+        },
+        "input_data_origin": {
+          "$ref": "#/$defs/DataOrigin"
+        },
+        "intended_use": {
+          "$ref": "#/$defs/IntendedUse"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interval_method": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntervalMethod"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "model_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Model Version",
+          "type": "string"
+        },
+        "probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probability"
+        },
+        "simulation_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Simulation Score"
+        },
+        "status": {
+          "$ref": "#/$defs/PredictionStatus"
+        },
+        "track_id": {
+          "$ref": "#/$defs/TrackId"
+        }
+      },
+      "required": [
+        "track_id",
+        "intended_use",
+        "status",
+        "estimate_kind",
+        "model_version",
+        "input_data_origin"
+      ],
+      "title": "PredictionOutputView",
+      "type": "object"
+    },
+    "PredictionStatus": {
+      "description": "Abstention is a valid HTTP 200 outcome (SPEC 2.11).",
+      "enum": [
+        "ok",
+        "abstained",
+        "unavailable"
+      ],
+      "title": "PredictionStatus",
+      "type": "string"
+    },
+    "QuestionPresentation": {
+      "additionalProperties": false,
+      "description": "Proof that a field was highlighted, which is what \"asked\" means.\n\nAppearing in the tail is not being asked and does not reset the clock.",
+      "properties": {
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "form_session_id": {
+          "format": "uuid",
+          "title": "Form Session Id",
+          "type": "string"
+        },
+        "highlighted": {
+          "title": "Highlighted",
+          "type": "boolean"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "local_date": {
+          "format": "date",
+          "title": "Local Date",
+          "type": "string"
+        },
+        "presented_at": {
+          "format": "date-time",
+          "title": "Presented At",
+          "type": "string"
+        },
+        "question_presentation_id": {
+          "format": "uuid",
+          "title": "Question Presentation Id",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/QuestionReason"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "voi_nats": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voi Nats"
+        },
+        "voi_status": {
+          "$ref": "#/$defs/VoiStatus",
+          "default": "unavailable_model"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "question_presentation_id",
+        "subject_id",
+        "form_session_id",
+        "field_code",
+        "source",
+        "highlighted",
+        "reason",
+        "presented_at",
+        "local_date"
+      ],
+      "title": "QuestionPresentation",
+      "type": "object"
+    },
+    "QuestionReason": {
+      "description": "Why a field appears where it does in the plan (SPEC 6.9 order).",
+      "enum": [
+        "outcome_pending",
+        "staleness",
+        "exploration",
+        "voi",
+        "canonical_order",
+        "tail"
+      ],
+      "title": "QuestionReason",
+      "type": "string"
+    },
+    "RecommendationAbstentionReason": {
+      "description": "SPEC 9.6 derives exactly one reason, in this precedence order.",
+      "enum": [
+        "corpus_not_ready",
+        "clinical_review_unavailable",
+        "catalog_suspended",
+        "catalog_ambiguous",
+        "catalog_not_ready",
+        "no_approved_match",
+        "scenario_unavailable_conflict"
+      ],
+      "title": "RecommendationAbstentionReason",
+      "type": "string"
+    },
+    "RecommendationCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "document_title_es": {
+          "minLength": 1,
+          "title": "Document Title Es",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "quote_es": {
+          "minLength": 1,
+          "title": "Quote Es",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_title_es",
+        "locator",
+        "quote_es"
+      ],
+      "title": "RecommendationCitation",
+      "type": "object"
+    },
+    "RecommendationInstanceView": {
+      "additionalProperties": false,
+      "properties": {
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_indexed_match",
+                "draft_unavailable",
+                "draft_not_grounded"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        },
+        "action_text_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Text Es"
+        },
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "child_id": {
+          "format": "uuid",
+          "title": "Child Id",
+          "type": "string"
+        },
+        "child_label": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Label"
+        },
+        "citations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationCitation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "local_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Date"
+        },
+        "prediction_episode_id": {
+          "format": "uuid",
+          "title": "Prediction Episode Id",
+          "type": "string"
+        },
+        "purpose_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose Es"
+        },
+        "query_es": {
+          "title": "Query Es",
+          "type": "string"
+        },
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "risk_band": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "unknown"
+          ],
+          "title": "Risk Band",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "matched",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_instance_id",
+        "child_id",
+        "prediction_episode_id",
+        "created_at",
+        "risk_band",
+        "query_es",
+        "status",
+        "attempt"
+      ],
+      "title": "RecommendationInstanceView",
+      "type": "object"
+    },
+    "RecommendationListResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationInstanceView"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "title": "RecommendationListResponse",
+      "type": "object"
+    },
+    "ReleaseManifest": {
+      "additionalProperties": false,
+      "description": "Implementation, corpus, target and catalogue status, declared separately.\n\nWithout a legally usable corpus M4 and the DoD stay blocked; without an\nauthorised reviewer the catalogue can only be `blocked_clinical_review`\n(SPEC 20).",
+      "properties": {
+        "catalog_status": {
+          "title": "Catalog Status",
+          "type": "string"
+        },
+        "contract_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "corpus_status": {
+          "title": "Corpus Status",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "implementation_status": {
+          "title": "Implementation Status",
+          "type": "string"
+        },
+        "notes_es": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes Es",
+          "type": "array"
+        },
+        "spec_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Spec Version",
+          "type": "string"
+        },
+        "target_definition_status": {
+          "title": "Target Definition Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spec_version",
+        "contract_version",
+        "implementation_status",
+        "corpus_status",
+        "target_definition_status",
+        "catalog_status",
+        "generated_at"
+      ],
+      "title": "ReleaseManifest",
+      "type": "object"
+    },
+    "RetrievalMode": {
+      "enum": [
+        "hybrid",
+        "lexical_only"
+      ],
+      "title": "RetrievalMode",
+      "type": "string"
+    },
+    "Role": {
+      "enum": [
+        "caregiver",
+        "professional",
+        "clinical_reviewer",
+        "evidence_reviewer",
+        "privacy_reviewer",
+        "model_evaluator",
+        "tenant_admin",
+        "auditor"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "RuntimeDecision": {
+      "additionalProperties": false,
+      "description": "The pure runtime answer: at most three strategies, or an abstention.",
+      "properties": {
+        "authoring_request_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuthoringRequestIntent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "catalog_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Catalog Version"
+        },
+        "corpus_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corpus Version"
+        },
+        "matches": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RuntimeStrategyMatch"
+          },
+          "title": "Matches",
+          "type": "array"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationAbstentionReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "scenario_hash": {
+          "title": "Scenario Hash",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/RuntimeStatus"
+        }
+      },
+      "required": [
+        "status",
+        "scenario_hash"
+      ],
+      "title": "RuntimeDecision",
+      "type": "object"
+    },
+    "RuntimeStatus": {
+      "enum": [
+        "matched",
+        "abstained"
+      ],
+      "title": "RuntimeStatus",
+      "type": "string"
+    },
+    "RuntimeStrategyMatch": {
+      "additionalProperties": false,
+      "description": "One matched strategy in runtime order, with the citations of its version.",
+      "properties": {
+        "action_text_es": {
+          "minLength": 1,
+          "title": "Action Text Es",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/StrategyCitation"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "position_in_set": {
+          "minimum": 0,
+          "title": "Position In Set",
+          "type": "integer"
+        },
+        "recommendation_set_id": {
+          "format": "uuid",
+          "title": "Recommendation Set Id",
+          "type": "string"
+        },
+        "recommendation_set_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Recommendation Set Version",
+          "type": "string"
+        },
+        "reviewed_priority": {
+          "title": "Reviewed Priority",
+          "type": "integer"
+        },
+        "strategy_version_id": {
+          "format": "uuid",
+          "title": "Strategy Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy_version_id",
+        "recommendation_set_id",
+        "recommendation_set_version",
+        "reviewed_priority",
+        "position_in_set",
+        "action_text_es",
+        "citations"
+      ],
+      "title": "RuntimeStrategyMatch",
+      "type": "object"
+    },
+    "ScenarioBuildResult": {
+      "additionalProperties": false,
+      "description": "Outcome of the pure P1 `build_scenario` facade (SPEC 9.7).\n\nP2 persists this or the abstention; it never re-derives the precedence.",
+      "properties": {
+        "builder_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Builder Version",
+          "type": "string"
+        },
+        "profile_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Version"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationAbstentionReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "scenario": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScenarioV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scenario_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scenario Hash"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Source"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "$ref": "#/$defs/RuntimeStatus"
+        }
+      },
+      "required": [
+        "status",
+        "builder_version"
+      ],
+      "title": "ScenarioBuildResult",
+      "type": "object"
+    },
+    "ScenarioV1": {
+      "additionalProperties": false,
+      "description": "The minimal matching payload. No identity, notes, external IDs or history.\n\nTreated as potentially pseudonymised while a combination of attributes could\nbe linkable; it is never presumed anonymous (SPEC 9.7).",
+      "properties": {
+        "context_tags": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Context Tags",
+          "type": "array"
+        },
+        "contraindication_tags": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Contraindication Tags",
+          "type": "array"
+        },
+        "field_values": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/FieldCode"
+          },
+          "title": "Field Values",
+          "type": "object"
+        },
+        "profile_tags": {
+          "default": [],
+          "items": {
+            "maxLength": 96,
+            "pattern": "^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Profile Tags",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": "scenario-1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "title": "ScenarioV1",
+      "type": "object"
+    },
+    "Source": {
+      "description": "Observation context, not the actor and not a bibliographic source.\n\n`source_id` is reserved for corpus documents; `actor_id` records who\nreported and `source_mapping_id` which adapter was used (SPEC 5.4).",
+      "enum": [
+        "home",
+        "therapy",
+        "school"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "SourceMapping": {
+      "additionalProperties": false,
+      "description": "A versioned adapter. Unknown source values fail; they never become null.",
+      "properties": {
+        "approved": {
+          "title": "Approved",
+          "type": "boolean"
+        },
+        "content_sha256": {
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "mapping_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Mapping Version",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "source_mapping_id": {
+          "format": "uuid",
+          "title": "Source Mapping Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_mapping_id",
+        "tenant_id",
+        "mapping_version",
+        "field_code",
+        "source",
+        "approved",
+        "content_sha256"
+      ],
+      "title": "SourceMapping",
+      "type": "object"
+    },
+    "SourceMetric": {
+      "additionalProperties": false,
+      "description": "Metrics broken down by observation context (SPEC 14.3).",
+      "properties": {
+        "metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MetricValue"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "SourceMetric",
+      "type": "object"
+    },
+    "StrategyCitation": {
+      "additionalProperties": false,
+      "description": "Links one claim to one literal fragment of one hashed chunk.",
+      "properties": {
+        "canonical_url": {
+          "format": "uri",
+          "minLength": 1,
+          "title": "Canonical Url",
+          "type": "string"
+        },
+        "chunk_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chunk Sha256",
+          "type": "string"
+        },
+        "citation_id": {
+          "format": "uuid",
+          "title": "Citation Id",
+          "type": "string"
+        },
+        "claim_id": {
+          "format": "uuid",
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "document_chunk_id": {
+          "format": "uuid",
+          "title": "Document Chunk Id",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "quoted_text": {
+          "minLength": 1,
+          "title": "Quoted Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "citation_id",
+        "claim_id",
+        "document_chunk_id",
+        "locator",
+        "quoted_text",
+        "chunk_sha256",
+        "canonical_url"
+      ],
+      "title": "StrategyCitation",
+      "type": "object"
+    },
+    "StrategyClaim": {
+      "additionalProperties": false,
+      "description": "A claim is a span of the reviewed action text, with its own citations.",
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "claim_id": {
+          "format": "uuid",
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "claim_text_es": {
+          "minLength": 1,
+          "title": "Claim Text Es",
+          "type": "string"
+        },
+        "end": {
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "claim_id",
+        "start",
+        "end",
+        "claim_text_es",
+        "citation_ids"
+      ],
+      "title": "StrategyClaim",
+      "type": "object"
+    },
+    "Subject": {
+      "additionalProperties": false,
+      "description": "Cohort membership decides which tracks may ever see this subject.",
+      "properties": {
+        "cohort_kind": {
+          "$ref": "#/$defs/CohortKind"
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_id",
+        "tenant_id",
+        "cohort_kind"
+      ],
+      "title": "Subject",
+      "type": "object"
+    },
+    "SubjectProfile": {
+      "additionalProperties": false,
+      "description": "Only the attributes matching needs, from closed catalogues (SPEC 5.7).\n\nTags are never inferred from free notes, and `care_mode` is a token from a\ntenant-versioned catalogue that SPEC v0.3.0 does not enumerate.",
+      "properties": {
+        "care_mode": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Care Mode",
+          "type": "string"
+        },
+        "communication_support_tags": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Communication Support Tags",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "contraindication_tags": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Contraindication Tags",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "effective_from": {
+          "format": "date-time",
+          "title": "Effective From",
+          "type": "string"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "profile_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Profile Version",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "sensory_profile_tags": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Sensory Profile Tags",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "subject_id": {
+          "format": "uuid",
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "subject_profile_id": {
+          "format": "uuid",
+          "title": "Subject Profile Id",
+          "type": "string"
+        },
+        "supersedes_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Id"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "ingested_at",
+        "subject_profile_id",
+        "subject_id",
+        "care_mode",
+        "profile_version",
+        "effective_from",
+        "recorded_at"
+      ],
+      "title": "SubjectProfile",
+      "type": "object"
+    },
+    "SubmitStatus": {
+      "description": "Only `episode_created` creates a snapshot, outputs and an outcome request.",
+      "enum": [
+        "episode_created",
+        "episode_linked",
+        "target_definition_unavailable"
+      ],
+      "title": "SubmitStatus",
+      "type": "string"
+    },
+    "TargetDefinitionVersion": {
+      "additionalProperties": false,
+      "description": "The versioned question a real label answers.\n\nAn imported intensity label proves a category exists in an export; it does\nnot define how a new person should answer. Without an `active` version the\nsystem accepts demo fixtures and abstains from creating real labels\n(SPEC 4.3).",
+      "properties": {
+        "approval_status": {
+          "$ref": "#/$defs/ApprovalStatus"
+        },
+        "clinical_review_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clinical Review Id"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "effective_from": {
+          "format": "date-time",
+          "title": "Effective From",
+          "type": "string"
+        },
+        "eligible_reporter_roles": {
+          "items": {
+            "$ref": "#/$defs/Role"
+          },
+          "title": "Eligible Reporter Roles",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "eligible_source_mappings": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Eligible Source Mappings",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "evidence_basis": {
+          "minLength": 1,
+          "title": "Evidence Basis",
+          "type": "string"
+        },
+        "question_es": {
+          "minLength": 1,
+          "title": "Question Es",
+          "type": "string"
+        },
+        "retired_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retired At"
+        },
+        "scope": {
+          "$ref": "#/$defs/TargetScope"
+        },
+        "severity_anchors_es": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Severity Anchors Es",
+          "type": "array"
+        },
+        "target_definition_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Target Definition Version",
+          "type": "string"
+        },
+        "tenant_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tenant Id"
+        }
+      },
+      "required": [
+        "target_definition_version",
+        "scope",
+        "question_es",
+        "severity_anchors_es",
+        "eligible_reporter_roles",
+        "effective_from",
+        "evidence_basis",
+        "approval_status",
+        "content_sha256"
+      ],
+      "title": "TargetDefinitionVersion",
+      "type": "object"
+    },
+    "TargetScope": {
+      "enum": [
+        "tenant",
+        "demo_fixture"
+      ],
+      "title": "TargetScope",
+      "type": "string"
+    },
+    "TargetSelection": {
+      "additionalProperties": false,
+      "description": "The single selectable definition at a cutoff, or why there is none.",
+      "properties": {
+        "candidate_versions": {
+          "default": [],
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Candidate Versions",
+          "type": "array"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetScope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "target_definition_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Definition Version"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TargetSelection",
+      "type": "object"
+    },
+    "TimingStatus": {
+      "enum": [
+        "early",
+        "on_time",
+        "late",
+        "missing"
+      ],
+      "title": "TimingStatus",
+      "type": "string"
+    },
+    "TodayRecommendationResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_indexed_match",
+                "draft_unavailable",
+                "draft_not_grounded"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        },
+        "action_text_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Text Es"
+        },
+        "citations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationCitation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "purpose_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose Es"
+        },
+        "rating": {
+          "anyOf": [
+            {
+              "enum": [
+                "good",
+                "bad"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rating"
+        },
+        "recommendation_instance_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommendation Instance Id"
+        },
+        "risk_band": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Risk Band"
+        },
+        "status": {
+          "enum": [
+            "no_submission_today",
+            "pending",
+            "matched",
+            "abstained"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TodayRecommendationResponse",
+      "type": "object"
+    },
+    "TrackId": {
+      "enum": [
+        "synthetic_reference_v021",
+        "real_personal_baseline_v1",
+        "real_logit_challenger_v1"
+      ],
+      "title": "TrackId",
+      "type": "string"
+    },
+    "TrainingRun": {
+      "additionalProperties": false,
+      "description": "A run that produced a candidate, or an honest reason it produced none.",
+      "properties": {
+        "challenger_protocol_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenger Protocol Version"
+        },
+        "code_version": {
+          "title": "Code Version",
+          "type": "string"
+        },
+        "consent_reauthorized": {
+          "title": "Consent Reauthorized",
+          "type": "boolean"
+        },
+        "dataset_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Dataset Sha256",
+          "type": "string"
+        },
+        "dataset_snapshot_id": {
+          "format": "uuid",
+          "title": "Dataset Snapshot Id",
+          "type": "string"
+        },
+        "dependency_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Dependency Versions",
+          "type": "object"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "model_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Version"
+        },
+        "not_trainable_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NotTrainableReason"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/TrainingRunStatus"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "track_id": {
+          "$ref": "#/$defs/TrackId"
+        },
+        "training_run_id": {
+          "format": "uuid",
+          "title": "Training Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "training_run_id",
+        "tenant_id",
+        "dataset_snapshot_id",
+        "track_id",
+        "status",
+        "code_version",
+        "dependency_versions",
+        "dataset_sha256",
+        "consent_reauthorized",
+        "started_at"
+      ],
+      "title": "TrainingRun",
+      "type": "object"
+    },
+    "TrainingRunStatus": {
+      "enum": [
+        "created",
+        "running",
+        "completed",
+        "not_trainable",
+        "failed"
+      ],
+      "title": "TrainingRunStatus",
+      "type": "string"
+    },
+    "VoiEstimate": {
+      "additionalProperties": false,
+      "description": "Mutual information in nats, or an explicit reason it is unavailable.\n\nUnavailable means `voi_nats=null`. Zero would claim the value was computed\nand found uninformative (SPEC 7.3).",
+      "properties": {
+        "conditional_model_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditional Model Version"
+        },
+        "cutoff_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cutoff At"
+        },
+        "field_code": {
+          "$ref": "#/$defs/FieldCode"
+        },
+        "q_estimator_version": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Q Estimator Version"
+        },
+        "status": {
+          "$ref": "#/$defs/VoiStatus"
+        },
+        "voi_nats": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voi Nats"
+        }
+      },
+      "required": [
+        "field_code",
+        "status"
+      ],
+      "title": "VoiEstimate",
+      "type": "object"
+    },
+    "VoiStatus": {
+      "description": "Unavailable returns `voi_nats=null`, never zero (SPEC 7.3).",
+      "enum": [
+        "available",
+        "unavailable_model",
+        "unavailable_field_type",
+        "unavailable_prediction"
+      ],
+      "title": "VoiStatus",
+      "type": "string"
+    }
+  },
+  "$id": "https://faro.local/schema/faro-contract-0.4.0.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Generated by `python -m tools.contracts.generate`. Do not edit by hand.",
+  "title": "Faro contract",
+  "x-faro-contract-version": "faro-contract-0.4.0",
+  "x-faro-published-models": [
+    "AbstentionBreakdown",
+    "AnswerSubmission",
+    "AuthoringBuildManifest",
+    "AuthoringRequest",
+    "AuthoringRequestIntent",
+    "AuthoringReview",
+    "ChallengerTrainingProtocolVersion",
+    "ChildHistoryDay",
+    "ChildHistoryResponse",
+    "ChildListResponse",
+    "ChildView",
+    "CorpusVersion",
+    "DataQuality",
+    "DatasetSnapshot",
+    "DefaultPresentation",
+    "DefaultSuggestion",
+    "DocumentChunk",
+    "DocumentVersion",
+    "ErrorDetail",
+    "ErrorResponse",
+    "EvaluationProtocolVersion",
+    "EvaluationReport",
+    "FeatureSnapshot",
+    "FeedbackRequest",
+    "FeedbackResponse",
+    "FieldObservation",
+    "FormPlanRequest",
+    "FormPlanResponse",
+    "FormQuestion",
+    "FormSession",
+    "FormSubmissionRequest",
+    "FormSubmissionResponse",
+    "GroupMetric",
+    "MetricValue",
+    "ModelVersion",
+    "NotificationEvent",
+    "OutcomeAdjudication",
+    "OutcomeReport",
+    "OutcomeReportRequest",
+    "OutcomeReportResponse",
+    "OutcomeReportView",
+    "OutcomeRequest",
+    "OutcomeRequestListResponse",
+    "OutcomeRequestView",
+    "OutcomeResolution",
+    "OutcomeResolutionView",
+    "PosteriorDefault",
+    "PredictionEpisode",
+    "PredictionEpisodeResponse",
+    "PredictionOutput",
+    "PredictionOutputView",
+    "QuestionPresentation",
+    "RecommendationInstanceView",
+    "RecommendationListResponse",
+    "ReleaseManifest",
+    "RuntimeDecision",
+    "RuntimeStrategyMatch",
+    "ScenarioBuildResult",
+    "ScenarioV1",
+    "SourceMapping",
+    "SourceMetric",
+    "StrategyCitation",
+    "StrategyClaim",
+    "Subject",
+    "SubjectProfile",
+    "TargetDefinitionVersion",
+    "TargetSelection",
+    "TodayRecommendationResponse",
+    "TrainingRun",
+    "VoiEstimate"
+  ],
+  "x-faro-spec-version": "0.4.0"
+}

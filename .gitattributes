@@ -1,0 +1,6 @@
+# El sha256 de estos bytes entra en `AuthoringBuildManifest.prompt_sha256`
+# (`rag/authoring/drafting.py::load_prompt` hashea el archivo crudo). Sin fijar
+# el fin de línea, un checkout en Windows produce un hash distinto para un
+# prompt byte-idéntico y el manifiesto deja de ser reproducible entre
+# plataformas, que es justo lo que promete fijar.
+rag/authoring/prompts/*.json text eol=lf

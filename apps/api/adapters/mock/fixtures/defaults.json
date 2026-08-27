@@ -1,0 +1,19 @@
+{
+  "_comment": "Sugerencias fixture del adaptador mock. La clave es subject_id|source|field_code. Sustituidas por ml/defaults en H1. Los sembrados por tools.seed usan IDs deterministas.",
+  "00000000-0000-4000-8000-000000000101|home|food_changes": {
+    "value": false,
+    "candidate_count": 36,
+    "posterior_mean": 0.8409,
+    "lower_bound": 0.7431,
+    "n_observations": 42,
+    "estimator_version": "defaults-mock-0.3.0"
+  },
+  "00000000-0000-4000-8000-000000000101|home|activity_participation": {
+    "value": 4,
+    "candidate_count": 21,
+    "posterior_mean": 0.6875,
+    "lower_bound": 0.7000,
+    "n_observations": 31,
+    "estimator_version": "defaults-mock-0.3.0"
+  }
+}

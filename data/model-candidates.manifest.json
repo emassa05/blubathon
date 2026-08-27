@@ -1,0 +1,25 @@
+{
+  "manifest_kind": "model_candidates",
+  "manifest_version": "1",
+  "spec_version": "0.3.0",
+  "purpose": "TAREAS M0/P1.2 - register candidate embedding and local LLM artifacts with licence, model card and hash before any of them is used.",
+  "registration_requirements": [
+    "licence identifier and its text location",
+    "model card URL and retrieved_at",
+    "artifact sha256 of the exact weights used",
+    "local inference test evidence",
+    "explicit statement that the model never receives personal data (SPEC 9.4)"
+  ],
+  "embedding_models": [],
+  "llm_models": [],
+  "resolved_build_mode": "lexical_only",
+  "resolved_build_mode_reason": "no embedding model is registered, so dense retrieval and RRF are skipped and BM25 returns the final chunks directly (SPEC 9.4)",
+  "runtime_llm_calls": 0,
+  "status": "blocked",
+  "status_reason": "no embedding or LLM candidate has a recorded licence, model card and artifact hash",
+  "consequences": [
+    "AuthoringBuildManifest.retrieval_mode is lexical_only and says so in the manifest and the review.",
+    "The optional LLM draft step is unavailable; authoring is manual (TAREAS 13, cut order 1 and 2).",
+    "No model is downloaded implicitly to make a build succeed."
+  ]
+}

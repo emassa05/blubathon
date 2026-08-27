@@ -1,0 +1,19 @@
+{
+  "name": "@faro/contract",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Contrato ejecutable v0.3 generado desde packages/shared (H1). No se edita a mano.",
+  "type": "module",
+  "main": "./generated/index.ts",
+  "types": "./generated/index.ts",
+  "exports": {
+    ".": "./generated/index.ts",
+    "./contract": "./generated/contract.ts",
+    "./constants": "./generated/constants.ts",
+    "./field-catalog": "./generated/field-catalog.ts",
+    "./texts": "./generated/texts.ts"
+  },
+  "dependencies": {
+    "zod": "3.24.1"
+  }
+}
