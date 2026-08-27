@@ -37,11 +37,11 @@ export type {
   TodayRecommendationResponse,
 } from "@contrato/contract";
 
-export { FARO_FIELD_CATALOG } from "@contrato/field-catalog";
-export { FARO_TEXTS_ES } from "@contrato/texts";
-export { FARO_CONSTANTS } from "@contrato/constants";
+export { BLUBATHON_FIELD_CATALOG } from "@contrato/field-catalog";
+export { BLUBATHON_TEXTS_ES } from "@contrato/texts";
+export { BLUBATHON_CONSTANTS } from "@contrato/constants";
 
-/** Lo que el cuestionario diario del cuidador declara como origen (SPEC 5.5). */
+/** Lo que el cuestionario diario del cuidador declara como origen. */
 export const ORIGEN_CUIDADOR = "caregiver_daily" as const;
 
 /** Valor de una respuesta, tal y como viaja en el contrato. */

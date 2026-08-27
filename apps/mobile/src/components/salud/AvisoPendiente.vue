@@ -84,68 +84,68 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
 .aviso {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-14);
+  gap: var(--blubathon-esp-14);
   width: 100%;
-  padding: var(--faro-esp-12);
+  padding: var(--blubathon-esp-12);
   text-align: left;
-  background: var(--faro-aviso-fondo);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-2);
+  background: var(--blubathon-aviso-fondo);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-2);
 }
 
 .aviso:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-aviso-titulo);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-aviso-titulo);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .aviso__insignia {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-toque);
-  height: var(--faro-toque);
+  width: var(--blubathon-toque);
+  height: var(--blubathon-toque);
   color: #fff;
-  background: var(--faro-aviso-insignia);
-  border-radius: var(--faro-radio-18);
+  background: var(--blubathon-aviso-insignia);
+  border-radius: var(--blubathon-radio-18);
 }
 
 .aviso__icono {
-  width: var(--faro-icono-26);
-  height: var(--faro-icono-26);
+  width: var(--blubathon-icono-26);
+  height: var(--blubathon-icono-26);
 }
 
 .aviso__texto {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--faro-esp-4);
+  gap: var(--blubathon-esp-4);
   min-width: 0;
 }
 
 .aviso__etiqueta {
-  font-size: var(--faro-fs-11);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-aviso-etiqueta);
+  color: var(--blubathon-aviso-etiqueta);
 }
 
 .aviso__titulo {
-  font-size: var(--faro-fs-155);
+  font-size: var(--blubathon-fs-155);
   font-weight: 700;
   line-height: 1.25;
-  color: var(--faro-aviso-titulo);
+  color: var(--blubathon-aviso-titulo);
 }
 
 .aviso__chevron {
   flex: none;
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
-  color: var(--faro-aviso-chevron);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
+  color: var(--blubathon-aviso-chevron);
 }
 
 .aviso--animado {
-  animation-duration: var(--faro-dur);
+  animation-duration: var(--blubathon-dur);
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
 }

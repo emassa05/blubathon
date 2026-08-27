@@ -3,7 +3,7 @@
 Los CSV del desafío son observaciones ya recogidas fuera de la plataforma, así
 que entran por el único camino que el esquema define para eso: `source_mappings`
 aprobado, `entry_mode='imported_observed'`, `intake_channel='import'`. No es una
-siembra —`tools.seed` sigue siendo ficticio (CONVENTIONS 15)— y por eso vive en
+siembra —`tools.seed` sigue siendo ficticio — y por eso vive en
 su propio paquete y nunca escribe en `packages/shared/examples`.
 
 El mapeo de valores es total y explícito: un valor de CSV que no esté en las

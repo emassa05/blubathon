@@ -1,4 +1,4 @@
-"""The order the form asks in (SPEC 6.9, 6.10).
+"""The order the form asks in.
 
 Six blocks, in this order: the pending outcome, the questions that are overdue,
 one exploration slot, VoI, canonical order to fill the remaining slots, and then
@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from uuid import UUID
 
-from ml.spec_constants import (
+from ml.formula_constants import (
     DEFAULT_WINDOW_DAYS,
     EXPLORATION_WEEKDAY_MODULUS,
     FORM_HIGHLIGHTED_DEFAULT,
@@ -40,8 +40,6 @@ from packages.shared.field_catalog import (
 )
 from packages.shared.projection import project_as_of
 
-# Fields outside the monitored list have no declared priority; they sort after
-# every monitored field and then by field code (SPEC 6.10).
 UNRANKED_PRIORITY = len(MONITORED_FIELDS) + 1
 
 
@@ -97,7 +95,7 @@ def last_highlighted_dates(
     """Most recent day each field was actually highlighted.
 
     Only highlighted presentations count, and only from a session whose source
-    allowed the field (SPEC 6.10).
+    allowed the field.
     """
 
     latest: dict[FieldCode, date] = {}
@@ -171,7 +169,7 @@ def exploration_weekday(
     iso_week: str,
     policy_version: str,
 ) -> int:
-    """One weekday per ISO week, chosen by HMAC (SPEC 6.10).
+    """One weekday per ISO week, chosen by HMAC.
 
     A week whose chosen weekday has no session is simply not compensated, which
     is why the frequency is approximately, not exactly, one in seven.
@@ -221,7 +219,7 @@ def build_form_plan(
     policy_version: str = "",
     staleness_ceiling_days: int = STALENESS_CEILING_DAYS,
 ) -> FormPlan:
-    """Build the plan for one session, in the exact SPEC 6.9 order.
+    """Build the plan for one session, in the exact declared order.
 
     Recalculating after an answer keeps the already-answered fields out of the
     plan and never presents the same question twice in one session.

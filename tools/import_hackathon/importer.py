@@ -67,7 +67,7 @@ def _id(*parts: str) -> str:
 
 
 def _instant(day: date, moment: time = CUTOFF_LOCAL_TIME) -> datetime:
-    """Instante UTC del reloj local de referencia (SPEC 5.2)."""
+    """Instante UTC del reloj local de referencia."""
 
     return datetime.combine(day, moment, tzinfo=REFERENCE_ZONE).astimezone(UTC)
 
@@ -253,7 +253,7 @@ def _require_seeded(connection: sqlite3.Connection, *, tenant_id: str, target: s
 
 
 def _upsert_source_mapping(connection: sqlite3.Connection, *, tenant_id: str, moment: str) -> str:
-    """SPEC 4.4: una importación exige un mapping aprobado y versionado."""
+    """Una importación exige un mapping aprobado y versionado."""
 
     source_mapping_id = _id("mapping", MAPPING_NAME, MAPPING_VERSION)
     connection.execute(

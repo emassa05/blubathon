@@ -83,7 +83,7 @@ export const VARIANTES: readonly VarianteFondo[] = [
 ];
 
 /** La propiedad que leen las superficies de página. */
-export const VARIABLE_FONDO = "--faro-fondo-pagina";
+export const VARIABLE_FONDO = "--blubathon-fondo-pagina";
 
 /** Una variante al azar. Sin argumento usa `Math.random`. */
 export function varianteAlAzar(sorteo: number = Math.random()): VarianteFondo {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 import { computed, onMounted } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
@@ -7,6 +7,7 @@ import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
 import DialogoDesregulacion from "@/components/salud/DialogoDesregulacion.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
+import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
@@ -62,10 +63,6 @@ async function alReportar(valor: "yes" | "no"): Promise<void> {
 // todavía no se sabe nada sería afirmar algo que la API no dijo.
 const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
-function masInfo(): void {
-  // TODO(spec): abrir el popup que explica el riesgo de desregulación.
-}
-
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
 defineExpose({ recargar });
 </script>
@@ -89,7 +86,15 @@ defineExpose({ recargar });
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
             :confianza="resumen?.confianza ?? null"
-            @mas-info="masInfo"
+          />
+
+          <!-- La racha acompaña a la cifra dentro del panel: las dos hablan de
+               episodios de desregulación, una hacia delante y otra hacia atrás,
+               y separarlas obligaría a desplazarse para compararlas. -->
+          <RachaSinDesregulacion
+            v-if="resumen?.rachaSinDesregulacion"
+            class="pantalla__racha"
+            :racha="resumen.rachaSinDesregulacion"
           />
         </div>
       </div>
@@ -98,7 +103,7 @@ defineExpose({ recargar });
         <!-- Carga y error ocupan el sitio de las tarjetas, no se superponen a
              ellas: el contenido de un día nunca se lee bajo el de otro. -->
         <p v-if="cargando" class="pantalla__aviso" role="status">
-          {{ FARO_TEXTS_ES.loadingEs }}
+          {{ BLUBATHON_TEXTS_ES.loadingEs }}
         </p>
 
         <p v-else-if="error" class="pantalla__aviso" role="alert">
@@ -112,6 +117,23 @@ defineExpose({ recargar });
           estas piezas siguen apiladas en este mismo orden.
         -->
         <template v-else-if="resumen">
+          <!--
+            La pregunta de cierre va la primera, por encima de la recomendación.
+            Es la única pieza de la pantalla con un plazo —fuera de él el reporte
+            se guarda y no resuelve nada— y la única de la que depende que el
+            modelo vuelva a tener cifra. Estaba la cuarta de la columna, debajo
+            de dos tarjetas que solo informan, y en un teléfono había que
+            desplazarse para encontrarla.
+          -->
+          <TarjetaResultado
+            v-if="informativa"
+            class="pantalla__zona--resultado"
+            :solicitud="informativa"
+            :enviando="enviando"
+            :error="errorResultado"
+            @reportar="alReportar"
+          />
+
           <TarjetaRecomendacion
             class="pantalla__zona--recomendacion"
             :recomendacion="resumen.recomendacion"
@@ -124,14 +146,6 @@ defineExpose({ recargar });
             :registros="resumen.formularios"
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
-          />
-          <TarjetaResultado
-            v-if="informativa"
-            class="pantalla__zona--resultado"
-            :solicitud="informativa"
-            :enviando="enviando"
-            :error="errorResultado"
-            @reportar="alReportar"
           />
 
           <AvisoPendiente
@@ -170,7 +184,7 @@ defineExpose({ recargar });
   /* Plano a propósito. Las burbujas son de la columna, que es el lienzo de la
      aplicación; extenderlas a todo el ancho las estiraría hasta desaparecer en
      una ventana de escritorio. */
-  background: var(--faro-fondo-final);
+  background: var(--blubathon-fondo-final);
 }
 
 /*
@@ -189,8 +203,14 @@ defineExpose({ recargar });
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: min(100dvh, var(--faro-alto-referencia));
-  padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
+  min-height: min(100dvh, var(--blubathon-alto-referencia));
+  /*
+   * Sin acolchado abajo: la columna no tiene fondo propio —lo lleva el
+   * contenido—, así que cualquier acolchado suyo cae por fuera del lienzo y se
+   * ve como una franja de color plano pegada al borde inferior, con un corte
+   * recto justo donde acaban las burbujas. El aire de abajo lo pone el
+   * contenido, que es quien pinta.
+   */
 }
 
 /*
@@ -209,19 +229,20 @@ defineExpose({ recargar });
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: var(--faro-panel-alto);
+  min-height: var(--blubathon-panel-alto);
   /*
    * El acolchado lateral es el de siempre mientras la ventana no pase del ancho
    * de lectura, y a partir de ahí es lo que sobra repartido a los dos lados.
    * En un teléfono `(100% - 480px)` es negativo y gana el 24 de siempre: el
    * `max()` no cambia ni un píxel de lo que ya había.
    */
-  padding: calc(var(--faro-esp-14) + env(safe-area-inset-top, 0px))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) var(--faro-esp-26);
+  padding: calc(var(--blubathon-esp-14) + env(safe-area-inset-top, 0px))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    var(--blubathon-esp-26);
   overflow: hidden;
   background:
-    radial-gradient(130% 62% at 50% 0%, var(--faro-brillo), transparent 62%),
-    linear-gradient(180deg, var(--faro-panel-cima) 0%, var(--faro-panel) 100%);
+    radial-gradient(130% 62% at 50% 0%, var(--blubathon-brillo), transparent 62%),
+    linear-gradient(180deg, var(--blubathon-panel-cima) 0%, var(--blubathon-panel) 100%);
 }
 
 .pantalla__panel-contenido {
@@ -229,7 +250,26 @@ defineExpose({ recargar });
 }
 
 .pantalla__riesgo {
-  margin-top: var(--faro-esp-4);
+  margin-top: var(--blubathon-esp-4);
+}
+
+/*
+ * La racha cuelga de la cabecera, así que se centra con ella y no con el panel:
+ * el panel es de borde a borde y la cabecera está topada a 480.
+ *
+ * Y reserva el hueco de la cúpula. El contenido sube sobre el panel y lo recorta
+ * con un arco que es **más alto en el centro** —los dos radios se encuentran al
+ * 50%—, justo por donde pasa esta línea, que va centrada. El acolchado de abajo
+ * del panel ya cubre parte de esa profundidad; lo que falta es la diferencia, y
+ * se pide aquí para que el panel crezca solo cuando hay racha: sin ella no
+ * cambia ni un píxel de lo que ya estaba validado.
+ *
+ * `max()` con cero porque en ventana baja la cúpula es más corta que el
+ * acolchado y la resta se va a negativo.
+ */
+.pantalla__racha {
+  margin-inline: auto;
+  margin-bottom: max(0px, calc(var(--blubathon-cupula) - var(--blubathon-esp-26)));
 }
 
 /*
@@ -253,16 +293,17 @@ defineExpose({ recargar });
   justify-content: space-between;
   /* `gap` es el mínimo entre bloques; con espacio libre, `space-between` sigue
      repartiéndolo igual. */
-  gap: var(--faro-esp-14);
+  gap: var(--blubathon-esp-14);
   /* El mismo margen que crece del panel, por la misma razón y con la misma
      cuenta: las tarjetas y la cabecera tienen que caer sobre la misma línea. */
-  padding: calc(var(--faro-esp-14) + var(--faro-cupula))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) 0;
-  margin-top: calc(var(--faro-cupula) * -1);
+  padding: calc(var(--blubathon-esp-14) + var(--blubathon-cupula))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
+  margin-top: calc(var(--blubathon-cupula) * -1);
   /* Las burbujas se dimensionan contra esta caja, así que llenan la columna
      igual en un teléfono que en una ventana ancha. */
-  background: var(--faro-fondo-pagina);
-  border-radius: 50% 50% 0 0 / var(--faro-cupula) var(--faro-cupula) 0 0;
+  background: var(--blubathon-fondo-pagina);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
 }
 
 /*
@@ -276,19 +317,19 @@ defineExpose({ recargar });
  */
 .pantalla__aviso {
   margin-bottom: auto;
-  padding: var(--faro-esp-18) var(--faro-esp-16);
-  font-size: var(--faro-fs-135);
-  color: var(--faro-gris-texto);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-gris-texto);
   text-align: center;
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-sombra-tarjeta);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-sombra-tarjeta);
 }
 
 /*
  * Tableta, o una ventana a media pantalla: de 600 a 900.
  *
- * La columna crece sola —`--faro-ancho-max` ya vale más a partir de 600—, así
+ * La columna crece sola —`--blubathon-ancho-max` ya vale más a partir de 600—, así
  * que aquí solo va lo que no puede crecer con ella: la cabecera del riesgo. La
  * cifra de 104 px, su pastilla de confianza y el navegador de fecha están
  * dibujados para 480, y repartidos por 660 dejan de ser una cabecera para ser
@@ -306,30 +347,18 @@ defineExpose({ recargar });
    */
   .pantalla__panel-contenido {
     width: 100%;
-    max-width: var(--faro-ancho-cabecera);
+    max-width: var(--blubathon-ancho-cabecera);
     margin-inline: auto;
   }
 
   /*
-   * Y llega hasta abajo, por dos motivos distintos que dejaban el mismo hueco.
-   *
-   * El tope de 844 es el alto de referencia de un teléfono y tenía sentido
-   * cuando la columna era una tira centrada; ahora que es la página, en una
-   * ventana más alta que eso el lienzo se quedaba corto. `flex: 1` del
-   * contenido hace el resto.
-   *
-   * Y el acolchado de abajo de la columna cae por fuera del lienzo: la columna
-   * no tiene fondo propio, así que esos 26 px eran una franja de color plano
-   * pegada al borde inferior incluso con la página llena. Se mueve dentro del
-   * contenido, que es quien lleva el fondo.
+   * Y llega hasta abajo. El tope de 844 es el alto de referencia de un teléfono
+   * y tenía sentido cuando la columna era una tira centrada; ahora que es la
+   * página, en una ventana más alta que eso el lienzo se quedaba corto.
+   * `flex: 1` del contenido hace el resto.
    */
   .pantalla__columna {
     min-height: 100dvh;
-    padding-bottom: 0;
-  }
-
-  .pantalla__contenido {
-    padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -350,13 +379,12 @@ defineExpose({ recargar });
  */
 @media (min-width: 900px) {
   .pantalla__columna {
-    /* Repetidos y no heredados del bloque de 600: los dos puntos de corte
-       tienen condiciones distintas —ese lleva un mínimo de alto y este no—, y
-       una ventana ancha y baja casa con este solo. */
+    /* Repetido y no heredado del bloque de 600: los dos puntos de corte tienen
+       condiciones distintas —ese lleva un mínimo de alto y este no—, y una
+       ventana ancha y baja casa con este solo. */
     min-height: 100dvh;
-    padding-bottom: 0;
-    --faro-cupula: var(--faro-cupula-amplia);
-    --faro-panel-alto: var(--faro-panel-alto-amplio);
+    --blubathon-cupula: var(--blubathon-cupula-amplia);
+    --blubathon-panel-alto: var(--blubathon-panel-alto-amplio);
   }
 
   .pantalla__contenido {
@@ -374,22 +402,25 @@ defineExpose({ recargar });
      * llevaría por delante el fondo y la cúpula, que sí van de borde a borde.
      */
     grid-template-columns:
-      minmax(var(--faro-esp-40), 1fr)
-      minmax(0, var(--faro-ancho-principal))
-      var(--faro-rail-ancho)
-      minmax(var(--faro-esp-40), 1fr);
+      minmax(var(--blubathon-esp-40), 1fr)
+      minmax(0, var(--blubathon-ancho-principal))
+      var(--blubathon-rail-ancho)
+      minmax(var(--blubathon-esp-40), 1fr);
+    /* La pregunta de cierre encabeza el rail por lo mismo que encabeza la
+       columna en móvil: es la única con plazo. El aviso del formulario baja un
+       puesto —no vence— y los últimos formularios cierran. */
     grid-template-areas:
-      ". recomendacion pendiente   ."
-      ". factores      resultado   ."
+      ". recomendacion resultado   ."
+      ". factores      pendiente   ."
       ". factores      formularios .";
     align-content: start;
     /* Cada tarjeta con su alto: la de factores ocupa dos filas y sin esto se
        estiraría hasta el fondo de la segunda, dejándose media tarjeta en
        blanco. */
     align-items: start;
-    gap: var(--faro-esp-20);
-    padding: calc(var(--faro-esp-20) + var(--faro-cupula)) 0
-      calc(var(--faro-esp-20) + env(safe-area-inset-bottom, 0px));
+    gap: var(--blubathon-esp-20);
+    padding: calc(var(--blubathon-esp-20) + var(--blubathon-cupula)) 0
+      calc(var(--blubathon-esp-20) + env(safe-area-inset-bottom, 0px));
   }
 
   .pantalla__zona--recomendacion {

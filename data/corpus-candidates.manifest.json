@@ -1,12 +1,11 @@
 {
   "manifest_kind": "corpus_candidates",
   "manifest_version": "1",
-  "spec_version": "0.3.0",
-  "purpose": "TAREAS M0/P1.1 - inventory of candidate authoring sources with URL, version and rights, without asserting a licence the team has not verified.",
-  "publisher_allowlist_ref": "SPEC 9.2",
+  "domain_version": "0.3.0",
+  "purpose": "Inventory of candidate authoring sources with URL, version and rights, without asserting a licence the team has not verified.",
   "declaration_rules": [
-    "A publisher on the SPEC 9.2 allowlist is not itself a usable document.",
-    "A document enters the corpus only with document_version, rights_basis, original_bytes_sha256 and extracted_text_sha256 (SPEC 9.2).",
+    "A publisher on the allowlist is not itself a usable document.",
+    "A document enters the corpus only with document_version, rights_basis, original_bytes_sha256 and extracted_text_sha256.",
     "rights_basis is never inferred from a URL being publicly reachable.",
     "No entry here is a citation; citations only exist against an indexed chunk."
   ],
@@ -77,7 +76,7 @@
   "status_reason": "zero documents have a verified rights_basis, so no corpus_version can be built and no StrategyVersion can reach active",
   "consequences": [
     "P1.6 authoring builds run only against fixtures until one document clears rights review.",
-    "rag/runtime abstains with corpus_not_ready (SPEC 9.6 precedence).",
-    "M4 and the SPEC 20 DoD stay blocked (TAREAS 5)."
+    "The runtime abstains with corpus_not_ready.",
+    "M4 and the DoD stay blocked."
   ]
 }

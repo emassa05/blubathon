@@ -1,4 +1,4 @@
-"""Configuración de despliegue (SPEC 12.3).
+"""Configuración de despliegue.
 
 `BLUBATHON_MODE=demo` usa SQLite local, cohorte `demo_fixture` y sesión ficticia
 preseeded. `BLUBATHON_MODE=pilot` exige PostgreSQL: SQLite bloquea el arranque.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 from apps.api.contracts.constants import PILOT_DATABASE
 from apps.api.contracts.enums import CohortKind, DeploymentMode
-from apps.api.errors import FaroApiError
+from apps.api.errors import BlubathonApiError
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
@@ -37,7 +37,7 @@ class Settings:
 
     @property
     def expose_openapi(self) -> bool:
-        """CONVENTIONS 15: la documentación OpenAPI se deshabilita en piloto."""
+        """La documentación OpenAPI se deshabilita en piloto."""
         return self.deployment_mode is DeploymentMode.DEMO
 
     @property
@@ -47,17 +47,17 @@ class Settings:
 
     @property
     def allowed_cohort(self) -> CohortKind:
-        """SPEC 12.3: la demo solo acepta `demo_fixture`."""
+        """La demo solo acepta `demo_fixture`."""
         if self.deployment_mode is DeploymentMode.DEMO:
             return CohortKind.DEMO_FIXTURE
         return CohortKind.REAL_SUBJECT
 
     def validate(self) -> None:
-        """SPEC 12.3 / INV-30. SQLite en modo piloto bloquea el arranque."""
+        """INV-30. SQLite en modo piloto bloquea el arranque."""
         if self.deployment_mode is DeploymentMode.PILOT and not self.database_url.startswith(
             PILOT_URL_SCHEME
         ):
-            raise FaroApiError("pilot_requires_postgresql", 500)
+            raise BlubathonApiError("pilot_requires_postgresql", 500)
 
 
 def _origins(raw: str | None) -> tuple[str, ...]:

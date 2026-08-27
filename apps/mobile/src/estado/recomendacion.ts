@@ -13,7 +13,7 @@ import { ref } from "vue";
 
 import type { TodayRecommendationResponse } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { recomendacionDeHoy } from "@/api/faro";
+import { recomendacionDeHoy } from "@/api/blubathon";
 
 const recomendacion = ref<TodayRecommendationResponse | null>(null);
 const cargando = ref(false);

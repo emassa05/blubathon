@@ -1,4 +1,4 @@
-"""Smart defaults: what value is usual enough to suggest (SPEC 6.2-6.8).
+"""Smart defaults: what value is usual enough to suggest.
 
 Pure functions over already-loaded rows. Nothing here reads a database, a clock
 or a configuration file; a caller passes the history, the cutoff and the secret,
@@ -6,7 +6,7 @@ and gets a decision plus the evidence behind it.
 
 The estimator is deliberately unable to confirm itself: an accepted suggestion
 and an edited suggestion are both excluded from the window that produces the
-next one (FUNDAMENTOS 7).
+next one.
 """
 
 from ml.defaults.audit import AuditAssignment, assign_audit_mode

@@ -30,10 +30,6 @@ from apps.api.store.db import Database
 
 REAL_SOURCE = "p1"
 
-# Ninguna façade queda sin cablear. Lo que sigue sin poder producir un número no
-# es una façade que falte, sino un artefacto que el repositorio no contiene: el
-# binario de simulación v0.2 está fuera de Git y el track responde `unavailable`
-# con `model_artifact_unavailable`, que es la respuesta correcta (SPEC 8.5).
 MISSING_FACADES: tuple[str, ...] = ()
 
 

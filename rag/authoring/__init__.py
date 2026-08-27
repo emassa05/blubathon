@@ -1,4 +1,4 @@
-"""Offline authoring: index, retrieve, optionally draft, verify, review (SPEC 9.4).
+"""Offline authoring: index, retrieve, optionally draft, verify, review.
 
 `rag/authoring` never touches the clinical database and never sees a subject, an
 observation or an outcome. It works on versioned literature and on generalised
@@ -32,6 +32,7 @@ from rag.authoring.drafting import (
     DraftTransport,
     DraftUnavailableError,
     PromptTemplate,
+    fragment_order,
     load_prompt,
     render_fragments,
     request_draft,
@@ -70,6 +71,7 @@ __all__ = [
     "ScoredChunk",
     "build_authoring_corpus",
     "chunk_lookup",
+    "fragment_order",
     "library_versions",
     "load_prompt",
     "ranked_chunk_hashes",

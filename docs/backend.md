@@ -5,9 +5,9 @@ recomendación RAG. Mono-tenant, sin autenticación/autorización/auditoría. Pa
 qué es y qué permite hacer, ver el [README](../README.md).
 
 Cubre `apps/api`, `ml`, `rag`, `packages/shared`, `tools`. UI en
-`apps/mobile` ([doc aparte](../apps/mobile/README.md)), conectada a esta API y tipada contra el mismo
+`apps/mobile`, conectada a esta API y tipada contra el mismo
 contrato generado: `packages/shared/generated` se publica como el paquete
-`@faro/contract` y la interfaz lo importa, así que un cambio de contrato rompe
+`@blubathon/contract` y la interfaz lo importa, así que un cambio de contrato rompe
 su compilación.
 
 ---
@@ -428,7 +428,7 @@ BLUBATHON_P1_ADAPTERS=real BLUBATHON_DRAFT_LLM=ollama \
   uvicorn "apps.api.main:create_app" --factory --port 8000
 ```
 
-`GET /health` → `{"status": "ok", "spec_version": "0.4.0", "mode": "demo",
+`GET /health` → `{"status": "ok", "domain_version": "0.4.0", "mode": "demo",
 "adapters": "p1"}`. OpenAPI en `/docs`, deshabilitado en modo piloto
 (`BLUBATHON_MODE=pilot`).
 

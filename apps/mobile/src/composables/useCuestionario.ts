@@ -11,9 +11,19 @@
  *
  * Lo que el borrador respeta del contrato, porque es contrato y no estilo:
  *
- * - Una sugerencia se enseña como ayuda y **nunca** como valor precargado del
- *   control. Aceptarla es un acto explícito, y solo entonces la respuesta viaja
- *   como `accept_default`; tocarla después la convierte en `edit_default`.
+ * - Una sugerencia **nunca** es un valor precargado del control: el campo sigue
+ *   vacío hasta que se decide algo sobre él, y aceptarla es un acto explícito
+ *   que viaja como `accept_default`; tocarla después la convierte en
+ *   `edit_default`.
+ *
+ *   Lo que cambió es **cuándo** se decide. Antes cada sugerencia se enseñaba en
+ *   su campo con un botón "usar esta respuesta", y dieciocho preguntas con su
+ *   propia caja de ayuda hacían el formulario más largo justo donde intentaba
+ *   ser más corto. Ahora las sugerencias no se ven mientras se contesta y la
+ *   decisión se toma una sola vez, al final, sobre la lista de las que quedaron
+ *   sin tocar: revisarlas una a una, o aceptarlas todas. Aceptarlas todas es lo
+ *   que hace `aplicarSugerencias`, y viaja exactamente igual que viajaba el
+ *   botón de cada campo —mismo `accept_default`, mismo cuerpo de envío.
  * - "No sé" es una respuesta, distinta de dejar el campo vacío: viaja como
  *   `unknown` y el servidor la registra sin valor.
  *
@@ -36,7 +46,7 @@ import type {
 } from "@/api/contrato";
 import { ORIGEN_CUIDADOR } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { enviarFormulario, planFormulario } from "@/api/faro";
+import { enviarFormulario, planFormulario } from "@/api/blubathon";
 import {
   CAMPOS_DE_CASA,
   esNumerico,
@@ -68,31 +78,30 @@ export function useCuestionario(opciones: Opciones) {
   const resultado = ref<FormSubmissionResponse | null>(null);
   const borradores = ref<Borradores>({});
 
-  /*
-   * Los campos numéricos que nacieron con su valor de salida y que nadie ha
-   * tocado todavía.
-   *
-   * Hay que saber cuáles son por dos motivos, y los dos son de no afirmar algo
-   * que nadie dijo:
-   *
-   * - **No suprimen la sugerencia.** El plan usa `answers` para no volver a
-   *   proponer un valor de un campo que ya está contestado (SPEC 6.6). Un 1 que
-   *   puso la pantalla no lo contestó nadie, y dejarlo viajar ahí borraría la
-   *   sugerencia de ese mismo campo.
-   * - **No sobreviven a una pregunta que no se llega a hacer.** Si el plan
-   *   acaba pidiendo menos campos de los que había sembrados, los que se caen
-   *   salen del borrador: nadie los vio y no pueden ir en el envío.
-   *
-   * En cuanto se toca uno deja de estar aquí y pasa a ser una respuesta como
-   * cualquier otra, que sí cuenta y sí se envía.
-   */
   const sembrados = new Set<FieldCode>();
+
+  /**
+   * Los campos sobre los que quien responde ha decidido algo: los que ha tocado
+   * a mano, los que ha marcado "no sé" y los que ha aceptado desde la revisión.
+   *
+   * Es lo que separa "contestado" de "tiene un valor en el borrador". Un campo
+   * numérico nace en 1 sin que nadie lo haya mirado, y si además tiene
+   * sugerencia esa sugerencia sigue pendiente: el 1 es un valor de salida de la
+   * pantalla, no una respuesta.
+   */
+  const tocados = ref(new Set<FieldCode>());
+
+  /** Los campos cuya sugerencia se enseña porque se pidió revisarla. */
+  const revelados = ref(new Set<FieldCode>());
 
   // Reabrir un día ya enviado no empieza de cero: lo contestado se recupera de
   // la copia local, porque la API no devuelve las respuestas de un envío.
   for (const [clave, valor] of Object.entries(opciones.previas ?? {})) {
     if (valor === undefined) continue;
     borradores.value[clave as FieldCode] = { valor, interaccion: "manual" };
+    // Un día que se reabre trae respuestas de verdad: no vuelven a contar como
+    // sugerencias pendientes de decidir.
+    tocados.value.add(clave as FieldCode);
   }
 
   const yaEnviado = Object.keys(opciones.previas ?? {}).length > 0;
@@ -197,6 +206,66 @@ export function useCuestionario(opciones: Opciones) {
     () => Object.values(borradores.value).filter((borrador) => borrador !== undefined).length,
   );
 
+  /**
+   * Las sugerencias que siguen sin decidirse: hay una para ese campo y nadie lo
+   * ha tocado.
+   *
+   * En el orden en que se pregunta, no en el que las devuelve el plan: la lista
+   * de revisión se lee junto al formulario que se acaba de contestar, y dos
+   * órdenes distintos para las mismas preguntas obligarían a buscar cada una.
+   */
+  const sugerenciasPendientes = computed<readonly DefaultSuggestion[]>(() =>
+    enOrden.value.flatMap((pregunta) => {
+      if (tocados.value.has(pregunta.field_code)) return [];
+      const sugerencia = sugerencias.value.get(pregunta.field_code);
+      return sugerencia === undefined ? [] : [sugerencia];
+    }),
+  );
+
+  /** ¿Se enseña la sugerencia de este campo? Solo si se pidió revisarla. */
+  function sugerenciaVisible(campo: FieldCode): boolean {
+    return revelados.value.has(campo);
+  }
+
+  /**
+   * Acepta de una vez las sugerencias que quedaron sin tocar.
+   *
+   * Es lo mismo que pulsar "usar esta respuesta" en cada uno de esos campos: el
+   * valor entra en el borrador con `accept_default` y de ahí al envío por el
+   * camino de siempre. Ni el cuerpo de la petición ni el tipo de `AnswerItem`
+   * cambian; lo único que cambia es que la pulsación es una y no dieciocho.
+   */
+  function aplicarSugerencias(): void {
+    const copia = { ...borradores.value };
+    let cambio = false;
+
+    for (const sugerencia of sugerenciasPendientes.value) {
+      copia[sugerencia.field_code] = {
+        valor: sugerencia.value as ValorCampo,
+        interaccion: "accept_default",
+      };
+      sembrados.delete(sugerencia.field_code);
+      tocados.value.add(sugerencia.field_code);
+      cambio = true;
+    }
+
+    if (cambio) borradores.value = copia;
+  }
+
+  /**
+   * Enseña las sugerencias que quedaron pendientes para que se puedan editar.
+   *
+   * No las aplica: el campo sigue como estaba y la sugerencia vuelve a ser lo
+   * que era antes de esconderla, una ayuda con su botón. Lo que no se toque en
+   * la revisión lo recoge `aplicarSugerencias` al guardar, así que revisar y no
+   * cambiar nada acaba en el mismo envío que no revisar.
+   */
+  function revelarSugerencias(): void {
+    const abiertos = new Set(revelados.value);
+    for (const sugerencia of sugerenciasPendientes.value) abiertos.add(sugerencia.field_code);
+    revelados.value = abiertos;
+  }
+
   async function cargarPlan(): Promise<void> {
     cargando.value = true;
     error.value = null;
@@ -214,17 +283,20 @@ export function useCuestionario(opciones: Opciones) {
 
   function responder(campo: FieldCode, valor: ValorCampo, interaccion: Interaccion): void {
     sembrados.delete(campo);
+    tocados.value.add(campo);
     borradores.value = { ...borradores.value, [campo]: { valor, interaccion } };
   }
 
   /** "No sé": se registra como respuesta, sin valor. */
   function noSabe(campo: FieldCode): void {
     sembrados.delete(campo);
+    tocados.value.add(campo);
     borradores.value = { ...borradores.value, [campo]: { interaccion: "unknown" } };
   }
 
   function borrar(campo: FieldCode): void {
     sembrados.delete(campo);
+    tocados.value.delete(campo);
     const copia = { ...borradores.value };
     delete copia[campo];
     borradores.value = copia;
@@ -277,9 +349,13 @@ export function useCuestionario(opciones: Opciones) {
     resto,
     enOrden,
     sugerencias,
+    sugerenciasPendientes,
     contestadas,
     yaEnviado,
     cargarPlan,
+    sugerenciaVisible,
+    aplicarSugerencias,
+    revelarSugerencias,
     responder,
     noSabe,
     borrar,

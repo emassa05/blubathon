@@ -1,4 +1,4 @@
-"""Puerto del plan de formulario y del escenario (SPEC 6.9-6.11, 9.7; P1.4)."""
+"""Puerto del plan de formulario y del escenario (P1.4)."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class PlannedQuestion:
 
 @dataclass(frozen=True, slots=True)
 class FormPlan:
-    """SPEC 6.9. `highlighted + tail` conserva todos los campos aplicables."""
+    """`highlighted + tail` conserva todos los campos aplicables."""
 
     questions: tuple[PlannedQuestion, ...]
     voi_status: str

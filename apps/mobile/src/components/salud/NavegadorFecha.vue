@@ -40,31 +40,31 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--faro-esp-22);
+  gap: var(--blubathon-esp-22);
 }
 
 .fecha__etiqueta {
-  font-size: var(--faro-fs-20);
+  font-size: var(--blubathon-fs-20);
   font-weight: 700;
-  color: var(--faro-texto-fuerte);
+  color: var(--blubathon-texto-fuerte);
 }
 
 .fecha__chevron {
   display: grid;
   place-items: center;
-  min-width: var(--faro-toque);
-  min-height: var(--faro-toque);
+  min-width: var(--blubathon-toque);
+  min-height: var(--blubathon-toque);
   /* El área táctil crece a 44x44 sin mover el trazo: el margen negativo
      devuelve el espacio que el padding le robaría al `gap` de 22. */
-  margin-inline: calc((var(--faro-toque) - var(--faro-fs-26)) / -2);
-  font-size: var(--faro-fs-26);
+  margin-inline: calc((var(--blubathon-toque) - var(--blubathon-fs-26)) / -2);
+  font-size: var(--blubathon-fs-26);
   line-height: 1;
-  color: var(--faro-texto-suave);
-  border-radius: var(--faro-radio-10);
+  color: var(--blubathon-texto-suave);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .fecha__chevron:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-panel);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-panel);
+  outline-offset: var(--blubathon-foco-offset);
 }
 </style>

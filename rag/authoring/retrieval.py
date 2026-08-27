@@ -1,4 +1,4 @@
-"""Retrieval in the mode the build actually declares (SPEC 9.4).
+"""Retrieval in the mode the build actually declares.
 
 Two modes exist and both are complete. `hybrid` needs a dense retriever whose
 model has a registered licence, model card and artifact hash; without one the
@@ -119,7 +119,7 @@ def retrieve(
         logger.warning("retrieve abortado mode=hybrid motivo=dense_retriever_no_registrado")
         raise DenseModelNotRegisteredError(
             "a hybrid build needs a registered embedding model; no model is downloaded "
-            "implicitly and retrieval is never simulated (SPEC 9.4)"
+            "implicitly and retrieval is never simulated"
         )
 
     lexical = index.search(query, top_k=plan.lexical_top_k)

@@ -37,7 +37,7 @@ const ENVIO = {
  * `DialogoModal` lo hace con un temporizador, no con el final de la transición
  * CSS, justo para que aquí se pueda esperar una cifra y no un fotograma.
  */
-const MS_CIERRE = 240;
+const MS_CIERRE = 210;
 
 async function esperarCierre(): Promise<void> {
   await new Promise((listo) => setTimeout(listo, MS_CIERRE + 20));
@@ -96,8 +96,6 @@ describe("DialogoCuestionario", () => {
     await flushPromises();
 
     expect(llamadas[0]?.url).toContain(`/children/${NINO}/form-plan`);
-    // El 1 de salida de los numéricos no viaja aquí: no lo contestó nadie, y
-    // como respuesta suprimiría la sugerencia de su propio campo (SPEC 6.6).
     expect(llamadas[0]?.cuerpo).toEqual({ source: "caregiver_daily", answers: {} });
 
     // Un solo formulario, sin índice ni bloques temáticos que abrir.
@@ -174,12 +172,23 @@ describe("DialogoCuestionario", () => {
     expect(dialogo.attributes("aria-modal")).toBe("true");
     expect(wrapper.text()).toContain("Martes, 25 de agosto");
 
-    // El diálogo se va antes de avisar: primero desaparece de la pantalla y
-    // cuando ha terminado de irse el padre puede desmontarlo.
+    // La hoja está en su sitio mientras el diálogo está abierto.
+    expect(wrapper.get(".velo").classes()).toContain("velo--dentro");
+
+    /*
+     * El diálogo se va antes de avisar. Y para poder irse tiene que seguir en el
+     * DOM: lo que cambia al pulsar `Esc` es que pierde `velo--dentro` —o sea que
+     * la hoja arranca a bajar—, no que desaparezca. Quitarla en ese momento
+     * dejaría la salida sin nada que animar, que es justo lo que pasaba cuando
+     * el movimiento dependía de las clases de `<Transition>`.
+     */
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     await nextTick();
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+    expect(wrapper.get(".velo").classes()).not.toContain("velo--dentro");
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+    expect(wrapper.emitted("cerrar")).toBeUndefined();
 
+    // Y solo cuando ha terminado de bajar avisa al padre, que es quien desmonta.
     await esperarCierre();
     expect(wrapper.emitted("cerrar")).toHaveLength(1);
   });
@@ -196,17 +205,86 @@ describe("DialogoCuestionario", () => {
     expect(wrapper.emitted("cerrar")).toBeUndefined();
   });
 
-  it("enseña la sugerencia como ayuda y solo la usa si se acepta", async () => {
+  it("las sugerencias no se ven mientras se contesta", async () => {
     const wrapper = abrir();
     await flushPromises();
 
-    const sugerencia = wrapper.get(".sugerencia");
-    expect(sugerencia.text()).toContain("Suele responder");
-    // La escala sigue vacía: una sugerencia no precarga el control.
+    // `activity_participation` tiene sugerencia en el plan y aun así no hay
+    // ninguna caja de ayuda: el formulario no crece por ellas.
+    expect(wrapper.find(".sugerencia").exists()).toBe(false);
+    // Y el control sigue vacío: esconder la sugerencia no es precargarla.
     expect(wrapper.findAll(".escala__punto--activo")).toHaveLength(0);
+  });
 
-    await sugerencia.get("button").trigger("click");
-    expect(wrapper.findAll(".escala__punto--activo")).toHaveLength(1);
+  it("al guardar enseña qué se va a enviar por ti y pregunta antes de hacerlo", async () => {
+    const wrapper = abrir();
+    await flushPromises();
+
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
+
+    // No ha enviado nada todavía: solo estaba la llamada al plan.
+    expect(llamadas).toHaveLength(1);
+
+    // La lista es de solo lectura —pregunta, flecha, valor— y no trae ni un
+    // control: editar se hace volviendo al formulario, no desde aquí.
+    const resumen = wrapper.get(".sugeridas");
+    expect(resumen.text()).toContain("Participación en actividades");
+    expect(resumen.text()).toContain("4");
+    expect(resumen.findAll("button, input, textarea, select")).toHaveLength(0);
+
+    expect(wrapper.text()).toContain("¿Quieres cambiar alguna antes de guardar?");
+  });
+
+  it("rechazar la revisión envía las sugeridas tal cual, como accept_default", async () => {
+    const wrapper = abrir();
+    await flushPromises();
+
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
+
+    // "No, guardar así" es el botón lleno del pie de la revisión.
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
+
+    const envio = llamadas[1];
+    expect(envio?.url).toContain(`/children/${NINO}/forms`);
+    // La sugerencia viaja con el mismo `accept_default` que usaba el botón
+    // "usar esta respuesta" de cada campo: el cuerpo no cambia de forma.
+    expect(envio?.cuerpo.answers).toContainEqual({
+      field_code: "activity_participation",
+      interaction: "accept_default",
+      value: 4,
+    });
+    expect(wrapper.text()).toContain("Cuestionario guardado");
+  });
+
+  it("aceptar la revisión devuelve al formulario con solo esas preguntas y su sugerencia", async () => {
+    const wrapper = abrir();
+    await flushPromises();
+
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
+
+    await wrapper.get(".pie__secundario").trigger("click");
+    await flushPromises();
+
+    // Solo la que quedó sugerida, y ahora sí con su caja de ayuda.
+    expect(camposVisibles(wrapper)).toEqual(["activity_participation"]);
+    expect(wrapper.get(".sugerencia").text()).toContain("Suele responder");
+    // Sin paginador: son todas las que hay que revisar.
+    expect(wrapper.findAll(".paginador__paso")).toHaveLength(0);
+
+    // Cambiarla la manda como edición de la sugerencia, no como manual.
+    await wrapper.get('[data-campo="activity_participation"] .escala__punto').trigger("click");
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
+
+    expect(llamadas[1]?.cuerpo.answers).toContainEqual({
+      field_code: "activity_participation",
+      interaction: "edit_default",
+      value: 1,
+    });
   });
 
   it("no avisa de nada al marcar un valor bajo", async () => {
@@ -234,24 +312,74 @@ describe("DialogoCuestionario", () => {
     // en cuanto el plan dijo que hoy no se preguntan.
     expect(wrapper.get(".pie__cuenta").text()).toContain("2");
 
+    // Guardar pasa por la revisión, porque `activity_participation` quedó con
+    // su sugerencia sin tocar; "No, guardar así" es la salida corta.
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
     await wrapper.get(".pie__enviar").trigger("click");
     await flushPromises();
 
     const envio = llamadas[1];
     expect(envio?.url).toContain(`/children/${NINO}/forms`);
+    // El cuerpo tiene exactamente la forma de siempre. Lo único que se suma es
+    // la sugerencia aceptada, que antes se aceptaba campo a campo.
     expect(envio?.cuerpo).toEqual({
       source: "caregiver_daily",
       local_date: FECHA,
       answers: [
         { field_code: "sleep_hours", interaction: "manual", value: 1 },
         { field_code: "sleep_quality", interaction: "manual", value: "restorative" },
+        { field_code: "activity_participation", interaction: "accept_default", value: 4 },
       ],
     });
 
     expect(wrapper.emitted("enviado")).toHaveLength(1);
     expect(wrapper.text()).toContain("Cuestionario guardado");
     // La copia local se escribe solo después de que la API acepte el envío.
-    expect(respuestasDe(NINO, FECHA)).toEqual({ sleep_hours: 1, sleep_quality: "restorative" });
+    expect(respuestasDe(NINO, FECHA)).toEqual({
+      sleep_hours: 1,
+      sleep_quality: "restorative",
+      activity_participation: 4,
+    });
+  });
+
+  it("sin sugerencias pendientes guarda directo, sin paso de revisión", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        llamadas.push({
+          url,
+          cuerpo: init?.body === undefined ? {} : JSON.parse(String(init.body)),
+        });
+        // El mismo plan, sin `defaults`.
+        return url.endsWith("/form-plan") ? responder({ ...PLAN, defaults: [] }) : responder(ENVIO);
+      }),
+    );
+
+    const wrapper = abrir();
+    await flushPromises();
+
+    await wrapper.get(".pie__enviar").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find(".sugeridas").exists()).toBe(false);
+    expect(wrapper.text()).toContain("Cuestionario guardado");
+  });
+
+  it("el (?) de la cabecera explica el cuestionario sin bloquearlo", async () => {
+    const wrapper = abrir();
+    await flushPromises();
+
+    const boton = wrapper.get(".ayuda__disparador");
+    expect(boton.attributes("aria-label")).toBe("Cómo funciona el cuestionario diario");
+
+    await boton.trigger("click");
+    expect(wrapper.get(".ayuda__globo").text()).toContain("No hace falta responder todo");
+
+    // No exige respuesta: el formulario sigue ahí y se sigue pudiendo contestar.
+    expect(wrapper.findAll("[data-campo]").length).toBeGreaterThan(0);
+    await wrapper.get(".ayuda__cerrar").trigger("click");
+    expect(wrapper.find(".ayuda__globo").exists()).toBe(false);
   });
 
   it("sin plan sigue preguntando el catálogo de casa entero", async () => {

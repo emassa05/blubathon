@@ -1,4 +1,4 @@
-"""Conexión SQLite de la demo y unidad de trabajo (SPEC 12.3, CONVENTIONS 13).
+"""Conexión SQLite de la demo y unidad de trabajo.
 
 Todo el SQL del proyecto vive bajo `apps/api/store`. No se ejecuta DDL por
 request: el runner de migraciones corre al arrancar o desde `tools.seed`.
@@ -21,7 +21,7 @@ BUSY_TIMEOUT_MS = 5000
 
 
 def connect(db_path: Path | str, *, read_only: bool = False) -> sqlite3.Connection:
-    """Abre la base con FK activas, WAL y `busy_timeout` (CONVENTIONS 13)."""
+    """Abre la base con FK activas, WAL y `busy_timeout`."""
     path = Path(db_path)
     if str(path) != ":memory:":
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -67,11 +67,11 @@ class Database:
 
     @contextmanager
     def write(self) -> Iterator[sqlite3.Connection]:
-        """Una transacción por comando de dominio (SPEC 12.2).
+        """Una transacción por comando de dominio.
 
         `BEGIN IMMEDIATE` toma el lock de escritura al entrar: es lo que serializa
         la decisión de oportunidad canónica por `(tenant_id, subject_id)` en la
-        demo SQLite (SPEC 4.2). En piloto el equivalente es `SELECT ... FOR UPDATE`
+        demo SQLite. En piloto el equivalente es `SELECT... FOR UPDATE`
         sobre la fila del sujeto.
 
         Concurrir no es anidar. Con una sola conexión compartida entre hilos,

@@ -1,4 +1,4 @@
-"""Reloj inyectable (CONVENTIONS 16: "tests de tiempo usan reloj inyectado")."""
+"""Reloj inyectable (: "tests de tiempo usan reloj inyectado")."""
 
 from __future__ import annotations
 

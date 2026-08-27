@@ -29,7 +29,7 @@ import type {
   RecommendationInstanceView,
   RecommendationListResponse,
   TodayRecommendationResponse,
-} from "@faro/contract/contract";
+} from "@blubathon/contract/contract";
 
 import { DIAS_HISTORIAL, ORIGEN_API } from "@/api/config";
 import { pedir } from "@/api/http";
@@ -51,7 +51,7 @@ export interface VistaReporteResultado extends OutcomeReportResponse {
 
 export interface EstadoServicio {
   status: string;
-  spec_version: string;
+  domain_version: string;
   mode: string;
   adapters: string;
 }
@@ -156,7 +156,7 @@ export function reportarResultado(
  *
  * `status` distingue los cuatro casos que la pantalla tiene que saber
  * diferenciar: sin formulario, redactándose, lista o abstenida. La abstención
- * llega como 200 con `abstention_reason`, nunca como error (SPEC 11.7).
+ * llega como 200 con `abstention_reason`, nunca como error.
  */
 export function recomendacionDeHoy(
   idNino: string,

@@ -3,7 +3,7 @@ import { vi } from "vitest";
 /**
  * Un backend de mentira montado sobre `fetch`.
  *
- * Se intercepta `fetch` y no el módulo `@/api/faro` a propósito: así los tests
+ * Se intercepta `fetch` y no el módulo `@/api/blubathon` a propósito: así los tests
  * de la pantalla recorren el mismo camino que el navegador —transporte, sobre
  * de error, adaptador— y no solo el último tramo. Cambiar la forma de una
  * respuesta rompe aquí, que es donde tiene que romper.

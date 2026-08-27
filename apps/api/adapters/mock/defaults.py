@@ -1,6 +1,6 @@
 """Defaults y auditoría fixture (sustituye `ml/defaults` hasta H1).
 
-`assign_audit_mode` sí implementa la asignación HMAC del SPEC 6.8 porque es una
+`assign_audit_mode` sí implementa la asignación HMAC porque es una
 regla determinista de asignación, no un estimador: P2 necesita persistirla al
 abrir la sesión para que INV-05 sea comprobable. Queda marcada como duplicación
 temporal y desaparece cuando P1 publique `ml.defaults.assign_audit_mode`.
@@ -27,7 +27,7 @@ from apps.api.ports.defaults import AuditAssignment, DefaultDecision
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 AUDIT_BUCKETS = 1000
-AUDIT_BUCKET_CUTOFF = 100  # 10% de SPEC 6.8 / C10 expresado en milésimas.
+AUDIT_BUCKET_CUTOFF = 100  # 10% de C10 expresado en milésimas.
 
 
 class MockDefaults:
@@ -64,13 +64,11 @@ class MockDefaults:
         as_of_at: str,
         audit_mode: bool,
     ) -> DefaultDecision | None:
-        # SPEC 6.6: una sesión auditada nunca devuelve sugerencias.
         if audit_mode or field_code not in DEFAULT_ALLOWLIST_V1:
             return None
         entry = self._suggestions.get(f"{subject_id}|{source}|{field_code}")
         if entry is None:
             return None
-        # SPEC 6.6: el corte es estricto. Un fixture bajo el umbral no se muestra.
         if float(entry["lower_bound"]) <= DEFAULT_LOWER_THRESHOLD:
             return None
         return DefaultDecision(

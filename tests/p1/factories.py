@@ -1,7 +1,7 @@
 """Deterministic builders for P1 tests.
 
-Fictional data only: no export row ever reaches a versioned test (CONVENTIONS
-15). IDs are derived from a label so a failure names the row that broke.
+Fictional data only: no export row ever reaches a versioned test. IDs are
+derived from a label so a failure names the row that broke.
 """
 
 from __future__ import annotations

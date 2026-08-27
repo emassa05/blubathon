@@ -1,7 +1,7 @@
 """Días pasados con su envío, su episodio y su resultado verificado.
 
 Existe por una razón concreta: **el baseline personal no cuenta cuestionarios,
-cuenta resultados verificados** (SPEC 8.5 / C19, cinco). Y un resultado solo se
+cuenta resultados verificados** (C19, cinco). Y un resultado solo se
 puede reportar cuando la ventana de 24 h del episodio ya cerró, así que por la
 aplicación harían falta cinco días reales de calendario antes de ver la primera
 cifra. Esto los fabrica hacia atrás.
@@ -11,7 +11,7 @@ movido al pasado. Cada día produce exactamente las filas que produciría un
 cuidador que hubiese contestado ese día y reportado al siguiente, así que lo
 sembrado es indistinguible de lo vivido.
 
-Dos reglas de SPEC 4.4 mandan sobre el calendario y no se pueden esquivar:
+Dos reglas mandan sobre el calendario y no se pueden esquivar:
 
 - un `no` solo cuenta reportado `on_time`, o sea entre el cierre del objetivo y
   el vencimiento de captura;
@@ -74,6 +74,30 @@ DIA_DIFICIL: tuple[tuple[str, object], ...] = (
     ("medication_adherence", "missed"),
 )
 
+#: Un día malo **solo por el sueño**: lo digestivo, la medicación y la
+#: regulación vienen bien.
+#:
+#: `query_for()` arma la consulta con las etiquetas de todos los campos, así que
+#: un día difícil del perfil mixto aporta vocabulario de GI, medicación y rutina
+#: al mismo tiempo, y BM25 reparte el puntaje entre fragmentos de esos temas. El
+#: que gana no es el de sueño. Dejando el resto en su valor bueno la consulta
+#: queda dominada por sueño y la recomendación sale sobre eso.
+DIA_SOLO_SUENO: tuple[tuple[str, object], ...] = (
+    ("sleep_quality", "interrupted"),
+    ("wake_state", "irritable_crying"),
+    ("sleep_hours", 5.0),
+    ("night_awakenings", 4),
+    ("daily_regulation_state", "excellent"),
+    ("gi_status", "normal"),
+    ("medication_adherence", "taken"),
+)
+
+#: Perfiles de día malo disponibles, por nombre de `--perfil`.
+PERFILES_DIFICILES: dict[str, tuple[tuple[str, object], ...]] = {
+    "mixto": DIA_DIFICIL,
+    "sueno": DIA_SOLO_SUENO,
+}
+
 
 @dataclass(frozen=True, slots=True)
 class DiaSembrado:
@@ -93,15 +117,6 @@ class DemoHistoryResult:
         return sum(1 for day in self.days if day.resolution_status in {"yes", "no"})
 
 
-# Los campos con sugerencia de valor por defecto que el cuestionario del
-# cuidador puede preguntar (`DEFAULT_ALLOWLIST_V1` ∩ `applicable_fields(home)`;
-# el quinto, `attendance_status`, es de otra fuente). Cada uno lleva su valor
-# dominante y la alternativa que aparece de vez en cuando.
-#
-# La variación importa: `compute_default_decision` solo presenta una sugerencia
-# cuando el cuantil 0.05 del posterior supera 0.70 estrictamente (SPEC 6.6).
-# Sembrar siempre el mismo valor daría un posterior degenerado que no se parece
-# a nada; sembrar al azar no cruzaría el umbral nunca.
 CAMPOS_CON_DEFECTO: tuple[tuple[str, object, object], ...] = (
     ("food_changes", False, True),
     ("activity_participation", 4, 3),
@@ -135,8 +150,8 @@ def _hubo_crisis(child_id: str, local_date: str, dificil: bool) -> bool:
     return sorteo < (RIESGO_DIA_DIFICIL if dificil else RIESGO_DIA_TRANQUILO)
 
 
-def _answers(dificil: bool, indice: int) -> tuple[AnswerItem, ...]:
-    filas = list(DIA_DIFICIL if dificil else DIA_TRANQUILO)
+def _answers(dificil: bool, indice: int, perfil: str = "mixto") -> tuple[AnswerItem, ...]:
+    filas = list(PERFILES_DIFICILES[perfil] if dificil else DIA_TRANQUILO)
     # Determinista y desfasado por campo: si todos variaran el mismo día, la
     # variación sería un patrón y no ruido.
     for desplazamiento, (code, dominante, alterno) in enumerate(CAMPOS_CON_DEFECTO):
@@ -152,6 +167,7 @@ def build_history(
     child_id: str,
     days: int,
     dificiles: int,
+    perfil: str = "mixto",
     settings: Settings | None = None,
     adapters: str | None = None,
 ) -> DemoHistoryResult:
@@ -170,6 +186,9 @@ def build_history(
         raise ValueError("hacen falta al menos dos días para que el baseline cuente algo")
     if not 0 <= dificiles <= days:
         raise ValueError("los días difíciles tienen que caber en los días sembrados")
+    if perfil not in PERFILES_DIFICILES:
+        opciones = ", ".join(sorted(PERFILES_DIFICILES))
+        raise ValueError(f"perfil desconocido: {perfil} (hay {opciones})")
 
     resolved = settings or load_settings()
     database = Database(resolved, clock=lambda: datetime.now(UTC))
@@ -216,7 +235,7 @@ def build_history(
                     subject_id=child_id,
                     source="caregiver_daily",
                     local_date=enviado_a_las.date().isoformat(),
-                    answers=_answers(dificil, offset),
+                    answers=_answers(dificil, offset, perfil),
                     now=canonical_timestamp(enviado_a_las),
                 )
             episodio = envio.prediction_episode_id

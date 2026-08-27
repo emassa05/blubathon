@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
 import type { OutcomeRequestView } from "@/api/contrato";
 import DialogoModal from "@/components/base/DialogoModal.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 
-const props = defineProps<{
+defineProps<{
   solicitud: OutcomeRequestView;
   enviando: boolean;
   error: string | null;
@@ -14,15 +12,17 @@ const props = defineProps<{
 
 defineEmits<{ responder: [valor: "yes" | "no"] }>();
 
-const FORMATO_HORA = new Intl.DateTimeFormat("es-ES", {
-  weekday: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const vencimiento = computed(() =>
-  FORMATO_HORA.format(new Date(props.solicitud.capture_deadline_at)),
-);
+/**
+ * La pregunta, en una línea.
+ *
+ * No se usa `solicitud.question_es`: el backend la redacta para el registro
+ * —"…mayor…, según las anclas acordadas para esta demostración"— y eso son tres
+ * renglones de condiciones que hay que leer enteros antes de poder contestar sí
+ * o no. Lo que se pregunta es lo mismo; lo que cambia es que se lee de un
+ * vistazo. La definición formal sigue siendo la del contrato y viaja intacta en
+ * el reporte: aquí solo se decide cómo se enuncia en pantalla.
+ */
+const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
 </script>
 
 <template>
@@ -37,29 +37,17 @@ const vencimiento = computed(() =>
     :cerrable="false"
     :nivel="2"
     sobretitulo="Antes de seguir"
-    :titulo="solicitud.question_es"
+    :titulo="PREGUNTA"
   >
-    <div class="desregulacion">
-      <p class="desregulacion__entrada">
-        El día que registraste abrió esta pregunta. Contestarla es lo que hace que la próxima
-        estimación salga de lo que de verdad pasó y no de lo que el modelo supuso.
-      </p>
+    <!--
+      Sin cuerpo: la pregunta es el título y las respuestas son el pie.
 
-      <!-- Las anclas son la definición acordada de qué cuenta como episodio. Sin
-           ellas cada persona respondería a una pregunta distinta. -->
-      <ul v-if="solicitud.severity_anchors_es?.length" class="desregulacion__anclas">
-        <li
-          v-for="ancla in solicitud.severity_anchors_es"
-          :key="ancla"
-          class="desregulacion__ancla"
-        >
-          {{ ancla }}
-        </li>
-      </ul>
-
-      <p class="desregulacion__plazo">Tienes hasta el {{ vencimiento }} para responder.</p>
-    </div>
-
+      Ni plazo ni anclas. El vencimiento es una regla del servidor y no algo que
+      quien contesta pueda evitar, así que escribirlo solo metía prisa en la
+      única pantalla donde la respuesta tiene que ser la verdadera y no la
+      rápida. Y las anclas eran dos párrafos de definición encima de dos botones
+      que ya dicen lo mismo: "sí, ocurrió" y "no ocurrió".
+    -->
     <template #pie>
       <p v-if="error" class="desregulacion__error" role="alert">{{ error }}</p>
 
@@ -89,43 +77,13 @@ const vencimiento = computed(() =>
 </template>
 
 <style scoped>
-.desregulacion__entrada {
-  font-size: var(--faro-fs-135);
-  line-height: 1.5;
-  color: var(--faro-marca-texto);
-}
-
-.desregulacion__anclas {
-  margin-top: var(--faro-esp-14);
-  padding: var(--faro-esp-4) var(--faro-esp-14);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-14);
-}
-
-.desregulacion__ancla {
-  padding-block: var(--faro-esp-9);
-  font-size: var(--faro-fs-125);
-  line-height: 1.45;
-  color: var(--faro-gris-texto);
-}
-
-.desregulacion__ancla + .desregulacion__ancla {
-  border-top: 1px solid var(--faro-linea);
-}
-
-.desregulacion__plazo {
-  margin-top: var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
-}
-
 .desregulacion__error {
-  margin-bottom: var(--faro-esp-10);
-  padding: var(--faro-esp-9) var(--faro-esp-12);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
-  border-radius: var(--faro-radio-14);
+  margin-bottom: var(--blubathon-esp-10);
+  padding: var(--blubathon-esp-9) var(--blubathon-esp-12);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
+  border-radius: var(--blubathon-radio-14);
 }
 
 /* Envuelven en pantallas estrechas: dos áreas táctiles de 44 no caben en 320
@@ -133,7 +91,7 @@ const vencimiento = computed(() =>
 .desregulacion__acciones {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .desregulacion__boton {
@@ -141,12 +99,12 @@ const vencimiento = computed(() =>
   flex: 1 1 10rem;
   align-items: center;
   justify-content: center;
-  gap: var(--faro-esp-9);
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-14);
-  font-size: var(--faro-fs-135);
+  gap: var(--blubathon-esp-9);
+  min-height: var(--blubathon-toque);
+  padding-inline: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  border-radius: var(--faro-radio-18);
+  border-radius: var(--blubathon-radio-18);
 }
 
 .desregulacion__boton:disabled {
@@ -154,23 +112,23 @@ const vencimiento = computed(() =>
 }
 
 .desregulacion__boton:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .desregulacion__boton--si {
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
 }
 
 .desregulacion__boton--no {
-  color: var(--faro-marca-accion);
-  background: var(--faro-marca-icono-fondo);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-marca-icono-fondo);
 }
 
 .desregulacion__icono {
   flex: none;
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 </style>

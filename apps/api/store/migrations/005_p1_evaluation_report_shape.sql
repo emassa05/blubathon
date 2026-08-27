@@ -1,4 +1,4 @@
--- SPEC 14.3. `tools/train` (P1) publica el reporte con el desglose de
+-- `tools/train` (P1) publica el reporte con el desglose de
 -- abstenciones como lista de `AbstentionBreakdown` -razón, conteo y tasa-, no
 -- como un mapa de razón a tasa. P2 importa lo que esa herramienta produce, así
 -- que la columna toma el nombre y la forma del contrato.

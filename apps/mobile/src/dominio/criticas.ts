@@ -11,7 +11,7 @@
  * respuestas; ningún endpoint publica las respuestas de un envío, y
  * `FormPlanResponse` solo dice qué preguntar y qué sugerir. Así que se calcula
  * aquí, sobre las respuestas que esta aplicación guarda al enviarlas
- * (`estado/respuestas.ts`). Está anotado en `NOTAS-API.md`.
+ * (`estado/respuestas.ts`).
  *
  * Dos familias de reglas, y ninguna inventa una política que el repositorio ya
  * tenga declarada:
@@ -26,11 +26,11 @@
  * 2. **Nivel alto.** Sin historial suficiente no hay desviación que calcular,
  *    así que se mira el valor contra los cortes de la tabla de abajo. Son
  *    cortes de interfaz —para decidir qué se destaca en pantalla—, no cortes
- *    clínicos: el SPEC no publica ninguna banda operativa y esta pantalla no se
+ *    clínicos: no hay ninguna banda operativa publicada y esta pantalla no se
  *    inventa una.
  */
 
-import { FARO_CONSTANTS, type FieldCode, type ValorCampo } from "@/api/contrato";
+import { BLUBATHON_CONSTANTS, type FieldCode, type ValorCampo } from "@/api/contrato";
 import { etiquetaCampo, formatearValor, ordenCanonico } from "@/dominio/campos";
 import type { IconoFactor } from "@/types/salud";
 
@@ -53,10 +53,10 @@ export const AVISO_VARIABLES_CRITICAS =
   "influir en cómo le vaya el día. No son un diagnóstico.";
 
 /** Ventana, mínimo de observaciones y cortes de anomalía, declarados en C16-C22. */
-const VENTANA_DIAS = FARO_CONSTANTS.C21.value;
-const MINIMO_OBSERVACIONES = FARO_CONSTANTS.C22.value;
-const CORTE_Z_ROBUSTA = FARO_CONSTANTS.C17.value;
-const CORTE_FRECUENCIA = FARO_CONSTANTS.C16.value;
+const VENTANA_DIAS = BLUBATHON_CONSTANTS.C21.value;
+const MINIMO_OBSERVACIONES = BLUBATHON_CONSTANTS.C22.value;
+const CORTE_Z_ROBUSTA = BLUBATHON_CONSTANTS.C17.value;
+const CORTE_FRECUENCIA = BLUBATHON_CONSTANTS.C16.value;
 
 /** Constante de la z robusta: la MAD por 0.6745 estima la desviación típica. */
 const FACTOR_MAD = 0.6745;

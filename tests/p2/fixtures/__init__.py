@@ -1,1 +1,1 @@
-"""Fixtures de API y DB de P2 (TAREAS 3.4)."""
+"""Fixtures de API y DB de P2."""

@@ -28,7 +28,7 @@ export const CLASE_ANIMACION: Record<AnimacionAviso, string> = {
 };
 
 /** Variable CSS por la que viaja la duración. Nunca se escriben keyframes desde JS. */
-export const VARIABLE_DURACION = "--faro-dur";
+export const VARIABLE_DURACION = "--blubathon-dur";
 
 /** Recorta al rango y ajusta al paso declarados en `DURACION_AVISO`. */
 export function normalizarDuracion(segundos: number): number {

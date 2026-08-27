@@ -11,7 +11,7 @@
 
 import { onScopeDispose, ref, shallowRef, watch, type Ref } from "vue";
 
-import { ErrorFaro } from "@/api/errores";
+import { ErrorBlubathon } from "@/api/errores";
 import { cargarResumenSalud } from "@/adaptadores/resumenSalud";
 import { useNino } from "@/estado/nino";
 import type { ResumenSalud } from "@/types/salud";
@@ -20,7 +20,7 @@ export function useResumenSalud(fechaIso: Ref<string>) {
   const { ninoId, cargar: cargarNino, error: errorNino } = useNino();
   const resumen = shallowRef<ResumenSalud | null>(null);
   const cargando = ref(true);
-  const error = shallowRef<ErrorFaro | null>(null);
+  const error = shallowRef<ErrorBlubathon | null>(null);
 
   let enCurso: AbortController | null = null;
 
@@ -38,7 +38,7 @@ export function useResumenSalud(fechaIso: Ref<string>) {
 
       const idNino = ninoId.value;
       if (idNino === null) {
-        throw new ErrorFaro({
+        throw new ErrorBlubathon({
           codigo: "not_found",
           mensajeEs: errorNino.value ?? "No hay ningún niño registrado en esta cuenta.",
         });
@@ -54,7 +54,7 @@ export function useResumenSalud(fechaIso: Ref<string>) {
     } catch (fallo) {
       if (propio.signal.aborted) return;
       resumen.value = null;
-      error.value = fallo instanceof ErrorFaro ? fallo : ErrorFaro.red(fallo);
+      error.value = fallo instanceof ErrorBlubathon ? fallo : ErrorBlubathon.red(fallo);
     } finally {
       if (!propio.signal.aborted) cargando.value = false;
     }

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-// contract_version: faro-contract-0.4.0
+// contract_version: blubathon-contract-0.4.0
 
 export const AbstentionBreakdownSchema = z.object({
   "reason": z.string(),
@@ -309,7 +309,7 @@ export const RecommendationListResponseSchema = z.object({
 }).strict();
 
 export const ReleaseManifestSchema = z.object({
-  "spec_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
+  "domain_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
   "contract_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
   "implementation_status": z.string(),
   "corpus_status": z.string(),

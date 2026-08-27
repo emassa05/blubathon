@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import difflib
 import logging
 import re
 import sqlite3
@@ -26,56 +25,30 @@ from apps.api.store import recommendations as store
 from apps.api.store.json_columns import load_list
 from packages.shared.domain.rag import DocumentChunk, StrategyCitation
 from rag.authoring.bm25 import Bm25Index
-from rag.authoring.drafting import DraftRequest, DraftUnavailableError, request_draft
+from rag.authoring.drafting import (
+    DraftRequest,
+    DraftUnavailableError,
+    fragment_order,
+    request_draft,
+)
 from rag.authoring.retrieval import RetrievalPlan, retrieve
 from rag.domain.citations import verify_citation
 
 logger = logging.getLogger("blubathon.api")
 
-# Un modelo local chico rara vez cita palabra por palabra. `rag/domain/citations.py`
-# (INV-24) exige literalidad exacta y eso no se toca: es la única barrera antes de
-# que un cuidador vea la recomendación, porque este flujo no tiene revisión humana.
-# Esto corre ANTES de esa verificación, para no descartar un intento del modelo por
-# una diferencia menor — nunca reemplaza la verificación, solo decide si vale la
-# pena intentarla con una subcadena que sí es literal.
-CITATION_SNAP_THRESHOLD = 0.80
-
-
-def _snap_to_literal(
-    quote: str, chunk_text: str, *, threshold: float = CITATION_SNAP_THRESHOLD
-) -> str | None:
-    """La subcadena literal de `chunk_text` más parecida a `quote`, o `None`.
-
-    El resultado es siempre un slice real de `chunk_text` — nunca el texto que
-    propuso el modelo — así que sigue siendo una cita verificable byte a byte.
-    Si la similitud contra `quote` no alcanza el umbral, no hay snap: el
-    llamador debe abstenerse igual que si no hubiera match exacto.
-    """
-
-    if not quote or not chunk_text:
-        return None
-    matcher = difflib.SequenceMatcher(None, chunk_text, quote, autojunk=False)
-    blocks = [block for block in matcher.get_matching_blocks() if block.size > 0]
-    if not blocks:
-        return None
-    start = blocks[0].a
-    end = blocks[-1].a + blocks[-1].size
-    if end <= start:
-        return None
-    candidate = chunk_text[start:end]
-    ratio = difflib.SequenceMatcher(None, candidate, quote, autojunk=False).ratio()
-    return candidate if ratio >= threshold else None
+# El borrador parafrasea, así que la barrera antes de que un cuidador vea la
+# recomendación no es la literalidad de la cita sino su procedencia: el claim
+# declara en `source_fragment` el número del fragmento del que salió, y ese
+# número tiene que caer dentro de los recuperados en esta consulta. Un número
+# fuera de rango no resuelve y la recomendación se abstiene. Ver
+# `rag/domain/citations.py` para por qué la verificación literal ya no aplica.
 
 
 # `render_fragments` (rag/authoring/drafting.py) marca cada fragmento del
-# prompt como "[document_version_id | locator]" para que el modelo sepa de
-# dónde citar. Un modelo chico a veces copia esa etiqueta en la prosa en vez
-# de solo usarla como guía; esto la saca de `action_text_es`/`purpose_es`
-# antes de persistir. No toca `quoted_text`: eso ya es un slice literal.
-_FRAGMENT_TAG_RE = re.compile(
-    r"\[[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-    r"\s*\|[^\]]*\]"
-)
+# prompt como "[fragmento N]" para que el modelo sepa de dónde citar. Un modelo
+# chico a veces copia esa etiqueta en la prosa en vez de solo usarla como guía;
+# esto la saca del texto antes de persistir.
+_FRAGMENT_TAG_RE = re.compile(r"\[fragmento\s+\d+\]", re.IGNORECASE)
 
 
 def _strip_fragment_tags(text: str) -> str:
@@ -85,16 +58,27 @@ def _strip_fragment_tags(text: str) -> str:
     return cleaned.strip()
 
 
-def _first_literal_snap(
-    quote: str, chunks: tuple[DocumentChunk, ...]
+def _declared_source(
+    claim: object, ordered: tuple[DocumentChunk, ...]
 ) -> tuple[DocumentChunk, str] | None:
-    """El primer chunk con un snap válido para `quote`, o `None` si ninguno alcanza."""
+    """El chunk que el claim declara como fuente, con su paráfrasis, o `None`.
 
-    for chunk in chunks:
-        literal = _snap_to_literal(quote, chunk.text)
-        if literal is not None:
-            return chunk, literal
-    return None
+    `ordered` tiene que venir de `fragment_order`: es la numeración que vio el
+    prompt. Un `source_fragment` fuera de ese rango no resuelve y el llamador se
+    abstiene.
+    """
+
+    if not isinstance(claim, dict):
+        return None
+    quote = _strip_fragment_tags(str(claim.get("parafrasis_es", "")))
+    index = claim.get("source_fragment")
+    if isinstance(index, str) and index.strip().isdigit():
+        index = int(index)
+    if not quote or not isinstance(index, int) or isinstance(index, bool):
+        return None
+    if not 1 <= index <= len(ordered):
+        return None
+    return ordered[index - 1], quote
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,25 +234,21 @@ class RecommendationService:
             )
 
         persisted_citations = []
+        ordered = fragment_order(selected)
         for claim in claims:
-            quote = claim.get("quoted_text", "") if isinstance(claim, dict) else ""
-            candidates = [chunk for chunk in selected if quote and quote in chunk.text]
-            if candidates:
-                chunk = candidates[0]
-            else:
-                snapped = _first_literal_snap(quote, selected)
-                if snapped is None:
-                    return self._persist_abstention(
-                        recommendation_instance_id,
-                        subject_id,
-                        prediction_episode_id,
-                        risk_band,
-                        query_es,
-                        "draft_not_grounded",
-                        now,
-                        increment_attempt,
-                    )
-                chunk, quote = snapped
+            resolved = _declared_source(claim, ordered)
+            if resolved is None:
+                return self._persist_abstention(
+                    recommendation_instance_id,
+                    subject_id,
+                    prediction_episode_id,
+                    risk_band,
+                    query_es,
+                    "draft_not_grounded",
+                    now,
+                    increment_attempt,
+                )
+            chunk, quote = resolved
             citation = StrategyCitation(
                 citation_id=uuid4(),
                 claim_id=uuid4(),

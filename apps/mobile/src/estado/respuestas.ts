@@ -25,7 +25,7 @@ export type RespuestasDelDia = Partial<Record<FieldCode, ValorCampo>>;
 /** niño → fecha ISO → respuestas de ese día. */
 type Almacen = Record<string, Record<string, RespuestasDelDia>>;
 
-const CLAVE = "faro.respuestas.v1";
+const CLAVE = "blubathon.respuestas.v1";
 
 function leerDelDisco(): Almacen {
   try {
@@ -80,7 +80,7 @@ export function guardarRespuestas(
  * la base se resembró, se restauró un backup, o alguien borró la sesión. Lo que
  * queda es una respuesta fantasma que se muestra como contestada y, peor, viaja
  * como `answers` al plan del formulario, donde suprime la sugerencia de todo
- * campo que "ya está respondido" (SPEC 6.6). Sin reconciliar, ninguna
+ * campo que "ya está respondido". Sin reconciliar, ninguna
  * sugerencia vuelve a aparecer nunca.
  *
  * `completo` dice si el historial recibido lo trae **todo**. `GET /history`

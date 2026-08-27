@@ -5,9 +5,9 @@
  * es la pregunta: "¿habrá una desregulación en las próximas 24 horas?". El
  * resultado es la respuesta, y llega por otra vía. Sin ella el baseline
  * personal se queda en cero resultados verificados para siempre y nunca da
- * cifra (SPEC 8.5 / C19, cinco).
+ * cifra (C19, cinco).
  *
- * Dos reglas de SPEC 4.4 deciden qué se puede ofrecer y cuándo, y no son un
+ * Dos reglas deciden qué se puede ofrecer y cuándo, y no son un
  * detalle de presentación: un reporte fuera de plazo se guarda pero **no
  * resuelve**, así que un botón que se pueda pulsar antes de tiempo produce un
  * envío que parece funcionar y no cuenta para nada.
@@ -22,7 +22,7 @@ import { computed, ref } from "vue";
 
 import type { OutcomeReportValue, OutcomeRequestView } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { listarSolicitudesDeResultado, reportarResultado } from "@/api/faro";
+import { listarSolicitudesDeResultado, reportarResultado } from "@/api/blubathon";
 
 const solicitudes = ref<readonly OutcomeRequestView[]>([]);
 const cargado = ref(false);

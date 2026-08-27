@@ -1,4 +1,4 @@
-"""Puerto de predicción dual-track (SPEC 8, 11.5; P1.5 `ml/prediction`)."""
+"""Puerto de predicción dual-track (P1.5 `ml/prediction`)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ class TrackOutput:
     interval: tuple[float, float] | None = None
     interval_method: str | None = None
     abstention_reasons: tuple[str, ...] = ()
-    # SPEC 8.5: el challenger en sombra guarda score pero nunca se expone.
     exposed: bool = True
 
 

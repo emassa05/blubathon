@@ -73,7 +73,7 @@ function etiquetaCelda(celda: CeldaCalendario): string {
 .calendario {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--faro-esp-4);
+  gap: var(--blubathon-esp-4);
 }
 
 .calendario__hueco {
@@ -90,22 +90,22 @@ function etiquetaCelda(celda: CeldaCalendario): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--faro-esp-4);
+  gap: var(--blubathon-esp-4);
   width: 100%;
-  min-height: var(--faro-celda-alto);
-  padding-block: var(--faro-esp-8);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-14);
+  min-height: var(--blubathon-celda-alto);
+  padding-block: var(--blubathon-esp-8);
+  background: var(--blubathon-superficie);
+  border: 1px solid var(--blubathon-linea);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .dia:hover:not(:disabled) {
-  border-color: var(--faro-punto-activo);
+  border-color: var(--blubathon-punto-activo);
 }
 
 .dia:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .dia:disabled {
@@ -114,35 +114,35 @@ function etiquetaCelda(celda: CeldaCalendario): string {
 }
 
 .dia__inicial {
-  font-size: var(--faro-fs-11);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .dia__numero {
-  font-size: var(--faro-fs-155);
+  font-size: var(--blubathon-fs-155);
   font-weight: 700;
-  color: var(--faro-marca-titulo);
+  color: var(--blubathon-marca-titulo);
 }
 
 .dia__senales {
   display: flex;
   align-items: center;
   gap: 3px;
-  height: var(--faro-punto);
+  height: var(--blubathon-punto);
 }
 
 .dia__punto {
-  width: var(--faro-punto);
-  height: var(--faro-punto);
-  background: var(--faro-punto-inactivo);
+  width: var(--blubathon-punto);
+  height: var(--blubathon-punto);
+  background: var(--blubathon-punto-inactivo);
   border-radius: 50%;
 }
 
 .dia--respondido .dia__punto {
-  background: var(--faro-punto-activo);
+  background: var(--blubathon-punto-activo);
 }
 
 /* Un día futuro no tiene estado que mostrar: la celda se queda sin punto. */
@@ -155,37 +155,37 @@ function etiquetaCelda(celda: CeldaCalendario): string {
 .dia__critica {
   width: 7px;
   height: 7px;
-  background: var(--faro-critica-media-texto);
+  background: var(--blubathon-critica-media-texto);
   border-radius: 1px;
   transform: rotate(45deg);
 }
 
 .dia--hoy {
-  border-color: var(--faro-marca-accion);
+  border-color: var(--blubathon-marca-accion);
 }
 
 .dia--elegido {
-  background: var(--faro-marca-icono-fondo);
-  border-color: var(--faro-marca-accion);
+  background: var(--blubathon-marca-icono-fondo);
+  border-color: var(--blubathon-marca-accion);
   border-width: 2px;
 }
 
 .dia--elegido .dia__numero {
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 @media (min-width: 900px) {
   .calendario {
-    gap: var(--faro-esp-8);
+    gap: var(--blubathon-esp-8);
   }
 
   .dia {
-    min-height: var(--faro-celda-alto-amplio);
-    gap: var(--faro-esp-6);
+    min-height: var(--blubathon-celda-alto-amplio);
+    gap: var(--blubathon-esp-6);
   }
 
   .dia__numero {
-    font-size: var(--faro-fs-20);
+    font-size: var(--blubathon-fs-20);
   }
 }
 </style>

@@ -29,8 +29,32 @@ export interface RegistroFormulario {
   readonly estado: EstadoFormulario;
 }
 
+/**
+ * En qué punto está la redacción del consejo del día.
+ *
+ * `pendiente` es el único estado que se mueve solo: el RAG está redactando y la
+ * respuesta llega después, así que es el único que la tarjeta anima. Los otros
+ * tres son finales.
+ */
+export type EstadoRedaccion = "pendiente" | "lista" | "abstenida" | "sin-formulario";
+
 export interface Recomendacion {
   readonly texto: string;
+  readonly estado: EstadoRedaccion;
+}
+
+/**
+ * Días seguidos sin un episodio confirmado.
+ *
+ * `dias` cuenta solo resultados confirmados con un "no": un día sin contestar no
+ * es un día sin desregulación, y contarlo como tal convertiría el silencio en
+ * una buena noticia. Por eso la racha se mide desde el último día **resuelto**
+ * —`desde`— y no desde hoy.
+ */
+export interface RachaSinDesregulacion {
+  readonly dias: number;
+  /** Fecha ISO del último día con resultado confirmado. */
+  readonly hasta: string;
 }
 
 /**
@@ -49,12 +73,20 @@ export interface ResumenSalud {
    * cifra ni pintarla de "bajo".
    */
   readonly riesgo: number | null;
-  /** Confianza del modelo en ese riesgo, 0-100. `null` si no hay estimación. */
+  /**
+   * Confianza del modelo en ese riesgo, 0-100.
+   *
+   * `null` cuando no hay estimación **o** cuando el track que estimó no publica
+   * intervalo —el challenger logístico no lo hace—. Ninguno de los dos casos se
+   * rellena con un número.
+   */
   readonly confianza: number | null;
   readonly recomendacion: Recomendacion;
   readonly factores: readonly FactorRiesgo[];
   readonly formularios: readonly RegistroFormulario[];
   readonly formularioPendiente: boolean;
+  /** `null` mientras no haya ni un solo resultado confirmado. */
+  readonly rachaSinDesregulacion: RachaSinDesregulacion | null;
 }
 
 /* Vocabulario visible. Vive junto al tipo para que añadir un valor obligue a

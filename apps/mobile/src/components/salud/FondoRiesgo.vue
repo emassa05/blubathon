@@ -68,18 +68,18 @@ const ONDAS: Record<BandaRiesgo, readonly string[]> = {
 .ondas {
   position: absolute;
   inset: auto 0 0;
-  height: var(--faro-ondas-alto);
+  height: var(--blubathon-ondas-alto);
 }
 
 .ondas__capa {
-  fill: var(--faro-onda-1);
+  fill: var(--blubathon-onda-1);
 }
 
 .ondas__capa--2 {
-  fill: var(--faro-onda-2);
+  fill: var(--blubathon-onda-2);
 }
 
 .ondas__capa--3 {
-  fill: var(--faro-onda-3);
+  fill: var(--blubathon-onda-3);
 }
 </style>

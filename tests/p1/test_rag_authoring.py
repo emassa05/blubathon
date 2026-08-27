@@ -43,7 +43,7 @@ class SimulatedDense:
 
 
 class SimulatedTransport:
-    """A simulated local LLM transport (CONVENTIONS 16)."""
+    """A simulated local LLM transport."""
 
     model_id = "fixture-llm"
     model_sha256 = "e" * 64
@@ -178,7 +178,7 @@ class TestBuildManifest:
 class TestDrafting:
     def test_the_prompt_is_versioned_package_data_with_declared_schemas(self) -> None:
         prompt = load_prompt()
-        assert prompt.prompt_version == "authoring-draft-0.3.0"
+        assert prompt.prompt_version == "authoring-draft-0.5.0"
         assert prompt.input_schema["required"] == ["generalized_question_es", "fragments"]
         assert "purpose_es" in prompt.output_schema["properties"]
         assert len(prompt.prompt_sha256) == 64

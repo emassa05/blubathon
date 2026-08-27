@@ -1,4 +1,4 @@
-"""The personal real baseline (SPEC 8.3, 8.5).
+"""The personal real baseline.
 
 What this estimates is narrow and the contract says so: the observed rate of the
 target among this subject's own previous primary episodes, under the same care
@@ -18,7 +18,7 @@ from uuid import UUID
 
 from scipy.stats import beta as beta_dist
 
-from ml.spec_constants import (
+from ml.formula_constants import (
     BASELINE_LOWER_QUANTILE,
     BASELINE_MIN_OUTCOMES,
     BASELINE_UPPER_QUANTILE,
@@ -93,7 +93,7 @@ def eligible_outcomes(
     target_definition_version: str,
     window_days: int = BASELINE_WINDOW_DAYS,
 ) -> tuple[list[BaselineCandidate], bool]:
-    """Apply every SPEC 8.3 filter, and report whether a conflict is in scope.
+    """Apply every filter, and report whether a conflict is in scope.
 
     A conflict inside the same window, subject, care mode and target version
     blocks the estimate; conflicts outside that scope do not.
@@ -145,7 +145,7 @@ def build_personal_baseline(
     Abstains when there are fewer than five verified outcomes, when a conflict is
     unresolved in scope, or when the care mode history is missing. There is no
     additional interval-width gate: with this prior and minimum the old 0.60 cut
-    was unreachable and was retired (SPEC 8.5, C20).
+    was unreachable and was retired (C20).
     """
 
     reasons: list[PredictionAbstentionReason] = []

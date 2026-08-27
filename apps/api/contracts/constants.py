@@ -1,9 +1,9 @@
-"""Re-export del registro de constantes normativas (SPEC 15, C01-C50).
+"""Re-export del registro de constantes normativas (C01-C50).
 
 El registro vive en `packages/shared/constants.py`, que H1 publicó. Este módulo
 no declara ningún valor: reexporta el de P1 para que `apps/**` siga teniendo un
 único punto de importación. Un literal del registro no se repite en `apps/`
-(`CONVENTIONS 7`).
+.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from packages.shared.constants import (
     DEFAULT_LOWER_THRESHOLD,
     DEFAULT_WINDOW_DAYS,
     DEFAULTS_ESTIMATOR_VERSION,
+    DOMAIN_VERSION,
     FORM_HIGHLIGHTED_DEFAULT,
     FORM_HIGHLIGHTED_LOW_COVERAGE,
     FORM_POLICY_VERSION,
@@ -30,7 +31,6 @@ from packages.shared.constants import (
     REFERENCE_TIMEZONE,
     SCENARIO_BUILDER_VERSION,
     SCENARIO_SCHEMA_VERSION,
-    SPEC_VERSION,
     STALENESS_CEILING_DAYS,
     TARGET_HORIZON_HOURS,
     ConstantSpec,
@@ -49,6 +49,7 @@ __all__ = [
     "DEFAULT_AUDIT_RATE",
     "DEFAULT_LOWER_THRESHOLD",
     "DEFAULT_WINDOW_DAYS",
+    "DOMAIN_VERSION",
     "FORM_HIGHLIGHTED_DEFAULT",
     "FORM_HIGHLIGHTED_LOW_COVERAGE",
     "FORM_POLICY_VERSION",
@@ -60,7 +61,6 @@ __all__ = [
     "REFERENCE_TIMEZONE",
     "SCENARIO_BUILDER_VERSION",
     "SCENARIO_SCHEMA_VERSION",
-    "SPEC_VERSION",
     "STALENESS_CEILING_DAYS",
     "TARGET_HORIZON_HOURS",
     "ConstantSpec",

@@ -1,7 +1,7 @@
 -- 002_form_prediction_outcome
 -- Target versionado, sesiones de formulario, observaciones append-only,
 -- episodios primarios no solapados, snapshots, outputs por track y la cadena
--- reporte -> resolución -> adjudicación. SPEC 4, 5.2, 5.8, 11.3-11.5 y 12.1.
+-- reporte -> resolución -> adjudicación.
 
 CREATE TABLE target_definition_versions (
     target_definition_version  TEXT PRIMARY KEY,
@@ -19,14 +19,10 @@ CREATE TABLE target_definition_versions (
     clinical_review_id         TEXT,
     content_sha256             TEXT NOT NULL,
     ingested_at                TEXT NOT NULL,
-    -- SPEC 4.3: `scope=tenant` exige tenant; `demo_fixture` lo prohíbe.
     CHECK ((scope = 'tenant' AND tenant_id IS NOT NULL)
         OR (scope = 'demo_fixture' AND tenant_id IS NULL))
 );
 
--- Unicidad efectiva fail-closed: dos versiones activas no pueden compartir
--- scope, tenant y `effective_from`. Si sus vigencias se solapan igualmente, la
--- selección devuelve `target_definition_ambiguous` (SPEC 4.3).
 CREATE UNIQUE INDEX ux_target_active_effective
     ON target_definition_versions(scope, COALESCE(tenant_id, ''), effective_from)
     WHERE approval_status = 'active';
@@ -41,7 +37,6 @@ CREATE TABLE form_sessions (
                                     ('caregiver_daily', 'professional_observation')),
     status                      TEXT NOT NULL CHECK (status IN
                                     ('draft', 'submitted', 'abandoned', 'expired')),
-    -- SPEC 6.8 / INV-05: se fija al abrir y no se recalcula jamás.
     audit_mode                  INTEGER NOT NULL CHECK (audit_mode IN (0, 1)),
     audit_bucket                INTEGER NOT NULL,
     form_policy_version         TEXT NOT NULL,
@@ -54,7 +49,6 @@ CREATE TABLE form_sessions (
                                     'target_definition_ambiguous')),
     prediction_episode_id       TEXT,
     linked_prediction_episode_id TEXT,
-    -- SPEC 4.1: `submitted_at` nunca precede a `opened_at`.
     CHECK (submitted_at IS NULL OR submitted_at >= opened_at),
     CHECK (status <> 'submitted' OR submitted_at IS NOT NULL),
     -- Una sesión enlaza o crea, nunca ambas.
@@ -90,7 +84,6 @@ CREATE TABLE question_presentations (
     subject_id                TEXT NOT NULL REFERENCES subjects(subject_id),
     form_session_id           TEXT NOT NULL REFERENCES form_sessions(form_session_id),
     field_code                TEXT NOT NULL,
-    -- SPEC 6.10: solo `highlighted=1` reinicia el reloj de antigüedad.
     highlighted               INTEGER NOT NULL CHECK (highlighted IN (0, 1)),
     reason                    TEXT NOT NULL,
     voi_nats                  REAL,
@@ -110,7 +103,6 @@ CREATE TABLE field_observations (
     subject_id            TEXT NOT NULL REFERENCES subjects(subject_id),
     form_session_id       TEXT REFERENCES form_sessions(form_session_id),
     field_code            TEXT NOT NULL,
-    -- JSON canónico del valor, o NULL para `explicit_unknown` (SPEC 8.2).
     value                 TEXT,
     source                TEXT NOT NULL CHECK (source IN ('home', 'therapy', 'school')),
     actor_id              TEXT NOT NULL REFERENCES users(user_id),
@@ -126,10 +118,8 @@ CREATE TABLE field_observations (
     source_mapping_id     TEXT REFERENCES source_mappings(source_mapping_id),
     default_presentation_id TEXT REFERENCES default_presentations(default_presentation_id),
     supersedes_id         TEXT REFERENCES field_observations(field_observation_id),
-    -- SPEC 8.2: `explicit_unknown` no asigna valor; el resto sí.
     CHECK ((entry_mode = 'explicit_unknown' AND value IS NULL)
         OR (entry_mode <> 'explicit_unknown' AND value IS NOT NULL)),
-    -- SPEC 4.4: una importación exige mapping aprobado.
     CHECK (entry_mode <> 'imported_observed' OR source_mapping_id IS NOT NULL)
 );
 
@@ -159,15 +149,11 @@ CREATE TABLE prediction_episodes (
     care_mode                  TEXT,
     input_data_origin          TEXT NOT NULL CHECK (input_data_origin IN ('real', 'synthetic')),
     created_at                 TEXT NOT NULL,
-    -- SPEC 4.1: as_of_at = prediction_at = target_start_at = submitted_at.
     CHECK (as_of_at = prediction_at AND prediction_at = target_start_at),
     CHECK (target_end_at > target_start_at),
     CHECK (capture_deadline_at > target_end_at)
 );
 
--- SPEC 4.2: dos episodios primarios del mismo sujeto no pueden empezar en el
--- mismo instante. El solape se comprueba además dentro de la transacción
--- serializada por (tenant_id, subject_id).
 CREATE UNIQUE INDEX ux_primary_episode_start
     ON prediction_episodes(tenant_id, subject_id, target_start_at)
     WHERE role = 'primary';
@@ -182,7 +168,6 @@ CREATE TABLE feature_snapshots (
                                   REFERENCES prediction_episodes(prediction_episode_id),
     as_of_at                  TEXT NOT NULL,
     input_data_origin         TEXT NOT NULL CHECK (input_data_origin IN ('real', 'synthetic')),
-    -- SPEC 5.8: el snapshot persiste los IDs exactos proyectados.
     projected_observation_ids TEXT NOT NULL,
     projected_outcome_ids     TEXT NOT NULL,
     consent_ids               TEXT NOT NULL,
@@ -208,16 +193,13 @@ CREATE TABLE prediction_outputs (
     abstention_reasons     TEXT NOT NULL,
     model_version          TEXT NOT NULL,
     input_data_origin      TEXT NOT NULL CHECK (input_data_origin IN ('real', 'synthetic')),
-    -- SPEC 8.5: el challenger nunca se expone, ni siquiera al profesional.
     exposed                INTEGER NOT NULL CHECK (exposed IN (0, 1)),
     created_at             TEXT NOT NULL,
     UNIQUE (prediction_episode_id, track_id),
-    -- SPEC 11.5: una abstención anula probabilidad, score, intervalo y método.
     CHECK (status <> 'abstained' OR (probability IS NULL AND simulation_score IS NULL
         AND interval_low IS NULL AND interval_high IS NULL AND interval_method IS NULL)),
     CHECK (interval_low IS NULL OR (interval_high IS NOT NULL AND interval_high >= interval_low)),
     CHECK ((interval_low IS NULL) = (interval_high IS NULL)),
-    -- SPEC 8.6: v0.3 no tiene bandas ni política de decisión.
     CHECK (probability IS NULL OR (probability >= 0.0 AND probability <= 1.0)),
     CHECK (simulation_score IS NULL OR (simulation_score >= 0.0 AND simulation_score <= 1.0))
 );
@@ -228,7 +210,6 @@ CREATE TABLE outcome_requests (
     outcome_request_id         TEXT PRIMARY KEY,
     tenant_id                  TEXT NOT NULL REFERENCES tenants(tenant_id),
     subject_id                 TEXT NOT NULL REFERENCES subjects(subject_id),
-    -- SPEC 4.2: como máximo un request por episodio primario.
     prediction_episode_id      TEXT NOT NULL UNIQUE
                                    REFERENCES prediction_episodes(prediction_episode_id),
     target_definition_version  TEXT NOT NULL
@@ -261,7 +242,6 @@ CREATE TABLE outcome_reports (
     source_mapping_id          TEXT REFERENCES source_mappings(source_mapping_id),
     supersedes_id              TEXT REFERENCES outcome_reports(outcome_report_id),
     ingested_at                TEXT NOT NULL,
-    -- SPEC 4.4: `yes` exige `occurred_at <= reported_at`; `no`/`unknown` lo prohíben.
     CHECK ((value = 'yes' AND occurred_at IS NOT NULL AND occurred_at <= reported_at)
         OR (value IN ('no', 'unknown') AND occurred_at IS NULL)),
     CHECK (intake_channel <> 'import' OR source_mapping_id IS NOT NULL),
@@ -281,7 +261,6 @@ CREATE TABLE outcome_resolutions (
                                ('pending', 'yes', 'no', 'unknown', 'conflicted')),
     resolved_at            TEXT,
     qualifying_report_id   TEXT REFERENCES outcome_reports(outcome_report_id),
-    -- SPEC 4.4: monotónico entre versiones; nunca vuelve a 0.
     ever_conflicted        INTEGER NOT NULL CHECK (ever_conflicted IN (0, 1)),
     resolution_version     INTEGER NOT NULL,
     ingested_at            TEXT NOT NULL,

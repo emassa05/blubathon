@@ -1,1 +1,1 @@
-"""Versioned authoring prompts, loaded as package data (CONVENTIONS 11.2)."""
+"""Versioned authoring prompts, loaded as package data."""

@@ -90,8 +90,6 @@ def question_presentation(row: sqlite3.Row) -> QuestionPresentation:
         presented_at=instant(row["presented_at"]),
         local_date=local_day(row["local_date"]),
         voi_nats=row["voi_nats"],
-        # P2 persiste el valor, no el estado: sin VoI la fila guarda `null`, que
-        # es exactamente `unavailable_model` (SPEC 7.3 / INV-09).
         voi_status=(
             VoiStatus.UNAVAILABLE_MODEL if row["voi_nats"] is None else VoiStatus.AVAILABLE
         ),

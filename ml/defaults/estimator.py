@@ -1,12 +1,12 @@
-"""Beta and Dirichlet posteriors behind a suggestion (SPEC 6.3-6.6).
+"""Beta and Dirichlet posteriors behind a suggestion.
 
 A binary field is `Beta(1+k, 1+N-k)`; a categorical or ordinal field is
 `Dirichlet(1+n_j)` and the candidate's marginal is again a Beta. The two are the
 same arithmetic: the binary case is the K=2 marginal.
 
-Faro shows the lower bound, not the mean. Two histories with the same mean can
+Blubathon shows the lower bound, not the mean. Two histories with the same mean can
 carry very different evidence, and the product rule asks how high the value
-still is under a conservative reading of the posterior (FUNDAMENTOS 5.5).
+still is under a conservative reading of the posterior.
 
 An ordinal keeps its anchors. The estimator never averages categories and never
 assumes the distance between 1 and 2 equals the distance between 4 and 5.
@@ -22,7 +22,7 @@ from enum import StrEnum
 from scipy.stats import beta as beta_dist
 
 from ml.defaults.window import EligibleHistory
-from ml.spec_constants import (
+from ml.formula_constants import (
     DEFAULT_LOWER_QUANTILE,
     DEFAULT_LOWER_THRESHOLD,
     DEFAULT_PRIOR_PER_CATEGORY,
@@ -72,7 +72,7 @@ class PosteriorEstimate:
 
 @dataclass(frozen=True, slots=True)
 class DefaultDecision:
-    """The product decision of SPEC 6.6 and the evidence behind it."""
+    """The product decision and the evidence behind it."""
 
     field_code: FieldCode
     status: DefaultStatus
@@ -101,7 +101,7 @@ class DefaultDecision:
 
 
 def _marginal(alpha: float, posterior_beta: float, quantile: float) -> tuple[float, float]:
-    """Posterior mean and lower quantile of a Beta, from SciPy (CONVENTIONS 9.2)."""
+    """Posterior mean and lower quantile of a Beta, from SciPy."""
 
     mean = alpha / (alpha + posterior_beta)
     lower = float(beta_dist.ppf(quantile, alpha, posterior_beta))
@@ -115,7 +115,7 @@ def compute_binary_default(
     quantile: float = DEFAULT_LOWER_QUANTILE,
     prior: int = DEFAULT_PRIOR_PER_CATEGORY,
 ) -> PosteriorEstimate:
-    """`p | D ~ Beta(1+k, 1+N-k)` for the more frequent value (SPEC 6.3).
+    """`p | D ~ Beta(1+k, 1+N-k)` for the more frequent value.
 
     An exact tie produces no candidate: with `k_true == k_false` there is no
     "usual" answer to suggest.
@@ -224,7 +224,7 @@ def compute_default_decision(
     quantile: float = DEFAULT_LOWER_QUANTILE,
     prior: int = DEFAULT_PRIOR_PER_CATEGORY,
 ) -> DefaultDecision:
-    """The SPEC 6.6 presentation rule, applied in the order the SPEC states it.
+    """The presentation rule, applied in the order it is declared.
 
     A suggestion appears only when `lower > 0.70` strictly, the field is on the
     allowlist, the session is not audited, and the posterior has no tie.

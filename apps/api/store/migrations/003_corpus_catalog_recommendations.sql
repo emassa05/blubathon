@@ -1,9 +1,9 @@
 -- 003_corpus_catalog_recommendations
 -- Corpus versionado, estrategias con citas, sets, catálogos, instancias de
 -- recomendación, reviews por estrategia, planes humanos, ejecuciones y
--- solicitudes de autoría. SPEC 9, 10 y 12.1.
+-- solicitudes de autoría.
 --
--- El corpus vive en su propio almacenamiento en piloto (SPEC 13.2). En la demo
+-- El corpus vive en su propio almacenamiento en piloto. En la demo
 -- comparte archivo pero no comparte claves con datos clínicos: ninguna tabla de
 -- corpus referencia `subjects`.
 
@@ -109,7 +109,6 @@ CREATE TABLE strategy_versions (
     suspended_at            TEXT,
     content_sha256          TEXT NOT NULL,
     created_at              TEXT NOT NULL,
-    -- SPEC 9.5 / INV-23: activar exige ambas revisiones registradas.
     CHECK (status <> 'active'
         OR (evidence_review_id IS NOT NULL AND clinical_review_id IS NOT NULL))
 );
@@ -165,13 +164,9 @@ CREATE TABLE catalog_versions (
     retired_at                      TEXT,
     content_sha256                  TEXT NOT NULL,
     created_at                      TEXT NOT NULL,
-    -- SPEC 9.6: activar exige review de activación aprobada.
     CHECK (status <> 'active' OR catalog_activation_review_id IS NOT NULL)
 );
 
--- SPEC 9.6: como máximo un catálogo activo por tenant en cada instante. Dos
--- activos con `effective_from` distinto siguen siendo posibles y la selección
--- devuelve `catalog_ambiguous`.
 CREATE UNIQUE INDEX ux_catalog_active_effective
     ON catalog_versions(tenant_id, effective_from) WHERE status = 'active';
 
@@ -179,14 +174,11 @@ CREATE TABLE recommendation_instances (
     recommendation_instance_id  TEXT PRIMARY KEY,
     tenant_id                   TEXT NOT NULL REFERENCES tenants(tenant_id),
     subject_id                  TEXT NOT NULL REFERENCES subjects(subject_id),
-    -- SPEC 10.1: una instancia inmutable por episodio, creada con el episodio.
     prediction_episode_id       TEXT NOT NULL UNIQUE
                                     REFERENCES prediction_episodes(prediction_episode_id),
     scenario_hash               TEXT NOT NULL,
     scenario_schema_version     TEXT NOT NULL,
     scenario_builder_version    TEXT NOT NULL,
-    -- SPEC 9.7: escenario mínimo cifrado. Sin identidad, notas ni historial;
-    -- vive dentro de la frontera clínica y no sale sin autorización de uso.
     encrypted_scenario          BLOB NOT NULL,
     catalog_version             TEXT REFERENCES catalog_versions(catalog_version),
     corpus_version              TEXT REFERENCES corpus_versions(corpus_version),
@@ -195,7 +187,6 @@ CREATE TABLE recommendation_instances (
     abstention_reasons          TEXT NOT NULL,
     availability_reason         TEXT NOT NULL,
     created_at                  TEXT NOT NULL,
-    -- SPEC 10.1: una instancia abstendida no lleva estrategias.
     CHECK (runtime_status <> 'abstained' OR strategy_version_ids = '[]')
 );
 
@@ -224,7 +215,6 @@ CREATE TABLE recommendation_reviews (
     tenant_id                   TEXT NOT NULL REFERENCES tenants(tenant_id),
     recommendation_instance_id  TEXT NOT NULL
                                     REFERENCES recommendation_instances(recommendation_instance_id),
-    -- SPEC 10.2: la review es por estrategia, no por set.
     strategy_version_id         TEXT NOT NULL REFERENCES strategy_versions(strategy_version_id),
     decision                    TEXT NOT NULL CHECK (decision IN (
                                     'approved', 'rejected', 'human_plan_substituted',
@@ -259,9 +249,7 @@ CREATE TABLE strategy_executions (
     applied_at                  TEXT,
     supersedes_id               TEXT REFERENCES strategy_executions(strategy_execution_id),
     ingested_at                 TEXT NOT NULL,
-    -- SPEC 10.3: exactamente uno entre estrategia y plan humano.
     CHECK ((strategy_version_id IS NOT NULL) <> (human_plan_version_id IS NOT NULL)),
-    -- SPEC 10.3: `applied_at` nunca es futuro respecto de `recorded_at`.
     CHECK (applied_at IS NULL OR applied_at <= recorded_at),
     CHECK (status <> 'applied' OR applied_at IS NOT NULL)
 );
@@ -278,8 +266,6 @@ CREATE TABLE authoring_requests (
     prediction_episode_id   TEXT NOT NULL REFERENCES prediction_episodes(prediction_episode_id),
     scenario_hash           TEXT NOT NULL,
     scenario_schema_version TEXT NOT NULL,
-    -- SPEC 9.8: payload canónico cifrado del escenario mínimo. Nunca sale de la
-    -- frontera clínica sin `AuthoringUseAuthorization`.
     encrypted_scenario      BLOB NOT NULL,
     reason                  TEXT NOT NULL,
     catalog_version         TEXT REFERENCES catalog_versions(catalog_version),
@@ -288,8 +274,6 @@ CREATE TABLE authoring_requests (
     closed_at               TEXT
 );
 
--- SPEC 9.8: dedup por tenant, sujeto, hash de escenario y catálogo mientras
--- siga abierta.
 CREATE UNIQUE INDEX ux_authoring_requests_open
     ON authoring_requests(tenant_id, subject_id, scenario_hash, COALESCE(catalog_version, ''))
     WHERE status = 'open';

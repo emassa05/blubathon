@@ -27,8 +27,8 @@ Datos base/
 *.pkl
 *.txt
 
-# RAG artifacts. Document bodies, extracted text and indices never enter Git
-# (TAREAS handoff H4); only manifests and hashes do.
+# RAG artifacts. Document bodies, extracted text and indices never enter Git;
+# only manifests and hashes do.
 rag/corpus/
 rag/index/
 .DS_Store

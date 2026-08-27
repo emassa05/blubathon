@@ -1,6 +1,6 @@
 {
   "artifacts": [
-    "faro.schema.json",
+    "blubathon.schema.json",
     "contract.ts",
     "contract.zod.ts",
     "constants.ts",
@@ -13,8 +13,9 @@
     "python -m tools.contracts.examples",
     "git diff --exit-code packages/shared/generated packages/shared/examples"
   ],
-  "contract_version": "faro-contract-0.4.0",
+  "contract_version": "blubathon-contract-0.4.0",
   "definition_count": 118,
+  "domain_version": "0.4.0",
   "examples": [
     "invalid/form_submission.created_without_resources.invalid.json",
     "invalid/form_submission.unknown_with_value.invalid.json",
@@ -32,7 +33,7 @@
   ],
   "generated_by": "python -m tools.contracts.generate",
   "handoff": "H1",
-  "hash_input": "faro:contract_schema:faro-contract-0.4.0\\0<JCS(faro.schema.json)>",
+  "hash_input": "blubathon:contract_schema:blubathon-contract-0.4.0\\0<JCS(blubathon.schema.json)>",
   "published_models": [
     "AbstentionBreakdown",
     "AnswerSubmission",
@@ -105,6 +106,5 @@
     "TrainingRun",
     "VoiEstimate"
   ],
-  "schema_hash": "777fd41b4804349986f00732ee488840551e924f9a3e2d98fbaf9ea2f0076e6f",
-  "spec_version": "0.4.0"
+  "schema_hash": "0b3c263b7c267a2f776d793b3e5bfde7f66c159c14168b4a72fd97d174197b5f"
 }

@@ -2,11 +2,11 @@
 
 The window is fixed by the server at submit time and never moves:
 `as_of_at = prediction_at = submitted_at`, the target is `(prediction_at,
-prediction_at + 24h]`, and capture closes 24 hours after that (SPEC 4.1).
+prediction_at + 24h]`, and capture closes 24 hours after that.
 
 `confidence` is deliberately absent from `PredictionOutput`: it has no single
 meaning across a designed simulation, a personal Beta posterior and a shadow
-challenger, and a field that means three things is not a contract (SPEC 11.5).
+challenger, and a field that means three things is not a contract.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from packages.shared.constants import (
     TARGET_HORIZON_HOURS,
 )
 from packages.shared.domain.base import (
-    FaroModel,
+    BlubathonModel,
     Interval,
     NonNegativeFloat,
     Probability,
@@ -53,17 +53,6 @@ from packages.shared.enums import (
 TARGET_HORIZON = timedelta(hours=TARGET_HORIZON_HOURS)
 CAPTURE_LIMIT = timedelta(hours=OUTCOME_CAPTURE_LIMIT_HOURS)
 
-# SPEC 8.1: which data each track is allowed to have been built from and shown as.
-#
-# The challenger moved from shadow to operational support. Its whole point is to
-# answer the question the product asks -- "is a dysregulation likely in the next
-# 24 hours?" -- which the personal baseline cannot: a rate over past verified
-# outcomes says how often it happens, never how today is going. The challenger
-# carries that baseline as a fixed offset and corrects it with the day, so the
-# two agree exactly when there is nothing to correct.
-#
-# Operational means the label matches where the number lands. A track whose
-# estimate reaches a caregiver is not in shadow, whatever the enum used to say.
 TRACK_INTENDED_USE: dict[TrackId, IntendedUse] = {
     TrackId.SYNTHETIC_REFERENCE_V021: IntendedUse.SIMULATION_ONLY,
     TrackId.REAL_PERSONAL_BASELINE_V1: IntendedUse.OPERATIONAL_SUPPORT,
@@ -76,13 +65,13 @@ TRACK_ESTIMATE_KIND: dict[TrackId, EstimateKind] = {
 }
 
 
-class TargetDefinitionVersion(FaroModel):
+class TargetDefinitionVersion(BlubathonModel):
     """The versioned question a real label answers.
 
     An imported intensity label proves a category exists in an export; it does
     not define how a new person should answer. Without an `active` version the
     system accepts demo fixtures and abstains from creating real labels
-    (SPEC 4.3).
+    .
     """
 
     target_definition_version: VersionLabel
@@ -113,12 +102,12 @@ class TargetDefinitionVersion(FaroModel):
 
     @property
     def forces_synthetic_outcomes(self) -> bool:
-        """Every outcome under a demo fixture target is synthetic (SPEC 4.3)."""
+        """Every outcome under a demo fixture target is synthetic."""
 
         return self.scope is TargetScope.DEMO_FIXTURE
 
 
-class PredictionEpisode(FaroModel):
+class PredictionEpisode(BlubathonModel):
     """An immutable opportunity with a 24-hour window and a 48-hour deadline."""
 
     prediction_episode_id: UUID
@@ -141,7 +130,7 @@ class PredictionEpisode(FaroModel):
     created_at: UtcDatetime
 
     @model_validator(mode="after")
-    def _window_is_exactly_the_spec_window(self) -> PredictionEpisode:
+    def _window_is_exactly_the_declared_window(self) -> PredictionEpisode:
         if self.prediction_at != self.as_of_at:
             raise ValueError("prediction_at is as_of_at")
         if self.target_start_at != self.prediction_at:
@@ -163,11 +152,11 @@ class PredictionEpisode(FaroModel):
         return self.target_start_at < moment <= self.target_end_at
 
 
-class FeatureSnapshot(FaroModel):
+class FeatureSnapshot(BlubathonModel):
     """The closed instant a prediction was made from.
 
     It stores the exact projected IDs so it is never recomputed, and it refuses
-    to mix origins: one synthetic row invalidates a real snapshot (SPEC 5.6).
+    to mix origins: one synthetic row invalidates a real snapshot.
     """
 
     feature_snapshot_id: UUID
@@ -193,7 +182,7 @@ class FeatureSnapshot(FaroModel):
         return self
 
 
-class PredictionOutput(FaroModel):
+class PredictionOutput(BlubathonModel):
     """One track's answer for one episode, including its abstention."""
 
     prediction_output_id: UUID
@@ -293,11 +282,11 @@ class PredictionOutput(FaroModel):
         return self.intended_use is IntendedUse.OPERATIONAL_SUPPORT
 
 
-class VoiEstimate(FaroModel):
+class VoiEstimate(BlubathonModel):
     """Mutual information in nats, or an explicit reason it is unavailable.
 
     Unavailable means `voi_nats=null`. Zero would claim the value was computed
-    and found uninformative (SPEC 7.3).
+    and found uninformative.
     """
 
     field_code: FieldCode
@@ -327,7 +316,7 @@ class VoiEstimate(FaroModel):
         return self
 
 
-class TargetSelection(FaroModel):
+class TargetSelection(BlubathonModel):
     """The single selectable definition at a cutoff, or why there is none."""
 
     status: str

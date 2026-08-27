@@ -1,13 +1,13 @@
 """Daily observations, form sessions and the two kinds of presentation.
 
-The unit of record is a `FieldObservation`, not a mutable row with every field
-(SPEC 5.2). A session can produce several of them, each append-only.
+The unit of record is a `FieldObservation`, not a mutable row with every field.
+A session can produce several of them, each append-only.
 
 Two presentations are recorded for different reasons. `DefaultPresentation` says
 a suggestion was shown, which is what makes a later value `default_edited`
 instead of manual. `QuestionPresentation` says a field was actually highlighted,
 which is what resets the staleness clock; sitting in the tail is not being asked
-(SPEC 6.10).
+.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     LocalDate,
     NonNegativeFloat,
     Probability,
@@ -45,8 +45,6 @@ from packages.shared.field_catalog import (
     validate_field_value,
 )
 
-# SPEC 5.5 and 6.2: which modes assign a value, which may train the default
-# estimator, and which may feed the primary real model.
 VALUE_ASSIGNING_MODES: frozenset[EntryMode] = frozenset(
     {
         EntryMode.MANUAL_NO_DEFAULT,
@@ -76,7 +74,7 @@ PRIMARY_REAL_MODEL_MODES: frozenset[EntryMode] = frozenset(
 )
 
 
-class SourceMapping(FaroModel):
+class SourceMapping(BlubathonModel):
     """A versioned adapter. Unknown source values fail; they never become null."""
 
     source_mapping_id: UUID
@@ -159,8 +157,8 @@ class FieldObservation(AppendOnlyModel):
         return (self.field_code, self.source, self.local_date)
 
 
-class PosteriorDefault(FaroModel):
-    """The estimator output behind one suggestion (SPEC 6.3, 6.4)."""
+class PosteriorDefault(BlubathonModel):
+    """The estimator output behind one suggestion."""
 
     field_code: FieldCode
     candidate_value: FieldValue
@@ -179,11 +177,11 @@ class PosteriorDefault(FaroModel):
         return self
 
 
-class DefaultPresentation(FaroModel):
+class DefaultPresentation(BlubathonModel):
     """Proof that a suggestion was shown for this field in this session.
 
     Its existence is what makes any other value for that field `default_edited`,
-    however the client labels it (SPEC 5.5 rule 7).
+    however the client labels it (rule 7).
     """
 
     default_presentation_id: UUID
@@ -243,10 +241,10 @@ class QuestionPresentation(AppendOnlyModel):
         return self
 
 
-class FormSession(FaroModel):
+class FormSession(BlubathonModel):
     """`opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.
 
-    The browser never decides either one (SPEC 4.1, CONVENTIONS 8.5).
+    The browser never decides either one.
     """
 
     form_session_id: UUID
@@ -280,7 +278,7 @@ class FormSession(FaroModel):
         return self
 
 
-class AnswerSubmission(FaroModel):
+class AnswerSubmission(BlubathonModel):
     """What a client may declare. The server derives `entry_mode` from it."""
 
     field_code: FieldCode
@@ -306,8 +304,8 @@ class AnswerSubmission(FaroModel):
         return self
 
 
-class DataQuality(FaroModel):
-    """DQI describes quality; it is never a predictive feature or a gate (SPEC 7.1)."""
+class DataQuality(BlubathonModel):
+    """DQI describes quality; it is never a predictive feature or a gate."""
 
     coverage: Probability
     recency: Probability

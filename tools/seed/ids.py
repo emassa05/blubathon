@@ -1,7 +1,7 @@
 """Identificadores deterministas de la demo.
 
 Todos son UUID v4 válidos y completamente ficticios. Ningún valor procede de un
-export real: `CONVENTIONS 15` prohíbe usar datos reales en tests o seeds.
+export real: está prohibido usar datos reales en tests o seeds.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ SUBJECT_BETO = _uuid(102)
 SUBJECT_SIN_GRANT = _uuid(103)
 SUBJECT_REAL = _uuid(104)
 SUBJECT_REAL_B = _uuid(105)
+SUBJECT_SUENO = _uuid(106)
 SUBJECT_TENANT_B = _uuid(201)
 
 TOKENS: dict[str, str] = {

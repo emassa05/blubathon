@@ -1,4 +1,4 @@
-"""Domain separators for every hashed authoring artifact (SPEC 5.9).
+"""Domain separators for every hashed authoring artifact.
 
 Two artifacts that mean the same thing hash the same, two that differ do not,
 and a document hash can never collide with a strategy hash. `seal` exists

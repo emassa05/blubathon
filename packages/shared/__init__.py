@@ -1,6 +1,6 @@
-"""The single executable contract shared by every Faro process.
+"""The single executable contract shared by every Blubathon process.
 
-`packages/shared` never imports `ml`, `rag` or `apps` (CONVENTIONS 4). It owns
+`packages/shared` never imports `ml`, `rag` or `apps`. It owns
 the constants, the closed vocabularies, the field catalogue, the canonical bytes
 and hashes, the append-only projection, the Spanish copy and the Pydantic models
 that every other package reads.
@@ -15,10 +15,10 @@ from packages.shared.constants import (
     CONSTANTS,
     CONTRACT_VERSION,
     DEFAULTS_ESTIMATOR_VERSION,
+    DOMAIN_VERSION,
     FORM_POLICY_VERSION,
     SCENARIO_BUILDER_VERSION,
     SCENARIO_SCHEMA_VERSION,
-    SPEC_VERSION,
     ConstantSpec,
     constant,
 )
@@ -32,7 +32,7 @@ __all__ = [
     "FORM_POLICY_VERSION",
     "SCENARIO_BUILDER_VERSION",
     "SCENARIO_SCHEMA_VERSION",
-    "SPEC_VERSION",
+    "DOMAIN_VERSION",
     "ConstantSpec",
     "canonical",
     "constant",

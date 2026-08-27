@@ -1,4 +1,4 @@
-"""Re-export del catálogo de campos diarios (SPEC 5.2, 5.4, 6.7, 6.10, 7.1, 9.7).
+"""Re-export del catálogo de campos diarios.
 
 El catálogo, su matriz de fuentes y la validación de valores viven en
 `packages/shared/field_catalog.py`, que H1 publicó. `apps/**` no declara aquí
@@ -9,7 +9,7 @@ Dos nombres de P2 quedaron sin equivalente y se resuelven contra P1:
 - `SCENARIO_FIELD_ALLOWLIST_V1` se llama `SCENARIO_ALLOWLIST_V1` en el contrato.
 - `BEHAVIOR_TAGS` era un catálogo cerrado propuesto por P2 (`R3` del README). P1
   publicó `behavior_tags` como `tag_set` con forma de token y sin enumerar el
-  catálogo, que es la decisión de `SPEC 19`: una decisión ausente se registra
+  catálogo, que es la decisión: una decisión ausente se registra
   como pregunta, no se inventa.
 """
 

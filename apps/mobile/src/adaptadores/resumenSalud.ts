@@ -19,21 +19,29 @@ import type {
   FormQuestion,
   RecommendationInstanceView,
   TodayRecommendationResponse,
-} from "@faro/contract/contract";
-import { FARO_CONSTANTS } from "@faro/contract/constants";
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
+} from "@blubathon/contract/contract";
+import { BLUBATHON_CONSTANTS } from "@blubathon/contract/constants";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 
 import { DIAS_HISTORIAL } from "@/api/config";
-import { ErrorFaro } from "@/api/errores";
+import { ErrorBlubathon } from "@/api/errores";
 import {
   historialNino,
   planFormulario,
   recomendacionDeEpisodio,
   recomendacionDeHoy,
-} from "@/api/faro";
+} from "@/api/blubathon";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
+import { confianzaDelIntervalo } from "@/dominio/incertidumbre";
+import { rachaSinDesregulacion } from "@/dominio/rachas";
 import { reconciliar, respuestasDe } from "@/estado/respuestas";
-import type { FactorRiesgo, IconoFactor, RegistroFormulario, ResumenSalud } from "@/types/salud";
+import type {
+  EstadoRedaccion,
+  FactorRiesgo,
+  IconoFactor,
+  RegistroFormulario,
+  ResumenSalud,
+} from "@/types/salud";
 
 /** Días que lista "Últimos formularios", empezando por el visible. */
 const DIAS_EN_LISTA = 4;
@@ -48,8 +56,8 @@ const CAMPOS_DE_SUENO: ReadonlySet<FieldCode> = new Set<FieldCode>([
   "wake_state",
 ]);
 
-/** SPEC 6.10 / C14: un campo se considera vencido a los 7 días. */
-const DIAS_VENCIMIENTO = FARO_CONSTANTS.C14.value;
+/** C14: un campo se considera vencido a los 7 días. */
+const DIAS_VENCIMIENTO = BLUBATHON_CONSTANTS.C14.value;
 
 /**
  * `days_since_presented` no viaja en `FormQuestion`, así que el texto no puede
@@ -77,29 +85,6 @@ function porcentaje(probabilidad: number): number {
   return Math.round(probabilidad * 100);
 }
 
-function intervalo(valor: unknown): readonly [number, number] | null {
-  if (!Array.isArray(valor) || valor.length !== 2) return null;
-  const [inferior, superior] = valor;
-  if (typeof inferior !== "number" || typeof superior !== "number") return null;
-  return [inferior, superior];
-}
-
-/**
- * La confianza sale del ancho del intervalo del modelo, que es lo único que el
- * backend publica sobre su propia incertidumbre.
- *
- * El intervalo es el 5-95 del posterior Beta (SPEC 8.3): cuantos más resultados
- * verificados hay, más estrecho, y un intervalo estrecho es exactamente lo que
- * "nivel de confianza alto" quiere decir. Sin intervalo no hay confianza que
- * dar, y devolver `null` es más honesto que un número por defecto.
- */
-function confianzaDelIntervalo(valor: unknown): number | null {
-  const rango = intervalo(valor);
-  if (rango === null) return null;
-  const ancho = Math.min(1, Math.max(0, rango[1] - rango[0]));
-  return Math.round((1 - ancho) * 100);
-}
-
 /* Recomendación ----------------------------------------------------------- */
 
 const SIN_FORMULARIO =
@@ -111,7 +96,7 @@ const SIN_RECOMENDACION = "Este día no tiene recomendación.";
  * Los tres motivos por los que el sistema decide **no** recomendar.
  *
  * Abstenerse no es un fallo, y el backend lo devuelve como 200 con motivo
- * explícito (SPEC 11.7): la pantalla tiene que decir por qué no hay consejo, no
+ * explícito: la pantalla tiene que decir por qué no hay consejo, no
  * dejar la tarjeta en blanco ni rellenarla con un consejo genérico.
  */
 const TEXTO_ABSTENCION: Record<string, string> = {
@@ -125,17 +110,31 @@ type EstadoRecomendacion = Pick<
   "status" | "action_text_es" | "abstention_reason"
 >;
 
-function textoRecomendacion(estado: EstadoRecomendacion | null): string {
-  if (estado === null) return SIN_RECOMENDACION;
+/**
+ * El texto del día y en qué punto está su redacción.
+ *
+ * El estado no es decoración: `pendiente` significa que el RAG sigue redactando
+ * y que la respuesta va a cambiar sola, y es lo único que la tarjeta anima. Sin
+ * este dato la pantalla no puede distinguir "todavía no hay consejo" de "no va a
+ * haberlo", que para quien mira son cosas muy distintas.
+ */
+function leerRecomendacion(estado: EstadoRecomendacion | null): {
+  texto: string;
+  estado: EstadoRedaccion;
+} {
+  if (estado === null) return { texto: SIN_RECOMENDACION, estado: "abstenida" };
   switch (estado.status) {
     case "matched":
-      return estado.action_text_es ?? SIN_RECOMENDACION;
+      return { texto: estado.action_text_es ?? SIN_RECOMENDACION, estado: "lista" };
     case "pending":
-      return EN_CURSO;
+      return { texto: EN_CURSO, estado: "pendiente" };
     case "abstained":
-      return TEXTO_ABSTENCION[estado.abstention_reason ?? ""] ?? SIN_RECOMENDACION;
+      return {
+        texto: TEXTO_ABSTENCION[estado.abstention_reason ?? ""] ?? SIN_RECOMENDACION,
+        estado: "abstenida",
+      };
     case "no_submission_today":
-      return SIN_FORMULARIO;
+      return { texto: SIN_FORMULARIO, estado: "sin-formulario" };
   }
 }
 
@@ -154,7 +153,7 @@ function desdeVistaDeEpisodio(vista: RecommendationInstanceView): EstadoRecomend
  *
  * El backend no publica importancias del modelo —el track visible es una tasa
  * observada, sin predictores que ponderar—, así que la señal más cercana y
- * honesta es la política del formulario (SPEC 6.9): los campos que hoy pide
+ * honesta es la política del formulario: los campos que hoy pide
  * primero, por antigüedad, exploración o valor de información. Por eso la
  * tarjeta habla de lo que el formulario prioriza y no de causas del riesgo.
  */
@@ -165,7 +164,7 @@ function factores(plan: FormPlanResponse | null): readonly FactorRiesgo[] {
     .map((pregunta) => ({
       id: pregunta.field_code,
       icono: (CAMPOS_DE_SUENO.has(pregunta.field_code) ? "luna" : "rombo") satisfies IconoFactor,
-      titulo: FARO_TEXTS_ES.fieldLabelsEs[pregunta.field_code],
+      titulo: BLUBATHON_TEXTS_ES.fieldLabelsEs[pregunta.field_code],
       detalle: DETALLE_POR_MOTIVO[pregunta.reason],
       prioridad: "alta" as const,
     }));
@@ -223,7 +222,7 @@ async function recomendacionDelDia(
   } catch (error) {
     // El episodio puede existir sin recomendación asociada: es un día vacío,
     // no un fallo que la pantalla deba mostrar.
-    if (error instanceof ErrorFaro && error.esNoEncontrado) return null;
+    if (error instanceof ErrorBlubathon && error.esNoEncontrado) return null;
     throw error;
   }
 }
@@ -269,10 +268,16 @@ export async function cargarResumenSalud(opciones: {
   return {
     fecha: fechaIso,
     riesgo,
+    // Sin cifra no hay confianza que dar. Y con cifra puede seguir sin haberla:
+    // el challenger logístico publica probabilidad y ningún intervalo, y es el
+    // track preferido cuando estima. `null` en los dos casos.
     confianza: riesgo === null ? null : confianzaDelIntervalo(prediccion?.interval),
-    recomendacion: { texto: textoRecomendacion(estadoRecomendacion) },
+    recomendacion: leerRecomendacion(estadoRecomendacion),
     factores: factores(plan),
     formularios: formularios(fechaIso, conEnvio),
     formularioPendiente: !presente(dia?.submission_id),
+    // De todo el historial y no solo del día visible: la racha es de la persona,
+    // no de la fecha que se esté mirando.
+    rachaSinDesregulacion: rachaSinDesregulacion(dias),
   };
 }
