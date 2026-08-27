@@ -2869,6 +2869,22 @@
           "default": null,
           "title": "Child Id"
         },
+        "decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "approved",
+                "rejected"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
         "prediction_episode_id": {
           "anyOf": [
             {
@@ -2923,7 +2939,8 @@
           "enum": [
             "recommendation.ready",
             "recommendation.redrafted",
-            "feedback.recorded"
+            "feedback.recorded",
+            "review.recorded"
           ],
           "title": "Type",
           "type": "string"
@@ -4276,6 +4293,75 @@
       "title": "RecommendationCitation",
       "type": "object"
     },
+    "RecommendationDecisionRequest": {
+      "additionalProperties": false,
+      "description": "A professional's verdict on one drafted recommendation.\n\n`approved` and `rejected` only. `RecommendationReview` in the domain also\nadmits substituting a human plan, deferring and declaring the item not\napplicable; the live surface exposes the two that a reviewer can act on\nwithout a strategy catalogue behind them, and adding a third here without\nthe machinery to honour it would be a button that lies.",
+      "properties": {
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "note_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note Es"
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "title": "RecommendationDecisionRequest",
+      "type": "object"
+    },
+    "RecommendationDecisionResponse": {
+      "additionalProperties": false,
+      "description": "The review as stored. Append only: a change of mind is a new row.",
+      "properties": {
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "reviewed_at": {
+          "format": "date-time",
+          "title": "Reviewed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "recommendation_instance_id",
+        "decision",
+        "reviewed_at"
+      ],
+      "title": "RecommendationDecisionResponse",
+      "type": "object"
+    },
     "RecommendationInstanceView": {
       "additionalProperties": false,
       "properties": {
@@ -4345,6 +4431,11 @@
           "title": "Created At",
           "type": "string"
         },
+        "in_review_sample": {
+          "default": false,
+          "title": "In Review Sample",
+          "type": "boolean"
+        },
         "local_date": {
           "anyOf": [
             {
@@ -4400,6 +4491,35 @@
           "format": "uuid",
           "title": "Recommendation Instance Id",
           "type": "string"
+        },
+        "review_decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "approved",
+                "rejected"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Decision"
+        },
+        "reviewed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewed At"
         },
         "risk_band": {
           "enum": [
@@ -4512,6 +4632,42 @@
       ],
       "title": "RetrievalMode",
       "type": "string"
+    },
+    "ReviewQueueResponse": {
+      "additionalProperties": false,
+      "description": "The sampled slice a professional is asked to review.\n\nThe response carries the draw that produced it —denominator and policy\nversion— because a queue that does not say it is a sample reads as the\nwhole workload, and a reviewer would conclude the other four fifths were\nnever drafted.",
+      "properties": {
+        "candidates": {
+          "minimum": 0,
+          "title": "Candidates",
+          "type": "integer"
+        },
+        "items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationInstanceView"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "sample_denominator": {
+          "minimum": 1,
+          "title": "Sample Denominator",
+          "type": "integer"
+        },
+        "sample_policy_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Sample Policy Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sample_denominator",
+        "sample_policy_version",
+        "candidates"
+      ],
+      "title": "ReviewQueueResponse",
+      "type": "object"
     },
     "Role": {
       "enum": [
@@ -5682,9 +5838,12 @@
     "PredictionOutput",
     "PredictionOutputView",
     "QuestionPresentation",
+    "RecommendationDecisionRequest",
+    "RecommendationDecisionResponse",
     "RecommendationInstanceView",
     "RecommendationListResponse",
     "ReleaseManifest",
+    "ReviewQueueResponse",
     "RuntimeDecision",
     "RuntimeStrategyMatch",
     "ScenarioBuildResult",

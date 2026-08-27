@@ -61,11 +61,12 @@ EXPECTED_VALUES = {
     "C48": 10,
     "C49": 5,
     "C50": 5,
+    "C51": 5,
 }
 
 
-def test_registry_covers_c01_to_c50() -> None:
-    assert sorted(CONSTANTS) == [f"C{index:02d}" for index in range(1, 51)]
+def test_registry_covers_c01_to_c51() -> None:
+    assert sorted(CONSTANTS) == [f"C{index:02d}" for index in range(1, 52)]
 
 
 @pytest.mark.parametrize(("constant_id", "expected"), sorted(EXPECTED_VALUES.items()))

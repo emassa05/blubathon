@@ -1,4 +1,4 @@
-"""Re-export del registro de constantes normativas (C01-C50).
+"""Re-export del registro de constantes normativas (C01-C51).
 
 El registro vive en `packages/shared/constants.py`, que H1 publicó. Este módulo
 no declara ningún valor: reexporta el de P1 para que `apps/**` siga teniendo un

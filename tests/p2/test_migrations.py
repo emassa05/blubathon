@@ -41,6 +41,7 @@ EXPECTED_TABLES = {
     "prediction_outputs",
     "professional_accreditations",
     "question_presentations",
+    "recommendation_decisions",
     "recommendation_feedback",
     "recommendation_instances",
     "recommendation_reviews",
