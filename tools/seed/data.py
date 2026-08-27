@@ -220,6 +220,105 @@ FIXTURE_CHUNKS = (
             "necesidad de correcciones durante la transición."
         ),
     },
+    # Los dos de arriba son los que citan las estrategias sembradas, por su
+    # índice: no se reordenan ni se insertan otros antes. Lo que sigue solo se
+    # añade al final.
+    #
+    # Estos fragmentos existen para que la recuperación tenga con qué casar.
+    # `query_for()` arma la consulta con las etiquetas del catálogo —"Calidad
+    # del sueño : Interrumpido", "Regulación general del día : Desregulación
+    # frecuente"—, así que un corpus que no repita ese vocabulario deja al
+    # sistema abstenido en `no_indexed_match` y no se puede probar nada.
+    #
+    # Son ficticios y lo dicen. No son guía clínica: el texto es deliberadamente
+    # genérico y no prescribe nada que alguien pudiera aplicar creyendo que
+    # viene de una fuente revisada.
+    {
+        "locator": "sección 2, párrafo 7",
+        "text": (
+            "Ante despertares nocturnos repetidos o pocas horas de sueño, la "
+            "primera revisión es del entorno y de los horarios, no del "
+            "comportamiento del día siguiente."
+        ),
+    },
+    {
+        "locator": "sección 3, párrafo 2",
+        "text": (
+            "Un despertar irritable o con llanto suele pedir un inicio de "
+            "jornada más lento, con menos demandas en la primera hora."
+        ),
+    },
+    {
+        "locator": "sección 3, párrafo 5",
+        "text": (
+            "Cuando la persona despierta cansada o con sueño, conviene reservar "
+            "las actividades que exigen más atención para más tarde."
+        ),
+    },
+    {
+        "locator": "sección 5, párrafo 1",
+        "text": (
+            "En un día con desregulación frecuente, reducir el número de "
+            "transiciones ayuda más que insistir en completar lo planificado."
+        ),
+    },
+    {
+        "locator": "sección 5, párrafo 4",
+        "text": (
+            "La regulación general del día mejora cuando el apoyo llega antes "
+            "del episodio y no como respuesta a él."
+        ),
+    },
+    {
+        "locator": "sección 6, párrafo 2",
+        "text": (
+            "El malestar gastrointestinal, incluidos el estreñimiento y la "
+            "diarrea, puede explicar cambios de conducta que parecen sin causa."
+        ),
+    },
+    {
+        "locator": "sección 7, párrafo 1",
+        "text": (
+            "Si la medicación no se tomó, conviene registrarlo antes de "
+            "atribuir el día a otros factores."
+        ),
+    },
+    {
+        "locator": "sección 8, párrafo 3",
+        "text": (
+            "Los cambios en la rutina se toleran mejor cuando se anuncian con "
+            "antelación y se mantiene fijo algún punto del día."
+        ),
+    },
+    {
+        "locator": "sección 9, párrafo 2",
+        "text": (
+            "Frente a cambios en la alimentación, ofrecer opciones conocidas "
+            "junto a la nueva reduce el rechazo sin forzar la situación."
+        ),
+    },
+    {
+        "locator": "sección 10, párrafo 1",
+        "text": (
+            "La participación en actividades y las interacciones sociales "
+            "bajan cuando el día empezó mal; conviene ajustar la exigencia "
+            "antes que retirarlas."
+        ),
+    },
+    {
+        "locator": "sección 11, párrafo 4",
+        "text": (
+            "Un nivel de alerta bajo durante la mañana pide revisar el "
+            "descanso de la noche anterior antes que aumentar los estímulos."
+        ),
+    },
+    {
+        "locator": "sección 12, párrafo 1",
+        "text": (
+            "En un día tranquilo y con sueño reparador, mantener la rutina "
+            "habitual es preferible a introducir novedades."
+        ),
+    },
 )
 
 FIXTURE_STRATEGIES = (

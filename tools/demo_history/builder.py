@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 from apps.api.adapters import build_ports
 from apps.api.canonical import canonical_timestamp
@@ -33,6 +33,8 @@ from apps.api.context import DEMO_TENANT_ID
 from apps.api.contracts.models import AnswerItem, OutcomeReportRequest
 from apps.api.services import build_registry
 from apps.api.services.base import Services
+from apps.api.services.local_time import REFERENCE_ZONE
+from apps.api.services.local_time import local_date as reference_date
 from apps.api.settings import Settings, load_settings
 from apps.api.store.db import Database
 from packages.shared.constants import (
@@ -182,7 +184,18 @@ def build_history(
     )
     registry = build_registry(core)
 
-    hoy = datetime.now(UTC).replace(hour=HORA_DE_ENVIO, minute=0, second=0, microsecond=0)
+    # El ancla se cuenta en la zona de referencia, no en UTC.
+    #
+    # Santiago va cuatro horas por detrás, así que entre medianoche y las 04:00
+    # UTC el "hoy" de UTC ya es el día siguiente para el sistema. Anclando en
+    # UTC, el `offset=1` caía sobre la fecha local de hoy: la herramienta se
+    # comía el día que tenía que dejar libre, y el envío del cuestionario se
+    # enganchaba al episodio ya sembrado en vez de abrir uno nuevo.
+    hoy = datetime.combine(
+        reference_date(datetime.now(UTC)),
+        time(HORA_DE_ENVIO, 0),
+        tzinfo=REFERENCE_ZONE,
+    )
     sembrados: list[DiaSembrado] = []
     try:
         # De más antiguo a más reciente, para que cada episodio vea a los
