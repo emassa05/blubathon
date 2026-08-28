@@ -42,8 +42,6 @@ watch(
 
 <template>
   <div class="portada">
-    <span class="portada__cupula" aria-hidden="true"></span>
-
     <!--
       El progreso desaparece cuando el formulario deja de tener pasos —el repaso
       final y la confirmación—, porque ahí no se avanza por páginas y unos puntos
@@ -81,10 +79,14 @@ watch(
 
 <style scoped>
 /*
- * El mismo fondo que el panel de la pantalla de Salud —degradado casi blanco a
- * celeste, con un brillo abierto arriba— y la misma cúpula de la que emerge el
- * contenido. La receta del fondo está en `tokens.css`, en un token propio: ver
- * ahí por qué no se reusa la clase de banda.
+ * El mismo fondo que el panel de la pantalla de Salud: degradado casi blanco a
+ * celeste, con un brillo abierto arriba. La receta está en `tokens.css`, en un
+ * token propio: ver ahí por qué no se reusa la clase de banda.
+ *
+ * La cúpula de la que emerge el formulario no se dibuja aquí. Es el borde de
+ * arriba del cuerpo del diálogo, que sube sobre esta portada y se recorta con
+ * ella —ver `DialogoModal`—: así el arco no es un adorno encima de la portada
+ * sino por donde se corta lo que se desplaza.
  */
 .portada {
   position: relative;
@@ -92,36 +94,11 @@ watch(
   justify-items: center;
   gap: var(--blubathon-esp-16);
   padding: var(--blubathon-esp-16) var(--blubathon-esp-16) var(--blubathon-esp-10);
-  /* Para la cúpula, que llega hasta los bordes. El redondeo de las esquinas de
-     arriba lo pone el diálogo, que es de quien son. */
-  overflow: hidden;
   background: var(--blubathon-portada-fondo);
 }
 
-/*
- * La misma curva de la pantalla de Salud: los dos radios de arriba con el eje
- * horizontal al 50%, de modo que las elipses se encuentran en el centro y forman
- * un arco continuo, sin la esquina que deja un `border-radius` normal.
- *
- * Lo que hay bajo el arco es el diálogo, no la portada: el mismo blanco del
- * cuerpo, pegado al borde de abajo, de modo que la superficie sigue sin corte
- * desde la curva hasta el pie. Dejarlo transparente enseñaba una franja de
- * celeste que terminaba en una línea recta —el final de la portada— y esa recta
- * partía en dos lo que tenía que leerse como una sola hoja.
- */
-.portada__cupula {
-  position: absolute;
-  inset: auto 0 0;
-  height: var(--blubathon-cupula);
-  background: var(--blubathon-superficie);
-  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
-}
-
-/* Todo lo que va encima de la cúpula tiene que estar posicionado: si no, el
-   arco —que sí lo está— se pinta por encima y los tapa. */
 .portada__progreso,
-.portada__rotulos,
-.portada__cara {
+.portada__rotulos {
   position: relative;
 }
 
@@ -176,9 +153,19 @@ watch(
   color: var(--blubathon-portada-titulo);
 }
 
-/* Se apoya en la cúpula: la parte de abajo cae sobre el blanco, que es lo que
-   la asienta en vez de dejarla flotando en el celeste. */
+/*
+ * Se apoya en la cúpula: la parte de abajo cae sobre el blanco, que es lo que la
+ * asienta en vez de dejarla flotando en el celeste.
+ *
+ * Y va en el plano de arriba del todo. El cuerpo, que es el que dibuja ese
+ * blanco y llega hasta aquí por debajo de ella, va en el 1, y el filo que
+ * difumina el arco en el 2 —ver `DialogoModal`—: aquí toca el 3. Sin él, lo que
+ * se desplaza le pasaría por delante en vez de por detrás, y el difuminado le
+ * comería el borde de abajo.
+ */
 .portada__cara {
+  position: relative;
+  z-index: 3;
   width: 84px;
   height: 84px;
   margin-top: var(--blubathon-esp-4);

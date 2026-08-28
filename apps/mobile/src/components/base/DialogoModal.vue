@@ -159,6 +159,10 @@ onBeforeUnmount(() => {
           <slot name="portada" :id-titulo="idTitulo" />
         </div>
 
+        <!-- El filo de la cúpula, difuminado: lo que se desplaza no se parte en
+             seco contra la curva, se desenfoca y se va en blanco al llegar. -->
+        <span v-if="$slots.portada" class="dialogo__filo" aria-hidden="true"></span>
+
         <template v-else>
           <span
             v-if="variante === 'hoja' && cerrable"
@@ -287,8 +291,44 @@ onBeforeUnmount(() => {
   background: var(--blubathon-superficie);
 }
 
+/*
+ * Y el cuerpo emerge de la portada, no empieza donde ella acaba.
+ *
+ * Sube sobre ella con un margen negativo y se recorta con una cúpula, que es lo
+ * mismo que hace el contenido de la pantalla de Salud sobre el panel de riesgo
+ * —ver `SaludView`, `.pantalla__contenido`—. La curva son los dos radios de
+ * arriba con el eje horizontal al 50%: las dos elipses se encuentran en el
+ * centro y forman un arco continuo, sin la esquina que deja un `border-radius`
+ * normal.
+ *
+ * Lo que cambia respecto de la portada es de quién es el arco. Antes lo pintaba
+ * ella, encima de sí misma, y el cuerpo se cortaba en una recta 44px más abajo:
+ * entre la curva y el primer renglón quedaba una banda blanca vacía y el texto
+ * que se desplazaba se partía en línea recta. Ahora el arco **es el borde del
+ * cuerpo**, y como este es el contenedor que se desplaza, su radio recorta
+ * también lo que pasa por dentro: lo que sube se corta siguiendo la curva y
+ * pasa por detrás de la cara, que sube un plano para eso.
+ *
+ * El acolchado de arriba devuelve exactamente lo que se comió el margen, así
+ * que en reposo el formulario empieza donde empezaba. Y `scroll-padding` lo
+ * repite para el desplazamiento: al cambiar de bloque se llama a
+ * `scrollIntoView` —ver `DialogoCuestionario`—, y sin esto la primera pregunta
+ * se pararía debajo del arco.
+ *
+ * El `z-index` es lo que hace que se vea. La cabecera está posicionada —lleva el
+ * aspa y el asa colgadas de ella—, así que se pinta después que el cuerpo, que
+ * no lo está: sin subirlo un plano, el celeste de la portada tapaba la cúpula y
+ * el borde volvía a leerse recto. Encima del cuerpo solo queda la cara, que pide
+ * el plano siguiente.
+ */
 .dialogo--portada .dialogo__cuerpo {
+  position: relative;
+  z-index: 1;
+  padding-top: calc(var(--cuerpo-arriba) + var(--blubathon-cupula));
+  margin-top: calc(var(--blubathon-cupula) * -1);
   background: var(--blubathon-superficie);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  scroll-padding-top: calc(var(--cuerpo-arriba) + var(--blubathon-cupula));
 }
 
 /*
@@ -297,6 +337,41 @@ onBeforeUnmount(() => {
  */
 .dialogo--portada .dialogo__pie {
   border-top: 0;
+}
+
+/*
+ * El filo de la cúpula.
+ *
+ * El arco recorta lo que se desplaza de golpe, y medio renglón cortado en seco
+ * por una curva no se lee como un borde: se lee como un fallo de pintado. Esto
+ * es lo que suaviza ese último milímetro.
+ *
+ * Ocupa la misma banda que la cúpula y se recorta con el mismo radio, así que no
+ * asoma por los hombros ni toca el celeste. Lo que decide dónde actúa es la
+ * máscara: la misma elipse que dibuja el arco, llena por dentro y transparente
+ * al llegar al filo. Así el arco se queda limpio —no se le pega una calima que
+ * le ensucia el canto— y lo que se deshace es lo que ya está entrando en la
+ * cúpula: el renglón se apaga desde abajo y llega al corte casi sin tinta.
+ * Sigue la curva, además, y no es una franja recta sobre toda la banda —el
+ * blanco de debajo sí ocupa la banda entera; esto no.
+ *
+ * Y son dos cosas a la vez, que por separado no bastan: el desenfoque deshace la
+ * letra y el blanco la apaga. Solo con desenfoque quedan manchas oscuras; solo
+ * con blanco, el corte sigue siendo un corte, más suave.
+ */
+.dialogo__filo {
+  position: absolute;
+  inset: auto 0 0;
+  /* Entre el cuerpo, que va en el 1, y la cara de la portada, que va en el 3:
+     difumina lo que se desplaza sin tocar lo que se apoya en la cúpula. */
+  z-index: 2;
+  height: var(--blubathon-cupula);
+  background: var(--blubathon-superficie);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  mask-image: radial-gradient(50% 100% at 50% 100%, #000 62%, transparent 100%);
+  pointer-events: none;
 }
 
 /* El asa no se arrastra: dice que esto sube y baja, no que sea una página. */
@@ -371,11 +446,16 @@ onBeforeUnmount(() => {
 }
 
 .dialogo__cuerpo {
+  /* Lo que separa el contenido del borde de arriba, en una variable porque con
+     portada hay que sumarle la cúpula: así la suma se escribe una vez y sigue
+     valiendo en los puntos de corte que cambian el acolchado. */
+  --cuerpo-arriba: var(--blubathon-esp-16);
+
   flex: 1;
   /* Sin esto, un hijo de flex no baja de su alto de contenido y el diálogo
      entero crecería en vez de desplazarse por dentro. */
   min-height: 0;
-  padding: var(--blubathon-esp-16);
+  padding: var(--cuerpo-arriba) var(--blubathon-esp-16) var(--blubathon-esp-16);
   overflow-y: auto;
   /* Al llegar al final, la página de debajo no se lleva el desplazamiento. */
   overscroll-behavior: contain;
@@ -517,7 +597,9 @@ onBeforeUnmount(() => {
   }
 
   .dialogo__cuerpo {
-    padding-block: var(--blubathon-esp-10);
+    --cuerpo-arriba: var(--blubathon-esp-10);
+
+    padding-bottom: var(--blubathon-esp-10);
   }
 
   .velo--centrado {
@@ -557,7 +639,9 @@ onBeforeUnmount(() => {
   }
 
   .dialogo__cuerpo {
-    padding: var(--blubathon-esp-20) var(--blubathon-esp-24);
+    --cuerpo-arriba: var(--blubathon-esp-20);
+
+    padding: var(--cuerpo-arriba) var(--blubathon-esp-24);
   }
 
   .dialogo__pie {
