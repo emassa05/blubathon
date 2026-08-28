@@ -220,7 +220,7 @@ describe("DialogoCuestionario", () => {
     const wrapper = abrir();
     await flushPromises();
 
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
     // No ha enviado nada todavía: solo estaba la llamada al plan.
@@ -240,11 +240,11 @@ describe("DialogoCuestionario", () => {
     const wrapper = abrir();
     await flushPromises();
 
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
     // "No, guardar así" es el botón lleno del pie de la revisión.
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
     const envio = llamadas[1];
@@ -263,10 +263,10 @@ describe("DialogoCuestionario", () => {
     const wrapper = abrir();
     await flushPromises();
 
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
-    await wrapper.get(".pie__secundario").trigger("click");
+    await wrapper.get(".pie .boton--secundario").trigger("click");
     await flushPromises();
 
     // Solo la que quedó sugerida, y ahora sí con su caja de ayuda.
@@ -277,7 +277,7 @@ describe("DialogoCuestionario", () => {
 
     // Cambiarla la manda como edición de la sugerencia, no como manual.
     await wrapper.get('[data-campo="activity_participation"] .escala__punto').trigger("click");
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
     expect(llamadas[1]?.cuerpo.answers).toContainEqual({
@@ -314,9 +314,9 @@ describe("DialogoCuestionario", () => {
 
     // Guardar pasa por la revisión, porque `activity_participation` quedó con
     // su sugerencia sin tocar; "No, guardar así" es la salida corta.
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
     const envio = llamadas[1];
@@ -359,7 +359,7 @@ describe("DialogoCuestionario", () => {
     const wrapper = abrir();
     await flushPromises();
 
-    await wrapper.get(".pie__enviar").trigger("click");
+    await wrapper.get(".pie .boton--principal").trigger("click");
     await flushPromises();
 
     expect(wrapper.find(".sugeridas").exists()).toBe(false);

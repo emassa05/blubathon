@@ -368,6 +368,69 @@
    * usaba el historial, para que las dos pantallas de escritorio tengan la
    * misma retícula y no dos anchos parecidos pero distintos.
    */
+  /*
+   * El cuestionario: la portada, las opciones y el botón de confirmar.
+   *
+   * Es la única parte de la aplicación con acento verde, y no es un capricho de
+   * paleta: el azul de marca ya significa "esto es Blubathon" en toda la
+   * pantalla de Salud, así que dentro del formulario hacía falta un segundo tono
+   * para decir otra cosa. Aquí el azul es **lo que has elegido tú** y el verde
+   * es **lo que se va a guardar**: el repaso final y el botón que cierra el
+   * formulario. Por eso la cara de la portada también es verde.
+   *
+   * El verde de acción es un peldaño más oscuro que el del diseño: con el del
+   * mockup, el texto blanco encima se quedaba en 3.7:1 y no llegaba a AA. Este
+   * da 4.7:1 y es el mismo tono.
+   */
+  /*
+   * La portada y las opciones marcadas usan el **mismo degradado que el panel
+   * de la pantalla de Salud**: casi blanco arriba, color abajo, y un brillo
+   * radial muy abierto en la cima.
+   *
+   * Se escribe la receta otra vez en vez de ponerle a la portada la clase
+   * `blubathon-banda--bajo`, que daría exactamente estos valores: una banda
+   * significa un nivel de riesgo, y este formulario es justo lo que todavía no
+   * se ha contestado. Lo que se toma prestado es la forma del fondo, no lo que
+   * la banda dice.
+   */
+  --blubathon-portada-fondo:
+    radial-gradient(130% 62% at 50% 0%, oklch(1 0 0 / 0.55), transparent 62%),
+    linear-gradient(180deg, oklch(0.972 0.012 235) 0%, oklch(0.895 0.05 235) 100%);
+  --blubathon-portada-titulo: oklch(0.31 0.06 235);
+  --blubathon-portada-sobretitulo: oklch(0.42 0.055 235);
+  --blubathon-portada-punto: oklch(0.66 0.07 140);
+  --blubathon-portada-paso: oklch(0.82 0.13 92);
+
+  /*
+   * Una respuesta sin elegir es gris; elegida, verde claro —con el degradado del
+   * panel de Salud, claro arriba y color abajo—.
+   *
+   * El gris y ese verde tienen casi la misma claridad: 1.1:1 entre ellos, muy
+   * por debajo del 3:1 que pide WCAG 1.4.11 para distinguir el estado de un
+   * componente. Cambia el tono, y el tono no lo ve todo el mundo. Por eso el
+   * estado **no descansa en el color**: la elegida además pesa —texto en
+   * negrita— y se levanta —sombra de nivel 1—, que son dos diferencias que no
+   * dependen de distinguir colores. Y para quien navega con lector lo dice
+   * `aria-pressed`, que es lo único que hace falta ahí.
+   */
+  --blubathon-opcion-fondo: oklch(0.93 0.008 95);
+  --blubathon-opcion-texto: var(--blubathon-marca-texto); /* 7.5:1 */
+  --blubathon-opcion-texto-fuerte: oklch(0.32 0.06 140); /* 9:1 */
+
+  --blubathon-opcion-elegida-fondo:
+    radial-gradient(130% 62% at 50% 0%, oklch(1 0 0 / 0.45), transparent 62%),
+    linear-gradient(180deg, oklch(0.955 0.035 140) 0%, oklch(0.885 0.07 140) 100%);
+
+  /* Repasada o ya cerrada: el mismo degradado en azul. El azul es de marca y
+     aquí dice "esto es lo que se envía", no "esto lo elegiste tú". */
+  --blubathon-opcion-repaso-fondo:
+    radial-gradient(130% 62% at 50% 0%, oklch(1 0 0 / 0.45), transparent 62%),
+    linear-gradient(180deg, oklch(0.955 0.028 235) 0%, oklch(0.885 0.055 235) 100%);
+  --blubathon-opcion-repaso-texto: oklch(0.32 0.06 245); /* 9:1 */
+
+  --blubathon-verde-accion: oklch(0.55 0.09 140); /* 4.7:1 con blanco */
+  --blubathon-verde-accion-fuerte: oklch(0.5 0.09 140);
+
   --blubathon-cupula-amplia: 64px;
   /*
    * Más bajo que en el teléfono, no más alto. La cabecera ocupa un tercio de un
