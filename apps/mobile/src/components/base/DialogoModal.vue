@@ -159,10 +159,6 @@ onBeforeUnmount(() => {
           <slot name="portada" :id-titulo="idTitulo" />
         </div>
 
-        <!-- El filo de la cúpula, difuminado: lo que se desplaza no se parte en
-             seco contra la curva, se desenfoca y se va en blanco al llegar. -->
-        <span v-if="$slots.portada" class="dialogo__filo" aria-hidden="true"></span>
-
         <template v-else>
           <span
             v-if="variante === 'hoja' && cerrable"
@@ -337,41 +333,6 @@ onBeforeUnmount(() => {
  */
 .dialogo--portada .dialogo__pie {
   border-top: 0;
-}
-
-/*
- * El filo de la cúpula.
- *
- * El arco recorta lo que se desplaza de golpe, y medio renglón cortado en seco
- * por una curva no se lee como un borde: se lee como un fallo de pintado. Esto
- * es lo que suaviza ese último milímetro.
- *
- * Ocupa la misma banda que la cúpula y se recorta con el mismo radio, así que no
- * asoma por los hombros ni toca el celeste. Lo que decide dónde actúa es la
- * máscara: la misma elipse que dibuja el arco, llena por dentro y transparente
- * al llegar al filo. Así el arco se queda limpio —no se le pega una calima que
- * le ensucia el canto— y lo que se deshace es lo que ya está entrando en la
- * cúpula: el renglón se apaga desde abajo y llega al corte casi sin tinta.
- * Sigue la curva, además, y no es una franja recta sobre toda la banda —el
- * blanco de debajo sí ocupa la banda entera; esto no.
- *
- * Y son dos cosas a la vez, que por separado no bastan: el desenfoque deshace la
- * letra y el blanco la apaga. Solo con desenfoque quedan manchas oscuras; solo
- * con blanco, el corte sigue siendo un corte, más suave.
- */
-.dialogo__filo {
-  position: absolute;
-  inset: auto 0 0;
-  /* Entre el cuerpo, que va en el 1, y la cara de la portada, que va en el 3:
-     difumina lo que se desplaza sin tocar lo que se apoya en la cúpula. */
-  z-index: 2;
-  height: var(--blubathon-cupula);
-  background: var(--blubathon-superficie);
-  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
-  mask-image: radial-gradient(50% 100% at 50% 100%, #000 62%, transparent 100%);
-  pointer-events: none;
 }
 
 /* El asa no se arrastra: dice que esto sube y baja, no que sea una página. */
