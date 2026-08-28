@@ -305,7 +305,11 @@ const tono = computed<"eleccion" | "repaso">(() =>
  * una conversación. Separa el filete, igual que en las otras listas.
  */
 .campo {
-  padding-block: var(--blubathon-esp-16);
+  /* El mismo acolchado arriba y abajo en todas: entre una pregunta y la
+     siguiente hay siempre el mismo hueco, y es mayor que el que hay dentro de
+     una —ver el margen de las respuestas—, que es lo que agrupa cada pregunta
+     con lo suyo. */
+  padding-block: var(--blubathon-esp-24);
   border: 0;
 }
 
@@ -320,17 +324,17 @@ const tono = computed<"eleccion" | "repaso">(() =>
 }
 
 /* La única línea de texto del campo, y por eso se lee como un enunciado y no
-   como el rótulo de un formulario: grande, centrada y con el color de los
-   títulos. Lo que la separa de las respuestas es el margen de estas —esp-26—,
-   más del triple del hueco entre una respuesta y la siguiente: primero se lee
-   la pregunta, después se elige. */
+   como el rótulo de un formulario: grande, al principio de la línea y con el
+   color de los títulos. Lo que la separa de las respuestas es el margen de
+   estas —esp-32—, cuatro veces el hueco entre una respuesta y la siguiente:
+   primero se lee la pregunta, después se elige. */
 .campo__pregunta {
   display: block;
   font-size: var(--blubathon-fs-17);
   font-weight: 700;
   line-height: 1.35;
   color: var(--blubathon-marca-titulo);
-  text-align: center;
+  text-align: start;
 }
 
 .campo__sin-catalogo {
@@ -338,7 +342,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
   margin-top: var(--blubathon-esp-10);
   font-size: var(--blubathon-fs-125);
   color: var(--blubathon-gris-texto);
-  text-align: center;
 }
 
 /* Una opción por renglón, no en fila: las etiquetas del contrato son frases
@@ -348,7 +351,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
   clear: both;
   display: grid;
   gap: var(--blubathon-esp-8);
-  margin-top: var(--blubathon-esp-26);
+  margin-top: var(--blubathon-esp-32);
 }
 
 /* La salida de la pregunta, no una respuesta: pastilla suelta, apagada y del
@@ -378,8 +381,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
 
 .escala {
   clear: both;
-  margin-top: var(--blubathon-esp-26);
-  text-align: center;
+  margin-top: var(--blubathon-esp-32);
 }
 
 .escala__puntos {
@@ -429,13 +431,15 @@ const tono = computed<"eleccion" | "repaso">(() =>
   color: var(--blubathon-marca-texto);
 }
 
+/* Lo único que se queda en el centro: la cifra con sus dos pasos a los lados es
+   un control simétrico, y arrimarlo al margen lo dejaría cojo. */
 .numero {
   clear: both;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--blubathon-esp-10);
-  margin-top: var(--blubathon-esp-26);
+  margin-top: var(--blubathon-esp-32);
 }
 
 .numero__paso {
@@ -492,7 +496,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
 
 .texto {
   clear: both;
-  margin-top: var(--blubathon-esp-26);
+  margin-top: var(--blubathon-esp-32);
 }
 
 .texto__area {
@@ -524,7 +528,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
    cosa contada dos veces —esto es lo que Blubathon enviaría por ti. */
 .sugerencia {
   clear: both;
-  margin-top: var(--blubathon-esp-26);
+  margin-top: var(--blubathon-esp-32);
   padding: var(--blubathon-esp-12);
   background: var(--blubathon-opcion-repaso-fondo);
   border: 1px dashed var(--blubathon-opcion-repaso-texto);
@@ -549,7 +553,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
 
 .campo__cierre {
   margin-top: var(--blubathon-esp-10);
-  text-align: center;
 }
 
 .campo__ayuda {

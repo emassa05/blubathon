@@ -367,11 +367,7 @@ async function enviar(): Promise<void> {
           </BotonAccion>
         </div>
 
-        <p class="pie__cuenta">
-          <b>{{ contestadas }}</b> respondidas
-        </p>
-
-        <BotonAccion bloque :disabled="contestadas === 0 || enviando" @click="guardar">
+        <BotonAccion bloque grande :disabled="contestadas === 0 || enviando" @click="guardar">
           {{ enviando ? "Guardando…" : "Guardar cuestionario" }}
         </BotonAccion>
       </div>
@@ -538,20 +534,6 @@ async function enviar(): Promise<void> {
   margin-top: var(--blubathon-esp-6);
   font-size: var(--blubathon-fs-135);
   color: var(--blubathon-marca-texto);
-}
-
-/* Encima del botón y centrada, no a su lado: el botón de guardar ocupa la fila
-   entera, que es lo que le toca por ser la única salida del formulario. */
-.pie__cuenta {
-  margin-bottom: var(--blubathon-esp-10);
-  font-size: var(--blubathon-fs-125);
-  color: var(--blubathon-gris-texto);
-  text-align: center;
-}
-
-.pie__cuenta b {
-  font-size: var(--blubathon-fs-15);
-  color: var(--blubathon-marca-profundo);
 }
 
 .pie__error {

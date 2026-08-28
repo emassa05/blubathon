@@ -1,14 +1,13 @@
 <script setup lang="ts">
 /**
- * Una respuesta posible: la fila entera, con su texto centrado y nada más.
+ * Una respuesta posible: la fila entera, con su texto al principio y nada más.
  *
  * Sin marca a la izquierda y sin borde. Lo que dice si está elegida es el
- * relleno —el mismo verde, más oscuro— y el peso del texto, que es lo que se
+ * relleno —verde lleno, texto en blanco— y el peso del texto, que es lo que se
  * sigue viendo sin distinguir tonos. Para quien navega con lector lo dice
  * `aria-pressed`, que es lo único que hace falta ahí.
  *
- * Dos tonos y los dos son el mismo degradado, el del panel de la pantalla de
- * Salud —claro arriba, color abajo—:
+ * Dos tonos:
  *
  * - **elección**: verde, mientras se contesta.
  * - **repaso**: azul, cuando la respuesta viene de una sugerencia que se está
@@ -45,7 +44,7 @@ withDefaults(
   font-size: var(--blubathon-fs-15);
   font-weight: 600;
   color: var(--blubathon-opcion-texto);
-  text-align: center;
+  text-align: start;
   background: var(--blubathon-opcion-fondo);
   border-radius: var(--blubathon-radio-pastilla);
 }
@@ -59,8 +58,7 @@ withDefaults(
   font-weight: 700;
   color: var(--blubathon-opcion-texto-fuerte);
   background: var(--blubathon-opcion-elegida-fondo);
-  /* Se levanta. Dos verdes claros no llegan a distinguirse solo por el tono
-     —ver `tokens.css`—, y una sombra sí se ve sin distinguir colores. */
+  /* Se levanta: una sombra se ve sin distinguir colores —ver `tokens.css`. */
   box-shadow: var(--blubathon-elev-1);
 }
 

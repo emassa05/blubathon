@@ -22,13 +22,19 @@ withDefaults(
     variante?: "principal" | "secundario";
     /** Ocupa todo el ancho disponible. El pie del diálogo lo usa. */
     bloque?: boolean;
+    /** El alto de una respuesta, para el botón que cierra el cuestionario. */
+    grande?: boolean;
   }>(),
-  { variante: "principal", bloque: false },
+  { variante: "principal", bloque: false, grande: false },
 );
 </script>
 
 <template>
-  <button type="button" class="boton" :class="[`boton--${variante}`, { 'boton--bloque': bloque }]">
+  <button
+    type="button"
+    class="boton"
+    :class="[`boton--${variante}`, { 'boton--bloque': bloque, 'boton--grande': grande }]"
+  >
     <slot />
   </button>
 </template>
@@ -53,6 +59,14 @@ withDefaults(
 
 .boton--bloque {
   width: 100%;
+}
+
+/* Las mismas medidas que `OpcionRespuesta`: el que cierra el formulario no puede
+   ser más chico que cualquiera de las respuestas que hay encima. */
+.boton--grande {
+  min-height: 56px;
+  padding-inline: var(--blubathon-esp-18);
+  font-size: var(--blubathon-fs-15);
 }
 
 .boton--principal {

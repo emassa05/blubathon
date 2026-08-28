@@ -398,28 +398,29 @@
     linear-gradient(180deg, oklch(0.972 0.012 235) 0%, oklch(0.895 0.05 235) 100%);
   --blubathon-portada-titulo: oklch(0.31 0.06 235);
   --blubathon-portada-sobretitulo: oklch(0.42 0.055 235);
-  --blubathon-portada-punto: oklch(0.66 0.07 140);
-  --blubathon-portada-paso: oklch(0.82 0.13 92);
+  /* Los puntos son el mismo celeste del fondo, un par de peldaños más oscuro
+     para que se lean sobre él; el paso en el que estás es el verde de guardar,
+     que es el único acento del formulario. */
+  --blubathon-portada-punto: oklch(0.74 0.075 235);
+  --blubathon-portada-paso: var(--blubathon-verde-accion);
 
   /*
-   * Una respuesta sin elegir es gris; elegida, verde claro —con el degradado del
-   * panel de Salud, claro arriba y color abajo—.
+   * Una respuesta sin elegir es gris; elegida, el verde lleno de guardar, con el
+   * texto en blanco encima.
    *
-   * El gris y ese verde tienen casi la misma claridad: 1.1:1 entre ellos, muy
-   * por debajo del 3:1 que pide WCAG 1.4.11 para distinguir el estado de un
-   * componente. Cambia el tono, y el tono no lo ve todo el mundo. Por eso el
-   * estado **no descansa en el color**: la elegida además pesa —texto en
-   * negrita— y se levanta —sombra de nivel 1—, que son dos diferencias que no
-   * dependen de distinguir colores. Y para quien navega con lector lo dice
-   * `aria-pressed`, que es lo único que hace falta ahí.
+   * Antes la elegida era un verde claro, y entre ese verde y el gris había 1.1:1
+   * —muy por debajo del 3:1 que pide WCAG 1.4.11 para distinguir el estado de un
+   * componente—, así que lo elegido se leía por el peso y la sombra y casi no
+   * por el color. Con el verde lleno la diferencia se ve de lejos y es la misma
+   * que dice "esto se guarda" en el pie. El peso y la sombra siguen, que el
+   * estado no debe descansar solo en el color, y `aria-pressed` lo dice para
+   * quien navega con lector.
    */
   --blubathon-opcion-fondo: oklch(0.93 0.008 95);
   --blubathon-opcion-texto: var(--blubathon-marca-texto); /* 7.5:1 */
-  --blubathon-opcion-texto-fuerte: oklch(0.32 0.06 140); /* 9:1 */
+  --blubathon-opcion-texto-fuerte: var(--blubathon-superficie); /* 4.7:1 sobre el verde */
 
-  --blubathon-opcion-elegida-fondo:
-    radial-gradient(130% 62% at 50% 0%, oklch(1 0 0 / 0.45), transparent 62%),
-    linear-gradient(180deg, oklch(0.955 0.035 140) 0%, oklch(0.885 0.07 140) 100%);
+  --blubathon-opcion-elegida-fondo: var(--blubathon-verde-accion);
 
   /* Repasada o ya cerrada: el mismo degradado en azul. El azul es de marca y
      aquí dice "esto es lo que se envía", no "esto lo elegiste tú". */

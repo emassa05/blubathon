@@ -160,8 +160,8 @@ describe("DialogoCuestionario", () => {
     const horas = wrapper.get('[data-campo="sleep_hours"]');
     expect((horas.get("input").element as HTMLInputElement).value).toBe("1");
 
-    // Los tres numéricos de casa cuentan desde el principio.
-    expect(wrapper.get(".pie__cuenta").text()).toContain("3");
+    // Y nace contestado: ese 1 es una respuesta, no un hueco.
+    expect(horas.attributes("data-contestada")).toBe("true");
   });
 
   it("es un diálogo con nombre, y Escape lo cierra", async () => {
@@ -306,11 +306,6 @@ describe("DialogoCuestionario", () => {
     await flushPromises();
 
     await wrapper.get('[data-campo="sleep_quality"]').findAll("button")[0]?.trigger("click");
-
-    // `sleep_hours` es el único numérico que pide el plan: cuenta con su 1 de
-    // salida. Los otros dos del catálogo se sembraron al montar y se retiraron
-    // en cuanto el plan dijo que hoy no se preguntan.
-    expect(wrapper.get(".pie__cuenta").text()).toContain("2");
 
     // Guardar pasa por la revisión, porque `activity_participation` quedó con
     // su sugerencia sin tocar; "No, guardar así" es la salida corta.
