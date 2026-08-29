@@ -2,8 +2,7 @@
 import { computed, ref, useId, watch } from "vue";
 
 import type { DefaultSuggestion, FieldCode, FormQuestion, ValorCampo } from "@/api/contrato";
-import { BLUBATHON_TEXTS_ES, type Interaccion } from "@/api/contrato";
-import BotonAccion from "@/components/base/BotonAccion.vue";
+import type { Interaccion } from "@/api/contrato";
 import OpcionRespuesta from "@/components/base/OpcionRespuesta.vue";
 import IconoMas from "@/components/icons/IconoMas.vue";
 import IconoMenos from "@/components/icons/IconoMenos.vue";
@@ -52,6 +51,27 @@ const valor = computed<ValorCampo | undefined>(() => props.borrador?.valor);
 const contestada = computed(() => props.borrador !== undefined);
 
 /**
+ * Lo que se ve marcado.
+ *
+ * En el repaso la sugerencia sale ya elegida: por algo es una sugerencia, y
+ * obligar a confirmarla con un botón pedía dos gestos para el caso normal
+ * —dejarla como está— y ninguno para el excepcional.
+ *
+ * Marcarla no es guardarla. El borrador sigue sin tocarse y el campo sigue sin
+ * contar como contestado, que es lo que separa `accept_default` de `manual`:
+ * si no se toca, `aplicarSugerencias` la envía al guardar como `accept_default`
+ * igual que antes; si se elige otra cosa, entra como `edit_default`. Lo que
+ * cambia es lo que se ve, no lo que viaja.
+ */
+const marcado = computed<ValorCampo | undefined>(() =>
+  valor.value !== undefined
+    ? valor.value
+    : props.mostrarSugerencia
+      ? props.sugerencia?.value
+      : undefined,
+);
+
+/**
  * Con sugerencia sobre la mesa, responder a mano es editar la sugerencia: el
  * servidor deriva de ahí el `entry_mode`, y decirle "manual" cuando había una
  * presentación vigente falsearía la única señal que tiene para medir cuánto
@@ -69,11 +89,6 @@ function responder(nuevo: ValorCampo): void {
   emitir("responder", nuevo, interaccionManual.value);
 }
 
-function aceptarSugerencia(): void {
-  if (props.sugerencia === undefined) return;
-  emitir("responder", props.sugerencia.value, "accept_default");
-}
-
 /* Opciones de un campo nominal, ya con su etiqueta del contrato. */
 const opciones = computed(() =>
   (especificacion.value?.valores ?? []).map((valorPosible) => ({
@@ -87,14 +102,31 @@ const escala = computed(() =>
 );
 
 const anclaSeleccionada = computed(() =>
-  typeof valor.value === "number" ? anclaOrdinal(campo.value, valor.value) : "",
+  typeof marcado.value === "number" ? anclaOrdinal(campo.value, marcado.value) : "",
 );
 
 /* Números: el control es el campo de texto y los pasos solo lo ajustan. */
 const paso = computed(() => (especificacion.value?.tipo === "continuous" ? 0.5 : 1));
 const numero = ref<string>(typeof valor.value === "number" ? String(valor.value) : "");
 
+/*
+ * La cifra con la que cuenta el control, que no es siempre la que trae la prop.
+ *
+ * Cada paso se calculaba sobre `props.borrador`, y el borrador da la vuelta por
+ * el padre: se emite, el padre reescribe el mapa de borradores y Vue repinta al
+ * hijo. Hasta que ese repintado no ocurre, la prop vale lo de antes. Dos
+ * pulsaciones seguidas —lo normal para subir de 1 a 6— caen dentro de la misma
+ * ventana y las dos leen la misma base: la segunda recalcula el valor que ya
+ * había y se pierde. Desde fuera el paso se ve irregular, y al bajar igual.
+ *
+ * Contando aquí, cada pulsación parte de la anterior y ninguna depende de
+ * cuándo repinte el padre. La prop sigue mandando cuando cambia por su cuenta
+ * —se acepta una sugerencia, se reabre un día ya enviado—, que es el `watch`.
+ */
+const cifra = ref<number | undefined>(typeof valor.value === "number" ? valor.value : undefined);
+
 watch(valor, (nuevo) => {
+  cifra.value = typeof nuevo === "number" ? nuevo : undefined;
   const texto = typeof nuevo === "number" ? String(nuevo) : "";
   if (texto !== numero.value) numero.value = texto;
 });
@@ -117,15 +149,64 @@ function escribirNumero(evento: Event): void {
   // descartaría en silencio dejando el campo escrito y el valor sin cambiar.
   const convertido = Number(bruto.replace(",", "."));
   if (Number.isNaN(convertido)) return;
-  responder(acotar(convertido));
+  const acotado = acotar(convertido);
+  cifra.value = acotado;
+  responder(acotado);
 }
 
-function ajustar(direccion: number): void {
-  const base = typeof valor.value === "number" ? valor.value : (especificacion.value?.minimo ?? 0);
-  responder(acotar(base + direccion * paso.value));
+/*
+ * Una pulsación, un paso.
+ *
+ * Contar sobre `cifra` arregla las pulsaciones que se perdían, pero abre lo
+ * contrario: si el mismo gesto llega más de una vez, todas suman. Y llega más de
+ * una vez por dos caminos distintos, que piden dos redes distintas:
+ *
+ * - **Dentro del mismo despacho.** Un oyente que quedó duplicado entrega las dos
+ *   llamadas seguidas, síncronas. `atendiendo` se levanta al atender y se baja
+ *   en el microtask siguiente: lo del mismo despacho cae dentro, y dos
+ *   pulsaciones de verdad, que son dos tareas, siguen contando las dos.
+ *
+ * - **En despachos distintos pero pegados.** El rebote de un interruptor o un
+ *   clic de compatibilidad llegan como eventos separados, así que el microtask
+ *   ya se vació entre medias y la marca de arriba no los ve. Ahí hay que mirar
+ *   el reloj del propio evento: es el síntoma de que despacio va bien y deprisa
+ *   sube de dos en dos, porque el rebote solo aparece cuando se pulsa rápido.
+ *
+ * El umbral es 40 ms. Un dedo no baja dos veces en ese hueco —quien más rápido
+ * pulsa ronda los 100—, y un rebote vive por debajo de 30. Lo que llegue antes
+ * es el mismo gesto contado dos veces, no dos gestos.
+ *
+ * El sello lo pone el navegador en el propio evento, así que es su reloj y no
+ * el nuestro: no hay temporizador que mantener ni que limpiar al desmontar.
+ */
+const REBOTE_MS = 40;
+
+let atendiendo = false;
+let selloAtendido = Number.NEGATIVE_INFINITY;
+
+function ajustar(direccion: number, evento?: MouseEvent): void {
+  if (atendiendo) return;
+
+  if (evento !== undefined) {
+    if (evento.timeStamp - selloAtendido < REBOTE_MS) return;
+    selloAtendido = evento.timeStamp;
+  }
+
+  atendiendo = true;
+  queueMicrotask(() => {
+    atendiendo = false;
+  });
+
+  const base = cifra.value ?? especificacion.value?.minimo ?? 0;
+  const siguiente = acotar(base + direccion * paso.value);
+  // Se apunta antes de emitir: la pulsación siguiente cuenta desde aquí aunque
+  // el padre todavía no haya repintado.
+  cifra.value = siguiente;
+  numero.value = String(siguiente);
+  responder(siguiente);
 }
 
-const puedeAjustar = computed(() => typeof valor.value === "number");
+const puedeAjustar = computed(() => cifra.value !== undefined);
 
 /* Texto libre: se guarda al salir del campo, no en cada tecla. */
 const texto = ref<string>(typeof valor.value === "string" ? valor.value : "");
@@ -137,14 +218,15 @@ function guardarTexto(): void {
 }
 
 /*
- * El tono de lo marcado. Mientras se contesta, verde: es lo que ha elegido quien
- * responde. En el repaso, azul: es lo que se va a enviar por él. Se mira lo
- * mismo que decide si la sugerencia se enseña, porque es exactamente el mismo
- * momento —ver `mostrarSugerencia`.
+ * Un solo tono, el verde de siempre.
+ *
+ * Hubo un azul aparte para el repaso, con la idea de decir "esto no lo elegiste
+ * tú". Pero al lado de las respuestas verdes de las demás preguntas se leía como
+ * otra cosa distinta y no como la misma fila en otro momento, y quien repasa ya
+ * sabe lo que está repasando: lo dice el título del bloque y lo dice el renglón
+ * de encima de cada pregunta. Con el verde, elegir y repasar se ven igual porque
+ * son lo mismo: la respuesta que va a viajar.
  */
-const tono = computed<"eleccion" | "repaso">(() =>
-  props.mostrarSugerencia ? "repaso" : "eleccion",
-);
 </script>
 
 <template>
@@ -163,18 +245,13 @@ const tono = computed<"eleccion" | "repaso">(() =>
       <span :id="idPregunta" class="campo__pregunta">{{ enunciado }}</span>
     </legend>
 
-    <!-- La sugerencia es ayuda, no valor: se ve distinta y hay que aceptarla.
-         Y solo se ve cuando se pidió revisarla —ver `mostrarSugerencia`. -->
-    <div v-if="sugerencia && mostrarSugerencia" class="sugerencia">
-      <p class="sugerencia__valor">
-        Suele responder
-        <b>{{ formatearValor(campo, sugerencia.value) }}</b>
-      </p>
-      <p class="sugerencia__ayuda">{{ BLUBATHON_TEXTS_ES.defaultSuggestionHintEs }}</p>
-      <BotonAccion class="sugerencia__usar" @click="aceptarSugerencia">
-        Usar esta respuesta
-      </BotonAccion>
-    </div>
+    <!-- Por qué la respuesta de abajo viene ya marcada. Es lo único que
+         distingue una sugerencia de algo que se contestó, así que se dice con
+         palabras y no con un color aparte —ver `marcado`. -->
+    <p v-if="sugerencia && mostrarSugerencia" class="sugerencia">
+      Suele responder
+      <b class="sugerencia__dato">{{ formatearValor(campo, sugerencia.value) }}</b>
+    </p>
 
     <!-- Sí / No -->
     <div v-if="especificacion?.tipo === 'boolean'" class="opciones" role="group">
@@ -182,8 +259,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
         v-for="opcion in [true, false]"
         :key="String(opcion)"
         :etiqueta="opcion ? 'Sí' : 'No'"
-        :marcada="valor === opcion"
-        :tono="tono"
+        :marcada="marcado === opcion"
         @click="responder(opcion)"
       />
     </div>
@@ -194,22 +270,21 @@ const tono = computed<"eleccion" | "repaso">(() =>
         v-for="opcion in opciones"
         :key="opcion.valor"
         :etiqueta="opcion.etiqueta"
-        :marcada="valor === opcion.valor"
-        :tono="tono"
+        :marcada="marcado === opcion.valor"
         @click="responder(opcion.valor)"
       />
     </div>
 
     <!-- Escala de 1 a 5. Las anclas son del contrato y no se reescriben. -->
     <div v-else-if="especificacion?.tipo === 'ordinal'" class="escala">
-      <div class="escala__puntos" :class="`escala__puntos--${tono}`" role="group">
+      <div class="escala__puntos" role="group">
         <button
           v-for="punto in escala"
           :key="punto"
           type="button"
           class="escala__punto"
-          :class="{ 'escala__punto--activo': valor === punto }"
-          :aria-pressed="valor === punto"
+          :class="{ 'escala__punto--activo': marcado === punto }"
+          :aria-pressed="marcado === punto"
           :aria-label="`${punto}. ${anclaOrdinal(campo, punto)}`"
           @click="responder(punto)"
         >
@@ -250,7 +325,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
         class="numero__paso"
         :disabled="!puedeAjustar"
         :aria-label="`Bajar ${etiqueta.toLowerCase()}`"
-        @click="ajustar(-1)"
+        @click="ajustar(-1, $event)"
       >
         <IconoMenos class="numero__glifo" />
       </button>
@@ -290,7 +365,7 @@ const tono = computed<"eleccion" | "repaso">(() =>
         class="numero__paso"
         :disabled="!puedeAjustar"
         :aria-label="`Subir ${etiqueta.toLowerCase()}`"
-        @click="ajustar(1)"
+        @click="ajustar(1, $event)"
       >
         <IconoMas class="numero__glifo" />
       </button>
@@ -394,11 +469,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
   box-shadow: var(--blubathon-elev-1);
 }
 
-.escala__puntos--repaso .escala__punto--activo {
-  color: var(--blubathon-opcion-repaso-texto);
-  background: var(--blubathon-opcion-repaso-fondo);
-}
-
 .escala__ancla {
   margin-top: var(--blubathon-esp-8);
   font-size: var(--blubathon-fs-125);
@@ -498,31 +568,25 @@ const tono = computed<"eleccion" | "repaso">(() =>
   text-align: right;
 }
 
-/* La sugerencia no puede parecer un valor ya puesto: fondo propio, borde
-   discontinuo y su acción aparte. Azul, como lo marcado del repaso: es la misma
-   cosa contada dos veces —esto es lo que Blubathon enviaría por ti. */
+/*
+ * El renglón que avisa de que la respuesta de abajo la pone Blubathon.
+ *
+ * Antes esto era una caja: borde discontinuo, relleno azul, dos párrafos y una
+ * pastilla verde dentro para aceptarla. Cuatro señales para lo mismo, y la
+ * aceptación pedía un gesto justo para el caso que no lo necesita —dejarla como
+ * está—. Ahora la respuesta ya viene marcada abajo con el verde de todas, y
+ * aquí solo queda la frase que dice de dónde sale, pequeña y al margen.
+ */
 .sugerencia {
   clear: both;
-  margin-top: var(--blubathon-esp-32);
-  padding: var(--blubathon-esp-12);
-  background: var(--blubathon-opcion-repaso-fondo);
-  border: 1px dashed var(--blubathon-opcion-repaso-texto);
-  border-radius: var(--blubathon-radio-14);
-}
-
-.sugerencia__valor {
+  margin-top: var(--blubathon-esp-24);
+  padding-left: var(--blubathon-esp-10);
   font-size: var(--blubathon-fs-125);
-  color: var(--blubathon-marca-titulo);
+  color: var(--blubathon-gris-texto);
+  border-left: 2px solid var(--blubathon-linea);
 }
 
-.sugerencia__ayuda {
-  margin-top: var(--blubathon-esp-4);
-  font-size: var(--blubathon-fs-11);
+.sugerencia__dato {
+  font-weight: 700;
   color: var(--blubathon-marca-texto);
-}
-
-/* Solo su sitio: la pastilla la pone `BotonAccion`, que es la de todos. */
-.sugerencia__usar {
-  margin-top: var(--blubathon-esp-10);
-}
-</style>
+}</style>
