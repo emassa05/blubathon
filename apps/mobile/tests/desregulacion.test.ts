@@ -32,11 +32,18 @@ const EPISODIO = "22222222-2222-4222-8222-222222222222";
  */
 let pendientes: unknown[] = [];
 
-function servidor(solicitudes: unknown[]): void {
+/**
+ * @param dias El historial. Por defecto, hoy ya registrado: es la condición de
+ *   la pregunta de cierre, que no se ofrece sobre un día en blanco.
+ */
+function servidor(
+  solicitudes: unknown[],
+  dias: unknown[] = [diaFalso({ fecha: HOY, probabilidad: 0.18 })],
+): void {
   pendientes = solicitudes;
   instalarServidorFalso({
     "/v1/children": { children: [{ child_id: ID_NINO_FALSO, display_label: "Niña demo 1" }] },
-    [`${CHILD}/history`]: historialFalso([diaFalso({ fecha: HOY, probabilidad: 0.18 })]),
+    [`${CHILD}/history`]: historialFalso(dias),
     [`${CHILD}/form-plan`]: planFalso(["sleep_quality"]),
     [`${CHILD}/recommendations/today`]: {
       status: "matched",
@@ -177,6 +184,22 @@ describe("evento de desregulación", () => {
 
       expect(reportes()).toBe(1);
       expect(wrapper.find(".resultado").exists()).toBe(false);
+    });
+
+    it("con el día sin registrar no se ofrece el cierre, aunque esté abierto", async () => {
+      // La solicitud es de ayer y sigue abierta, pero hoy está en blanco:
+      // primero se registra el día y después se cierra el anterior.
+      servidor([solicitudFalsa(CONTESTABLE)], []);
+
+      const wrapper = await montar();
+
+      // Ni la tarjeta ni el diálogo, que es el que además taparía el camino
+      // hacia el propio formulario que hay que rellenar.
+      expect(wrapper.find(".resultado").exists()).toBe(false);
+      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+
+      // Y el aviso del formulario sí: es lo único que toca hacer ahora.
+      expect(wrapper.find(".aviso").exists()).toBe(true);
     });
 
     it("sin pregunta abierta no aparece nada", async () => {

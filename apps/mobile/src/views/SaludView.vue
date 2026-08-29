@@ -53,6 +53,31 @@ const {
 
 onMounted(cargarResultados);
 
+/*
+ * La pregunta de cierre no se ofrece hasta que el día esté registrado.
+ *
+ * La solicitud es de la persona y no de la fecha: la abre un cuestionario y
+ * sigue abierta hasta que se contesta o vence, así que la de ayer sigue viva
+ * hoy. Enseñarla nada más abrir, sobre un día en blanco, la deja sin nada con
+ * qué leerse —la tarjeta no dice de qué ventana habla— y se lee como una
+ * pregunta sobre un día que todavía no ha pasado.
+ *
+ * Así que primero se registra el día y después se cierra el anterior. Es el
+ * orden en que ocurren las dos cosas.
+ *
+ * Tiene un coste y conviene tenerlo escrito: mientras no se envíe el
+ * cuestionario, la pregunta pendiente no se ve, y su plazo corre igual. Saltarse
+ * un día puede dejarla vencida sin que nadie la haya visto, y un episodio sin
+ * resultado verificado no cuenta para el baseline.
+ */
+const diaRegistrado = computed(() => resumen.value !== null && !resumen.value.formularioPendiente);
+
+/** La tarjeta informativa, solo con el día ya registrado. */
+const cierreInformativo = computed(() => (diaRegistrado.value ? informativa.value : null));
+
+/** Y lo mismo con el diálogo que bloquea: no se atraviesa en el camino al formulario. */
+const cierreObligatorio = computed(() => (diaRegistrado.value ? obligatoria.value : null));
+
 /** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
 async function alReportar(valor: "yes" | "no"): Promise<void> {
   if (await responder(valor)) await recargar();
@@ -153,9 +178,9 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
             desplazarse para encontrarla.
           -->
           <TarjetaResultado
-            v-if="informativa"
+            v-if="cierreInformativo"
             class="pantalla__zona--resultado"
-            :solicitud="informativa"
+            :solicitud="cierreInformativo"
             :enviando="enviando"
             :error="errorResultado"
             @reportar="alReportar"
@@ -196,8 +221,8 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
       no obliga a leer la pantalla entera para encontrarlo.
     -->
     <DialogoDesregulacion
-      v-if="obligatoria"
-      :solicitud="obligatoria"
+      v-if="cierreObligatorio"
+      :solicitud="cierreObligatorio"
       :enviando="enviando"
       :error="errorResultado"
       @responder="alReportar"
