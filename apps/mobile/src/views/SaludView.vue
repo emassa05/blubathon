@@ -388,11 +388,19 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
  * Las preguntas de cierre se apilan con la misma separación que las tarjetas
  * entre sí: dos preguntas seguidas tienen que leerse como dos, no como un
  * bloque.
+ *
+ * Y el bloque sube lo que su cara sobresale. Cada tarjeta se reserva ese hueco
+ * por su cuenta, que es lo correcto entre una pregunta y la siguiente; encima
+ * de la primera no hay nada que esquivar —solo la curva de la cúpula, que en el
+ * centro, que es justo por donde va la cara, está vacía— y ese hueco era medio
+ * dedo de pantalla gastado en nada. Así la tarjeta empieza donde empezaría
+ * cualquier otra y la cara se apoya en la curva.
  */
 .pantalla__cierres {
   display: flex;
   flex-direction: column;
   gap: var(--blubathon-esp-14);
+  margin-top: calc(var(--blubathon-cierre-saliente) * -1);
 }
 
 /*

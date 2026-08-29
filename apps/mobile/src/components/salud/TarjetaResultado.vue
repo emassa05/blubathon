@@ -118,16 +118,12 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
  * aquí con más superficie porque esto sí tiene plazo.
  */
 .resultado {
-  /* La cara y su collar. En un sitio, porque de aquí salen tres cuentas: el
-     hueco de arriba de la tarjeta, cuánto sube la cara y cuánto mide. */
-  --resultado-cara: 64px;
-  --resultado-collar: 5px;
-
   /* El hueco para la mitad que sobresale. Va en el margen y no en el acolchado
      porque la cara tiene que salirse de la tarjeta, no caber dentro: sin esto
-     se subiría encima de lo que haya justo antes —la otra pregunta, o la cúpula
-     del panel. */
-  margin-top: calc(var(--resultado-cara) / 2 + var(--resultado-collar));
+     se subiría encima de lo que haya justo antes, que es la pregunta anterior
+     cuando hay dos. Encima de la primera no hay nada que esquivar, y la
+     pantalla se lo descuenta. */
+  margin-top: var(--blubathon-cierre-saliente);
   padding: var(--blubathon-esp-18) var(--blubathon-esp-16) var(--blubathon-esp-16);
   text-align: center;
   background:
@@ -149,12 +145,12 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
  */
 .resultado__cara {
   display: block;
-  width: var(--resultado-cara);
-  height: var(--resultado-cara);
-  margin: calc((var(--resultado-cara) / 2 + var(--blubathon-esp-18)) * -1) auto
+  width: var(--blubathon-cierre-cara);
+  height: var(--blubathon-cierre-cara);
+  margin: calc((var(--blubathon-cierre-cara) / 2 + var(--blubathon-esp-18)) * -1) auto
     var(--blubathon-esp-16);
   border-radius: 50%;
-  box-shadow: 0 0 0 var(--resultado-collar) var(--blubathon-superficie);
+  box-shadow: 0 0 0 var(--blubathon-cierre-collar) var(--blubathon-superficie);
 }
 
 .resultado__titulo {

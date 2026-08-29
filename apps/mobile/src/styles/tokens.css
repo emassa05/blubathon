@@ -205,6 +205,15 @@
      pueda leer entera al final del desplazamiento. */
   --blubathon-aviso-hueco: 104px;
 
+  /* La cara de la pregunta de cierre, que va a caballo del borde de arriba de su
+     tarjeta. Lo que sobresale no es solo asunto de la tarjeta: la pantalla es
+     quien sabe si encima hay algo que esquivar o si es espacio vacío. */
+  --blubathon-cierre-cara: 64px;
+  --blubathon-cierre-collar: 5px;
+  --blubathon-cierre-saliente: calc(
+    var(--blubathon-cierre-cara) / 2 + var(--blubathon-cierre-collar)
+  );
+
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */
   --blubathon-dur: 5s;
