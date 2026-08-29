@@ -191,7 +191,7 @@ describe("cola de revisión", () => {
     colaActual = [
       recomendacionFalsa({ review_decision: "approved", reviewed_at: "2026-08-25T13:00:00Z" }),
     ];
-    await wrapper.find(".boton--aprobar").trigger("click");
+    await wrapper.find(".tarjeta__boton--bien").trigger("click");
     await flushPromises();
 
     const llamadas = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls;
@@ -207,7 +207,7 @@ describe("cola de revisión", () => {
     servidor();
     const wrapper = await montar();
 
-    await wrapper.find(".boton--rechazar").trigger("click");
+    await wrapper.find(".tarjeta__boton--mal").trigger("click");
     await flushPromises();
 
     const rutas = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) =>
