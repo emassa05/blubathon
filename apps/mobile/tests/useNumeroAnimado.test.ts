@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, ref } from "vue";
 
-import { useNumeroAnimado } from "@/composables/useNumeroAnimado";
+import {
+  MS_CUENTA,
+  MS_CUENTA_DESDE_CERO,
+  useNumeroAnimado,
+} from "@/composables/useNumeroAnimado";
 
 /**
  * La animación va con `requestAnimationFrame` y mide con `performance.now`, así
@@ -56,13 +60,47 @@ describe("useNumeroAnimado", () => {
   it("reiniciar cae a cero y vuelve a subir hasta el mismo valor", () => {
     const { mostrado, reiniciar, parar } = montar(18);
 
-    reiniciar();
+    reiniciar(DURACION);
 
     // El cero es inmediato: es lo que hace que se vea la cuenta entera.
     expect(mostrado.value).toBe(0);
 
     vi.advanceTimersByTime(DURACION);
     expect(mostrado.value).toBe(18);
+    parar();
+  });
+
+  it("la cuenta desde cero sale despacio en vez de aparecer casi puesta", () => {
+    const { mostrado, reiniciar, parar } = montar(100);
+
+    reiniciar(DURACION);
+
+    // Al 10% del tiempo va por el 0.4% del recorrido, no por el 27% que daría
+    // la curva de la corrección: es lo que hace que se lea que empieza en cero.
+    vi.advanceTimersByTime(DURACION / 10);
+    expect(mostrado.value).toBeLessThan(5);
+
+    // Y a la mitad va por la mitad, así que no se queda atascada abajo.
+    vi.advanceTimersByTime(DURACION * 0.4);
+    expect(mostrado.value).toBeGreaterThan(40);
+    expect(mostrado.value).toBeLessThan(60);
+
+    vi.advanceTimersByTime(DURACION);
+    expect(mostrado.value).toBe(100);
+    parar();
+  });
+
+  it("la cuenta desde cero dura más que la corrección", () => {
+    const { mostrado, reiniciar, parar } = montar(50);
+
+    // Sin duración explícita usa la suya, que es la larga.
+    reiniciar();
+
+    vi.advanceTimersByTime(MS_CUENTA);
+    expect(mostrado.value).toBeLessThan(50);
+
+    vi.advanceTimersByTime(MS_CUENTA_DESDE_CERO);
+    expect(mostrado.value).toBe(50);
     parar();
   });
 

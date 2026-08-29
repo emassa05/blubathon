@@ -33,6 +33,7 @@ import {
 } from "@/api/blubathon";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import { confianzaDelIntervalo } from "@/dominio/incertidumbre";
+import { unificarPorDia } from "@/dominio/historial";
 import { rachaSinDesregulacion } from "@/dominio/rachas";
 import { reconciliar, respuestasDe } from "@/estado/respuestas";
 import type {
@@ -239,7 +240,13 @@ export async function cargarResumenSalud(opciones: {
   // hasta tenerlo la copia local puede estar mintiendo. Cuesta un viaje de más
   // en esta pantalla, y es el precio de no mandar respuestas fantasma al plan.
   const historial = await historialNino(idNino, { signal });
-  const dias = historial.days ?? [];
+  /*
+   * Un día por fecha, no uno por envío. Reenviar el cuestionario de un día
+   * añade una fila de ese mismo día sin estimación ni resultado, y como el
+   * endpoint la devuelve la primera, `find` se quedaba con ella: el riesgo
+   * pasaba a `—` y la racha dejaba de ver el día. Ver `unificarPorDia`.
+   */
+  const dias = unificarPorDia(historial.days ?? []);
   const conEnvio = new Set(
     dias.filter((candidato) => presente(candidato.submission_id)).map((c) => c.local_date),
   );

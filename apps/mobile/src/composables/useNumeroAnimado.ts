@@ -26,8 +26,18 @@
 
 import { onScopeDispose, readonly, ref, watch, type Ref } from "vue";
 
-/** Lo que tarda la cifra en llegar. Corta: es un remate, no una espera. */
+/** Lo que tarda la cifra en corregirse de un valor a otro. Corta: es un remate. */
 export const MS_CUENTA = 900;
+
+/**
+ * Y lo que tarda en recorrerse entera desde cero.
+ *
+ * El doble, porque el recorrido es otro: corregir 18 por 22 son cuatro puntos y
+ * se lee de un vistazo; subir de 0 a 22 es la cifra entera y hay que poder
+ * verla pasar. Con los 900 de la corrección la cuenta se acababa antes de que
+ * diera tiempo a mirarla.
+ */
+export const MS_CUENTA_DESDE_CERO = 1800;
 
 /**
  * Frena al final en vez de a velocidad constante: la cifra llega y se posa, que
@@ -35,6 +45,23 @@ export const MS_CUENTA = 900;
  */
 function suavizar(avance: number): number {
   return 1 - (1 - avance) ** 3;
+}
+
+/**
+ * La curva de la cuenta desde cero: arranca despacio, coge velocidad y vuelve a
+ * frenar.
+ *
+ * `suavizar` no vale aquí y es justo lo que hacía que la cuenta no pareciera
+ * empezar en cero. Frenar al final significa correr al principio: con esa curva,
+ * al 10% del tiempo la cifra ya va por el 27% del recorrido y al 20% pasa de la
+ * mitad. Para cuatro puntos da igual; para la cifra entera, lo que se ve es un
+ * número que aparece casi puesto y remata despacio.
+ *
+ * Esta sale de cero de verdad —al 10% del tiempo lleva un 0.4% del recorrido— y
+ * sigue posándose al llegar.
+ */
+function suavizarDesdeCero(avance: number): number {
+  return avance < 0.5 ? 4 * avance ** 3 : 1 - (-2 * avance + 2) ** 3 / 2;
 }
 
 function prefiereMenosMovimiento(): boolean {
@@ -50,9 +77,9 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
    * render de servidor—, sin duración, o porque se pidió menos movimiento.
    * Entonces la cifra se pone y ya está.
    */
-  function sinAnimacion(): boolean {
+  function sinAnimacion(cuanto: number): boolean {
     return (
-      duracion <= 0 || typeof requestAnimationFrame !== "function" || prefiereMenosMovimiento()
+      cuanto <= 0 || typeof requestAnimationFrame !== "function" || prefiereMenosMovimiento()
     );
   }
 
@@ -63,11 +90,16 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
     cuadro = null;
   }
 
-  function animar(hasta: number | null): void {
+  /**
+   * @param cuanto Cuánto dura este recorrido.
+   * @param curva Cómo reparte el tiempo. Las dos cosas cambian entre corregir
+   *   un valor y contar desde cero, y por eso viajan juntas.
+   */
+  function animar(hasta: number | null, cuanto = duracion, curva = suavizar): void {
     parar();
 
     const desde = mostrado.value;
-    if (hasta === null || desde === null || desde === hasta || sinAnimacion()) {
+    if (hasta === null || desde === null || desde === hasta || sinAnimacion(cuanto)) {
       mostrado.value = hasta;
       return;
     }
@@ -76,8 +108,8 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
     const recorrido = hasta - desde;
 
     const paso = (ahora: number): void => {
-      const avance = Math.min(1, (ahora - inicio) / duracion);
-      mostrado.value = avance === 1 ? hasta : Math.round(desde + recorrido * suavizar(avance));
+      const avance = Math.min(1, (ahora - inicio) / cuanto);
+      mostrado.value = avance === 1 ? hasta : Math.round(desde + recorrido * curva(avance));
       cuadro = avance === 1 ? null : requestAnimationFrame(paso);
     };
 
@@ -96,14 +128,16 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
    * borrarlo en el mismo fotograma sería un parpadeo, y quien pidió menos
    * movimiento pidió justo lo contrario de eso. La cifra ya está puesta.
    */
-  function reiniciar(): void {
+  function reiniciar(duracionCuenta = MS_CUENTA_DESDE_CERO): void {
     const hasta = destino.value;
-    if (hasta === null || sinAnimacion()) return;
+    if (hasta === null || sinAnimacion(duracionCuenta)) return;
     mostrado.value = 0;
-    animar(hasta);
+    animar(hasta, duracionCuenta, suavizarDesdeCero);
   }
 
-  watch(destino, animar);
+  // Con la referencia suelta, `watch` le pasaría el valor viejo como segundo
+  // argumento y ese sitio es ahora la duración.
+  watch(destino, (nuevo) => animar(nuevo));
   onScopeDispose(parar);
 
   return { mostrado: readonly(mostrado), reiniciar };
