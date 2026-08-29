@@ -61,6 +61,21 @@
   --blubathon-fondo-final: oklch(0.985 0.006 245);
 
   /*
+   * Lo que hay **fuera** del lienzo: la franja que asoma cuando el
+   * desplazamiento rebota más allá del final de la página, y el instante en que
+   * un navegador móvil esconde su barra y la ventana crece antes de que
+   * `100dvh` se entere.
+   *
+   * El valor de verdad lo escribe `theme/fondo.ts` al arrancar, y es el azul en
+   * el que muere **la variante que haya salido**: cada una acaba en uno
+   * distinto, y un plano único para las cinco se ve más oscuro que unas y más
+   * claro que otras justo en el borde, que es donde se compara. Esto es lo que
+   * queda si ese script no llegó a correr, y entonces la página tampoco tiene
+   * burbujas: el mismo plano que ella.
+   */
+  --blubathon-fondo-rebote: var(--blubathon-fondo-final);
+
+  /*
    * El fondo con burbujas. `theme/fondo.ts` sortea una variante y la escribe
    * aquí al arrancar; este valor es el que se ve si ese script no llegó a
    * correr, así que es el color plano y no una de las variantes: un fondo
@@ -148,7 +163,6 @@
 
   /* Medidas de la página y de las piezas del diseño. */
   --blubathon-ancho-max: 480px;
-  --blubathon-alto-referencia: 844px;
   /*
    * El alto tiene que contar con la cúpula: el contenido sube 44px sobre el
    * panel y le tapa el centro. Con 272 la pastilla de confianza quedaba
@@ -166,6 +180,25 @@
   --blubathon-icono-16: 16px;
   --blubathon-icono-26: 26px;
   --blubathon-punto: 9px;
+  /* Disco de la inicial. Quien lo use puede bajarlo en su propio ámbito. */
+  --blubathon-avatar: 34px;
+
+  /* Panel del terapeuta.
+   *
+   * Es la única pantalla que no es una columna de lectura: compara varios niños
+   * a la vez, así que su ancho no lo decide el texto sino cuántas fichas caben
+   * sin que la lista se vuelva un desplazamiento infinito.
+   *
+   * La columna de la cartera es fija y no proporcional: los nombres y las
+   * cifras que lleva miden lo mismo tenga la ventana el ancho que tenga, y una
+   * columna elástica solo añadiría aire entre el nombre y su porcentaje.
+   */
+  --blubathon-panel-ancho: 1240px;
+  /* Lo bastante ancha para que quepa entero un nombre con su paréntesis
+     —"Niña demo 4 (cohorte real)"— sin recortarlo con puntos suspensivos. El
+     panel creció lo mismo que ella, para que la columna de la derecha no
+     pierda sitio al ensancharse esta. */
+  --blubathon-columna-cartera: 400px;
 
   /* Lo que el aviso flotante tapa de la esquina de abajo. El contenido de Salud
      se lo suma a su acolchado cuando hay aviso, para que la última tarjeta se
@@ -330,6 +363,22 @@
   --blubathon-critica-alta-texto: var(--blubathon-alerta-texto);
   --blubathon-critica-media-fondo: var(--blubathon-aviso-fondo);
   --blubathon-critica-media-texto: var(--blubathon-aviso-etiqueta);
+
+  /*
+   * Confirmación. El único verde de la aplicación, y entra por un sitio muy
+   * concreto: el par de botones con los que el profesional dice si una
+   * recomendación estuvo bien o no.
+   *
+   * No puede reutilizar el azul de marca: ahí el azul ya es "la acción" y los
+   * dos botones son acciones, así que pintar el afirmativo de marca lo
+   * convertiría en el botón por defecto. Y no puede ser una banda de riesgo:
+   * "estuvo bien" no habla del riesgo del niño sino de la calidad del texto.
+   *
+   * Mismas claridades que el par de alerta, así que los contrastes son los
+   * mismos: 6.7:1 del texto sobre su fondo.
+   */
+  --blubathon-exito-fondo: oklch(0.955 0.035 152);
+  --blubathon-exito-texto: oklch(0.45 0.1 152);
 }
 
 /* Lo que llegó con el aviso obligatorio y la versión de escritorio de la
@@ -448,6 +497,57 @@
 }
 
 /*
+ * La superficie de lo que escribe la IA.
+ *
+ * En la aplicación del cuidador la recomendación no necesita color propio: se
+ * reconoce por dónde está —la primera tarjeta debajo del panel del riesgo— y
+ * por el azul que ya tiene toda la pantalla detrás. En el panel del terapeuta
+ * no hay nada de eso: son tres widgets blancos sobre un fondo casi blanco, y la
+ * cola de recomendaciones se distinguía de la cartera y del resumen del
+ * conjunto solo por su rótulo.
+ *
+ * El azul es el mismo de la pantalla de Salud, burbujas incluidas, y eso es lo
+ * que se está pidiendo prestado: no es un color nuevo que haya que aprenderse
+ * como "el de la IA", es la superficie sobre la que el cuidador lee exactamente
+ * estos textos al otro lado del producto.
+ *
+ * Si el sorteo del fondo no llegó a correr, esto cae en el color plano de la
+ * página y el widget se ve blanco: un fondo decorativo no puede ser lo que
+ * impida revisar una recomendación.
+ */
+:root {
+  --blubathon-ia-superficie: var(--blubathon-fondo-pagina);
+
+  /*
+   * El disco del destello. Azul, como el de la recomendación en Salud: allí lo
+   * pone la banda del día y aquí no hay banda, así que es el mismo azul de la
+   * marca un punto más cerrado, lo justo para separarse del fondo del widget
+   * (1.3:1, la misma presencia que tiene aquel sobre su tarjeta blanca).
+   */
+  --blubathon-ia-insignia: oklch(0.86 0.06 240);
+
+  /*
+   * Los textos que van directamente sobre ella, sin tarjeta blanca debajo.
+   *
+   * `gris-texto` está calculado contra blanco, donde da 4.8:1, y sobre la
+   * burbuja más oscura de las variantes se queda en 4.1:1: por debajo de AA
+   * justo en las piezas más pequeñas del widget —la regla del muestreo y los
+   * rótulos, de 11px. Este es el mismo gris azulado un escalón más oscuro,
+   * 5.1:1 en ese peor caso, y sigue estando lo bastante por debajo de
+   * `marca-texto` para que el rótulo mande sobre lo que lo acompaña.
+   */
+  --blubathon-ia-texto-suave: oklch(0.5 0.025 245);
+
+  /*
+   * El filete, que separa los dos desplazamientos de la cola. `linea` está
+   * dibujada para el blanco y sobre el azul desaparece —1.08:1—, así que aquí
+   * es un azul más cerrado, con la misma presencia que tiene aquella sobre una
+   * tarjeta.
+   */
+  --blubathon-ia-linea: oklch(0.84 0.03 240);
+}
+
+/*
  * El paso intermedio, y el único sitio donde se cambia una medida ya existente.
  *
  * Entre 480 y 900 no había nada: la aplicación seguía siendo la misma columna
@@ -493,9 +593,8 @@
  * Y el segundo corte lo excluye a propósito con su `min-height: 500px`, así que
  * hasta aquí nadie se ocupaba de él.
  *
- * Lo que cambia son tres medidas y ninguna regla de disposición: el panel es más
- * bajo, la cúpula menos profunda y el alto de referencia deja de forzar una
- * columna más alta que la ventana. La retícula, el orden de las tarjetas y el
+ * Lo que cambia son tres medidas y ninguna regla de disposición: el panel es
+ * más bajo, la cúpula menos profunda y las ondas más cortas. La retícula, el orden de las tarjetas y el
  * diseño de móvil en vertical no se tocan —a 390 px de ancho esta consulta no
  * casa nunca.
  */
@@ -504,6 +603,5 @@
     --blubathon-panel-alto: 168px;
     --blubathon-cupula: 28px;
     --blubathon-ondas-alto: 104px;
-    --blubathon-alto-referencia: 100dvh;
   }
 }

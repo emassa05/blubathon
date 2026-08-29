@@ -43,6 +43,9 @@ _PUBLISHED: tuple[type[BaseModel], ...] = (
     api.RecommendationListResponse,
     api.FeedbackRequest,
     api.FeedbackResponse,
+    api.RecommendationDecisionRequest,
+    api.RecommendationDecisionResponse,
+    api.ReviewQueueResponse,
     api.NotificationEvent,
     # Domain rows P2 persists and P1 reads back.
     identity.Subject,

@@ -30,6 +30,18 @@ export const ID_NINO =
   import.meta.env.VITE_BLUBATHON_CHILD_ID ??
   "";
 
+/**
+ * Qué perfil abre la aplicación: el cuidador o el terapeuta.
+ *
+ * `?rol=terapeuta` en la URL, igual que `?child_id=`. La v0.4 no pide sesión
+ * —el tenant es fijo y la API no distingue quién llama—, así que esto no es un
+ * control de acceso y no pretende serlo: es qué pantalla se monta. Cuando haya
+ * sesión, el rol vendrá del token y este parámetro desaparece.
+ */
+export const ROL = new URLSearchParams(window.location.search).get("rol") ?? "";
+
+export const ES_TERAPEUTA = ROL === "terapeuta";
+
 /** Corte de cada petición, en milisegundos. Sin esto una red caída cuelga la pantalla. */
 export const TIMEOUT_MS = Number(import.meta.env.VITE_BLUBATHON_API_TIMEOUT_MS ?? 10_000);
 

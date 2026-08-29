@@ -368,7 +368,7 @@ def render_constants() -> str:
     lines = [
         BANNER,
         "",
-        "/** Registry C01-C50. A policy number is labelled as policy. */",
+        "/** Registry C01-C51. A policy number is labelled as policy. */",
         "export const BLUBATHON_CONSTANTS = {",
         *entries,
         "} as const;",

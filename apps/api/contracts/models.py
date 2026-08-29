@@ -33,8 +33,11 @@ from packages.shared.domain.api import (
     PredictionEpisodeResponse,
     PredictionOutputView,
     RecommendationCitation,
+    RecommendationDecisionRequest,
+    RecommendationDecisionResponse,
     RecommendationInstanceView,
     RecommendationListResponse,
+    ReviewQueueResponse,
     TodayRecommendationResponse,
 )
 from packages.shared.domain.base import UtcDatetime
@@ -82,7 +85,10 @@ __all__ = [
     "PredictionEpisodeView",
     "PredictionOutputView",
     "RecommendationCitation",
+    "RecommendationDecisionRequest",
+    "RecommendationDecisionResponse",
     "RecommendationInstanceView",
     "RecommendationListResponse",
+    "ReviewQueueResponse",
     "TodayRecommendationResponse",
 ]

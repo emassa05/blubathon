@@ -26,8 +26,11 @@ import type {
   OutcomeRequestState,
   OutcomeResolutionStatus,
   PredictionEpisodeResponse,
+  RecommendationDecisionRequest,
+  RecommendationDecisionResponse,
   RecommendationInstanceView,
   RecommendationListResponse,
+  ReviewQueueResponse,
   TodayRecommendationResponse,
 } from "@blubathon/contract/contract";
 
@@ -191,6 +194,45 @@ export function valorarRecomendacion(
   signal?: AbortSignal,
 ): Promise<FeedbackResponse> {
   return pedir(`/recommendations/${encodeURIComponent(idRecomendacion)}/feedback`, {
+    metodo: "POST",
+    cuerpo: peticion,
+    signal,
+  });
+}
+
+/* Revisión profesional ---------------------------------------------------- */
+
+/**
+ * La muestra de recomendaciones que le toca revisar al profesional.
+ *
+ * No es la lista entera filtrada en el cliente: el sorteo lo hace el servidor
+ * —una función determinista del identificador, constante C51— y la respuesta
+ * declara el denominador y la versión de la política. La pantalla enseña esas
+ * dos cosas en vez de escribir "1 de cada 5" a mano, que se quedaría viejo el
+ * día que la política cambie.
+ */
+export function colaDeRevision(
+  opciones: { limite?: number; signal?: AbortSignal } = {},
+): Promise<ReviewQueueResponse> {
+  return pedir("/recommendations/review-queue", {
+    consulta: { limit: opciones.limite },
+    signal: opciones.signal,
+  });
+}
+
+/**
+ * Aprueba o rechaza una recomendación redactada.
+ *
+ * No es lo mismo que `valorarRecomendacion`: un `bad` del cuidador dispara una
+ * redacción nueva y un rechazo profesional no. Son dos rutas porque son dos
+ * hechos, y el backend los guarda en dos tablas.
+ */
+export function revisarRecomendacion(
+  idRecomendacion: string,
+  peticion: RecommendationDecisionRequest,
+  signal?: AbortSignal,
+): Promise<RecommendationDecisionResponse> {
+  return pedir(`/recommendations/${encodeURIComponent(idRecomendacion)}/review`, {
     metodo: "POST",
     cuerpo: peticion,
     signal,

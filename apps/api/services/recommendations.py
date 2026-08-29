@@ -13,17 +13,22 @@ from apps.api.contracts.models import (
     FeedbackRequest,
     FeedbackResponse,
     RecommendationCitation,
+    RecommendationDecisionRequest,
+    RecommendationDecisionResponse,
     RecommendationInstanceView,
     RecommendationListResponse,
+    ReviewQueueResponse,
     TodayRecommendationResponse,
 )
-from apps.api.errors import not_found
+from apps.api.errors import invalid, not_found
 from apps.api.services.base import Services
 from apps.api.services.recommendation_query import query_for, risk_band_for
 from apps.api.store import history
 from apps.api.store import recommendations as store
 from apps.api.store.json_columns import load_list
+from packages.shared.constants import REVIEW_SAMPLE_DENOMINATOR
 from packages.shared.domain.rag import DocumentChunk, StrategyCitation
+from packages.shared.domain.review import REVIEW_SAMPLE_POLICY_VERSION, is_in_review_sample
 from rag.authoring.bm25 import Bm25Index
 from rag.authoring.drafting import (
     DraftRequest,
@@ -454,6 +459,71 @@ class RecommendationService:
             attempt=row["attempt"],
         )
 
+    def review(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        tenant_id: str,
+        recommendation_instance_id: str,
+        request: RecommendationDecisionRequest,
+        now: str,
+    ) -> RecommendationDecisionResponse:
+        """Aprueba o rechaza una recomendación ya redactada.
+
+        No dispara redacción nueva, a diferencia de un `bad` del cuidador. Un
+        rechazo profesional dice que **esa** redacción no debía entregarse; que
+        el sistema conteste con otra al instante convertiría la revisión en un
+        dado que se vuelve a tirar hasta que salga algo aceptable.
+        """
+
+        row = store.instance(connection, recommendation_instance_id)
+        if row is None or row["tenant_id"] != tenant_id:
+            raise not_found()
+        if row["status"] != "matched":
+            # Ni una abstención ni un borrador a medias se aprueban: no hay
+            # texto sobre el que recaiga la firma.
+            raise invalid("recommendation_not_reviewable", status=row["status"])
+        decision_id = store.add_decision(
+            connection,
+            recommendation_instance_id=recommendation_instance_id,
+            decision=request.decision,
+            note_es=request.note_es,
+            now=now,
+        )
+        return RecommendationDecisionResponse(
+            decision_id=decision_id,
+            recommendation_instance_id=recommendation_instance_id,
+            decision=request.decision,
+            reviewed_at=now,
+        )
+
+    def review_queue(
+        self, connection: sqlite3.Connection, *, tenant_id: str, limit: int
+    ) -> ReviewQueueResponse:
+        """La muestra que le toca mirar al profesional.
+
+        El corte se aplica sobre las candidatas ya leídas y no en SQL: quién
+        entra lo decide una función pura del identificador, y SQLite no sabe
+        calcular ese hash. Con los volúmenes de la demo —decenas de filas— leer
+        y filtrar en memoria es lo correcto; con un corpus grande el mismo
+        predicado se precalcularía como columna al crear la instancia.
+        """
+
+        candidates = store.reviewable_instances(
+            connection, tenant_id=tenant_id, limit=limit * REVIEW_SAMPLE_DENOMINATOR
+        )
+        sampled = [
+            row
+            for row in candidates
+            if is_in_review_sample(UUID(str(row["recommendation_instance_id"])))
+        ]
+        return ReviewQueueResponse(
+            items=[_view(connection, row) for row in sampled[:limit]],
+            sample_denominator=REVIEW_SAMPLE_DENOMINATOR,
+            sample_policy_version=REVIEW_SAMPLE_POLICY_VERSION,
+            candidates=len(candidates),
+        )
+
 
 def _chunk(row: sqlite3.Row) -> DocumentChunk:
     return DocumentChunk(
@@ -468,6 +538,14 @@ def _chunk(row: sqlite3.Row) -> DocumentChunk:
 
 def _view(connection: sqlite3.Connection, row: sqlite3.Row) -> RecommendationInstanceView:
     feedback = store.latest_feedback(connection, row["recommendation_instance_id"])
+    # La muestra se recalcula al leer en vez de guardarse: es una función pura
+    # del identificador, así que no puede desincronizarse de una columna, y
+    # cambiar la versión del sorteo vuelve a barajar sin migrar nada.
+    matched = row["status"] == "matched"
+    in_sample = matched and is_in_review_sample(UUID(str(row["recommendation_instance_id"])))
+    decision = (
+        store.latest_decision(connection, row["recommendation_instance_id"]) if matched else None
+    )
     citations = [
         RecommendationCitation(
             document_title_es=item["document_title_es"],
@@ -493,4 +571,7 @@ def _view(connection: sqlite3.Connection, row: sqlite3.Row) -> RecommendationIns
         abstention_reason=row["abstention_reason"],
         attempt=row["attempt"],
         rating=None if feedback is None else feedback["rating"],
+        in_review_sample=in_sample,
+        review_decision=None if decision is None else decision["decision"],
+        reviewed_at=None if decision is None else decision["reviewed_at"],
     )

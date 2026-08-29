@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
+from packages.shared.constants import REVIEW_SAMPLE_DENOMINATOR
+from packages.shared.domain.review import REVIEW_SAMPLE_POLICY_VERSION, is_in_review_sample
 from tests.p2.conftest import UngroundedDraftTransport, submit_form
 from tools.seed import ids
 
@@ -88,4 +92,128 @@ def test_websocket_emits_feedback_event(client) -> None:
         event = websocket.receive_json()
     assert event["type"] == "feedback.recorded"
     assert event["rating"] == "good"
+    assert "tenant_id" not in event
+
+
+def test_a_professional_can_approve_a_drafted_recommendation(client, db) -> None:
+    submitted = submit_form(client).json()
+    recommendation_id = submitted["recommendation_instance_id"]
+    response = client.post(
+        f"/v1/recommendations/{recommendation_id}/review",
+        json={"decision": "approved", "note_es": "Encaja con el plan de la sesión."},
+    )
+    assert response.status_code == 201
+    assert response.json()["decision"] == "approved"
+    stored = db.connection.execute(
+        "SELECT decision, reviewer_role FROM recommendation_decisions"
+        " WHERE recommendation_instance_id = ?",
+        (recommendation_id,),
+    ).fetchone()
+    assert stored["decision"] == "approved"
+    assert stored["reviewer_role"] == "professional"
+
+
+def test_the_review_travels_in_the_recommendation_view(client) -> None:
+    submitted = submit_form(client).json()
+    recommendation_id = submitted["recommendation_instance_id"]
+    client.post(f"/v1/recommendations/{recommendation_id}/review", json={"decision": "rejected"})
+    view = client.get(
+        f"/v1/prediction-episodes/{submitted['prediction_episode_id']}/recommendations"
+    ).json()
+    assert view["review_decision"] == "rejected"
+    assert view["reviewed_at"] is not None
+
+
+def test_changing_the_mind_adds_a_row_and_the_last_one_wins(client, db) -> None:
+    """Append-only: la revisión anterior sigue siendo auditable."""
+
+    submitted = submit_form(client).json()
+    recommendation_id = submitted["recommendation_instance_id"]
+    for decision in ("rejected", "approved"):
+        assert (
+            client.post(
+                f"/v1/recommendations/{recommendation_id}/review", json={"decision": decision}
+            ).status_code
+            == 201
+        )
+    rows = db.connection.execute(
+        "SELECT decision FROM recommendation_decisions WHERE recommendation_instance_id = ?",
+        (recommendation_id,),
+    ).fetchall()
+    assert len(rows) == 2
+    view = client.get(
+        f"/v1/prediction-episodes/{submitted['prediction_episode_id']}/recommendations"
+    ).json()
+    assert view["review_decision"] == "approved"
+
+
+def test_an_abstained_recommendation_has_no_draft_to_approve(client, app) -> None:
+    app.state.registry.core.draft_transport = UngroundedDraftTransport()
+    submitted = submit_form(client).json()
+    response = client.post(
+        f"/v1/recommendations/{submitted['recommendation_instance_id']}/review",
+        json={"decision": "approved"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "recommendation_not_reviewable"
+
+
+def test_a_review_never_redrafts(client) -> None:
+    """Un rechazo profesional no vuelve a tirar el dado, a diferencia de un
+    `bad` del cuidador."""
+
+    submitted = submit_form(client).json()
+    recommendation_id = submitted["recommendation_instance_id"]
+    before = client.get(
+        f"/v1/prediction-episodes/{submitted['prediction_episode_id']}/recommendations"
+    ).json()
+    client.post(f"/v1/recommendations/{recommendation_id}/review", json={"decision": "rejected"})
+    after = client.get(
+        f"/v1/prediction-episodes/{submitted['prediction_episode_id']}/recommendations"
+    ).json()
+    assert after["attempt"] == before["attempt"]
+    assert after["citations"] == before["citations"]
+
+
+def test_the_queue_declares_that_it_is_a_sample(client) -> None:
+    """Una cola que no dice que es una muestra se lee como el trabajo entero."""
+
+    submit_form(client)
+    response = client.get("/v1/recommendations/review-queue")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sample_denominator"] == REVIEW_SAMPLE_DENOMINATOR
+    assert body["sample_policy_version"] == REVIEW_SAMPLE_POLICY_VERSION
+    assert body["candidates"] >= len(body["items"])
+
+
+def test_the_queue_only_carries_the_sampled_recommendations(client) -> None:
+    submit_form(client)
+    body = client.get("/v1/recommendations/review-queue").json()
+    for item in body["items"]:
+        assert item["status"] == "matched"
+        assert item["in_review_sample"] is True
+        assert is_in_review_sample(UUID(item["recommendation_instance_id"]))
+
+
+def test_the_queue_is_the_same_on_two_consecutive_reads(client) -> None:
+    submit_form(client)
+    first = client.get("/v1/recommendations/review-queue").json()
+    second = client.get("/v1/recommendations/review-queue").json()
+    assert [item["recommendation_instance_id"] for item in first["items"]] == [
+        item["recommendation_instance_id"] for item in second["items"]
+    ]
+
+
+def test_websocket_emits_the_review_event(client) -> None:
+    submitted = submit_form(client).json()
+    with client.websocket_connect("/v1/ws") as websocket:
+        response = client.post(
+            f"/v1/recommendations/{submitted['recommendation_instance_id']}/review",
+            json={"decision": "approved"},
+        )
+        assert response.status_code == 201
+        event = websocket.receive_json()
+    assert event["type"] == "review.recorded"
+    assert event["decision"] == "approved"
     assert "tenant_id" not in event

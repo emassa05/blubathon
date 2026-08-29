@@ -234,8 +234,6 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
 <style scoped>
 .pantalla {
   display: flex;
-  /* Sin estirar: en una ventana muy alta la columna se queda en su alto de
-     referencia y no reparte los bloques por toda la pantalla. */
   align-items: flex-start;
   justify-content: center;
   min-height: 100dvh;
@@ -261,7 +259,19 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: min(100dvh, var(--blubathon-alto-referencia));
+  /*
+   * La ventana entera, siempre. Estuvo topada al alto de referencia de un
+   * teléfono —844— para que en una ventana muy alta los bloques no se
+   * repartieran por toda la pantalla, y el tope se veía: el fondo con burbujas
+   * lo pinta el contenido de esta columna, así que en cualquier pantalla más
+   * alta que eso —casi todos los teléfonos de hoy— el azul se cortaba en una
+   * línea recta y debajo quedaba una franja de color plano.
+   *
+   * Que los bloques no se repartan ya no depende de esto: lo dice
+   * `pantalla__contenido`, que los apila desde arriba y deja abajo el sitio que
+   * sobre, pintado.
+   */
+  min-height: 100dvh;
   /*
    * Sin acolchado abajo: la columna no tiene fondo propio —lo lleva el
    * contenido—, así que cualquier acolchado suyo cae por fuera del lienzo y se
@@ -348,9 +358,11 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: space-between;
-  /* `gap` es el mínimo entre bloques; con espacio libre, `space-between` sigue
-     repartiéndolo igual. */
+  /* Desde arriba: el espacio que sobre se queda entero al final, que es donde
+     no separa nada. Repartido entre los bloques —lo que hacía
+     `space-between`—, un día con una sola tarjeta la dejaba flotando en mitad
+     de la pantalla. */
+  justify-content: flex-start;
   gap: var(--blubathon-esp-14);
   /* El mismo margen que crece del panel, por la misma razón y con la misma
      cuenta: las tarjetas y la cabecera tienen que caer sobre la misma línea. */
@@ -381,12 +393,10 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
  * radio, misma elevación— y no un bloque aparte: el sitio donde iban a estar
  * las tarjetas no cambia de aspecto según qué haya pasado con la red.
  *
- * `margin-bottom: auto` se come el espacio libre por debajo, así que el aviso
- * queda arriba del todo pese al `space-between` de la columna: justo donde el
- * ojo ya estaba buscando la recomendación.
+ * Queda arriba del todo, justo donde el ojo ya estaba buscando la
+ * recomendación: se lo da la columna, que apila desde arriba.
  */
 .pantalla__aviso {
-  margin-bottom: auto;
   padding: var(--blubathon-esp-18) var(--blubathon-esp-16);
   font-size: var(--blubathon-fs-135);
   color: var(--blubathon-gris-texto);
@@ -420,16 +430,6 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
     max-width: var(--blubathon-ancho-cabecera);
     margin-inline: auto;
   }
-
-  /*
-   * Y llega hasta abajo. El tope de 844 es el alto de referencia de un teléfono
-   * y tenía sentido cuando la columna era una tira centrada; ahora que es la
-   * página, en una ventana más alta que eso el lienzo se quedaba corto.
-   * `flex: 1` del contenido hace el resto.
-   */
-  .pantalla__columna {
-    min-height: 100dvh;
-  }
 }
 
 /*
@@ -449,10 +449,6 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
  */
 @media (min-width: 900px) {
   .pantalla__columna {
-    /* Repetido y no heredado del bloque de 600: los dos puntos de corte tienen
-       condiciones distintas —ese lleva un mínimo de alto y este no—, y una
-       ventana ancha y baja casa con este solo. */
-    min-height: 100dvh;
     --blubathon-cupula: var(--blubathon-cupula-amplia);
     --blubathon-panel-alto: var(--blubathon-panel-alto-amplio);
   }
@@ -527,7 +523,6 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
        entera se leería lejos de donde iban a estar las tarjetas. */
     grid-column: 2 / 4;
     align-self: start;
-    margin-bottom: 0;
   }
 }
 </style>

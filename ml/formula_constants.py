@@ -1,6 +1,6 @@
 """Formula-internal constants for the pure ML domain.
 
-The shared normative registry is `packages/shared/constants.py` (C01-C50) and is
+The shared normative registry is `packages/shared/constants.py` (C01-C51) and is
 re-exported here so a formula reads one value, not a copy. What lives *here* is
 the arithmetic that only the domain needs:
 derived factors, version labels of the estimators and the closed support tables

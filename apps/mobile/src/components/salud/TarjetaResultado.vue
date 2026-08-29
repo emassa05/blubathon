@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { OutcomeRequestView } from "@/api/contrato";
+import BotonAccion from "@/components/base/BotonAccion.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import IconoRombo from "@/components/icons/IconoRombo.vue";
@@ -45,15 +46,15 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
     <h2 id="resultado-titulo" class="resultado__titulo">{{ PREGUNTA }}</h2>
 
     <div class="resultado__acciones">
-      <button
-        type="button"
+      <BotonAccion
+        variante="negativo"
         class="resultado__boton resultado__boton--si"
         :disabled="enviando"
         @click="$emit('reportar', 'yes')"
       >
         <IconoAlerta class="resultado__icono" aria-hidden="true" />
         Sí, ocurrió
-      </button>
+      </BotonAccion>
 
       <!-- Las dos respuestas, siempre. Un "no" resuelve en cuanto se da: ver
            `report_is_eligible` en el dominio del backend. -->
@@ -65,7 +66,7 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
       >
         <IconoCheck class="resultado__icono" aria-hidden="true" />
         No ocurrió
-      </button>
+      </BotonAccion>
     </div>
 
     <p v-if="error" class="resultado__error" role="alert">{{ error }}</p>
@@ -163,36 +164,10 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
   margin-top: var(--blubathon-esp-16);
 }
 
+/* La forma y los tonos los pone `BotonAccion`; aquí solo se dice que los dos se
+   reparten la fila y envuelven en pantallas estrechas. */
 .resultado__boton {
-  display: flex;
   flex: 1 1 10rem;
-  align-items: center;
-  justify-content: center;
-  gap: var(--blubathon-esp-9);
-  min-height: var(--blubathon-toque);
-  padding-inline: var(--blubathon-esp-14);
-  font-size: var(--blubathon-fs-135);
-  font-weight: 700;
-  border-radius: var(--blubathon-radio-18);
-}
-
-.resultado__boton:disabled {
-  opacity: 0.55;
-}
-
-.resultado__boton:focus-visible {
-  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
-  outline-offset: var(--blubathon-foco-offset);
-}
-
-.resultado__boton--si {
-  color: var(--blubathon-critica-alta-texto);
-  background: var(--blubathon-critica-alta-fondo);
-}
-
-.resultado__boton--no {
-  color: var(--blubathon-marca-accion);
-  background: var(--blubathon-marca-icono-fondo);
 }
 
 .resultado__icono {
