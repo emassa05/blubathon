@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import urllib.error
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -71,6 +72,13 @@ class UngroundedDraftTransport(GroundedDraftTransport):
                 ],
             }
         )
+
+
+class UnreachableDraftTransport(GroundedDraftTransport):
+    """El daemon no está escuchando: `urllib` lo reporta como `URLError`."""
+
+    def complete(self, prompt: str) -> str:
+        raise urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))
 
 
 @pytest.fixture

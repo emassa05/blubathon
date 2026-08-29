@@ -192,6 +192,14 @@ class RecommendationService:
                 now,
                 increment_attempt,
             )
+        # `DraftUnavailableError` cubre las tres formas de no tener borrador:
+        # que no haya modelo registrado, que el modelo no conteste —daemon
+        # caído, tiempo agotado, respuesta vacía— y que conteste algo que no es
+        # JSON (`ValueError`). `request_draft` traduce a ese tipo cualquier
+        # fallo del transporte precisamente para que esta rama lo vea: esto
+        # corre en una tarea de fondo, y una excepción que se escape de acá no
+        # deja rastro en la pantalla, solo una recomendación clavada en
+        # `pending` que nadie va a volver a mirar.
         try:
             draft = request_draft(
                 DraftRequest(generalized_question_es=query_es, chunks=selected),
