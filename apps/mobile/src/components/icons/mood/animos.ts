@@ -3,6 +3,7 @@ import type { Component } from "vue";
 import IconMoodCalm from "./IconMoodCalm.vue";
 import IconMoodContent from "./IconMoodContent.vue";
 import IconMoodHappy from "./IconMoodHappy.vue";
+import IconMoodWink from "./IconMoodWink.vue";
 
 /**
  * Las caras que puede sacar la portada del cuestionario.
@@ -13,7 +14,12 @@ import IconMoodHappy from "./IconMoodHappy.vue";
  * un formulario en blanco se lee como un diagnóstico, y no hay ninguno todavía.
  * Lo que dice la portada es "esto es agradable de hacer", nada más.
  */
-export const ANIMOS_BUENOS: readonly Component[] = [IconMoodContent, IconMoodHappy, IconMoodCalm];
+export const ANIMOS_BUENOS: readonly Component[] = [
+  IconMoodContent,
+  IconMoodHappy,
+  IconMoodCalm,
+  IconMoodWink,
+];
 
 /**
  * Una cara al azar, y si se dice cuál había antes, otra distinta: el sorteo se
