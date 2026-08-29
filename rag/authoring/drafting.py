@@ -173,9 +173,28 @@ def request_draft(
     )
     try:
         raw_output = transport.complete(rendered)
-    except Exception:
+    except DraftUnavailableError:
         logger.exception("draft error model=%s", transport.model_id)
         raise
+    except Exception as error:
+        # A model that does not answer — daemon down, request timed out, empty
+        # body, an API that rejected the call — is exactly "there is no draft",
+        # and that is how it has to reach whoever decides to abstain. Letting
+        # the original type escape does not make it more honest: the caller
+        # catches `DraftUnavailableError`, so a bare `URLError` walked straight
+        # past that branch, killed the background task before anything was
+        # written, and left the recommendation in `pending` forever, a state the
+        # screen renders as "still being prepared" with nobody preparing it.
+        #
+        # Nothing is swallowed: the traceback is logged above and chained in
+        # `__cause__`. And this covers the call to the model and nothing else.
+        # The privacy guards run before the `try` and still raise, because
+        # unauthorised literature reaching the prompt is a defect, not a draft
+        # that failed.
+        logger.exception("draft error model=%s", transport.model_id)
+        raise DraftUnavailableError(
+            f"{transport.model_id} returned no draft: {type(error).__name__}"
+        ) from error
     logger.info(
         "draft fin model=%s output_chars=%d",
         transport.model_id,

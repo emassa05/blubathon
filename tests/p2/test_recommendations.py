@@ -6,7 +6,11 @@ from uuid import UUID
 
 from packages.shared.constants import REVIEW_SAMPLE_DENOMINATOR
 from packages.shared.domain.review import REVIEW_SAMPLE_POLICY_VERSION, is_in_review_sample
-from tests.p2.conftest import UngroundedDraftTransport, submit_form
+from tests.p2.conftest import (
+    UngroundedDraftTransport,
+    UnreachableDraftTransport,
+    submit_form,
+)
 from tools.seed import ids
 
 
@@ -38,6 +42,33 @@ def test_ungrounded_draft_is_never_persisted_as_matched(client, app, db) -> None
     assert row["status"] == "abstained"
     assert row["abstention_reason"] == "draft_not_grounded"
     assert row["action_text_es"] is None
+
+
+def test_a_model_that_cannot_be_reached_abstains_instead_of_staying_pending(
+    client, app, db
+) -> None:
+    """Un modelo caído deja una abstención con motivo, no una fila clavada.
+
+    La generación corre en una tarea de fondo, después de responderle al
+    navegador. Una excepción que se escape de ahí no se ve en ninguna pantalla:
+    la fila se queda en `pending`, que la interfaz muestra como "estamos
+    preparando la recomendación", y no queda nadie preparándola.
+    """
+
+    app.state.registry.core.draft_transport = UnreachableDraftTransport()
+    submitted = submit_form(client).json()
+    row = db.connection.execute(
+        "SELECT status, abstention_reason, action_text_es FROM recommendation_instances"
+        " WHERE recommendation_instance_id = ?",
+        (submitted["recommendation_instance_id"],),
+    ).fetchone()
+    assert row["status"] == "abstained"
+    assert row["abstention_reason"] == "draft_unavailable"
+    assert row["action_text_es"] is None
+    # Y el cuidador lee el motivo, en vez de una espera que no termina nunca.
+    today = client.get(f"/v1/children/{ids.SUBJECT_ANA}/recommendations/today").json()
+    assert today["status"] == "abstained"
+    assert today["abstention_reason"] == "draft_unavailable"
 
 
 def test_bad_feedback_redrafts_without_the_previous_chunk(client) -> None:

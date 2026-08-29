@@ -196,7 +196,13 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
             />
           </div>
 
+          <!-- La clave es el día, y con ella cambiar de fecha vuelve a montar la
+               tarjeta. Es lo que separa "la redacción terminó" de "estoy
+               mirando otro día": la tarjeta teclea el texto que llega mientras
+               está delante, y sin esto hojear de un día todavía en espera a uno
+               ya redactado se leería como si acabara de escribirse. -->
           <TarjetaRecomendacion
+            :key="resumen.fecha"
             class="pantalla__zona--recomendacion"
             :recomendacion="resumen.recomendacion"
           />
