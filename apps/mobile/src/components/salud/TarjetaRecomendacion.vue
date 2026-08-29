@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
 
 import IconoDestello from "@/components/icons/IconoDestello.vue";
+import { useMaquinaDeEscribir } from "@/composables/useMaquinaDeEscribir";
 import type { Recomendacion } from "@/types/salud";
 
 const props = defineProps<{
@@ -17,12 +18,56 @@ const SOBRETITULO = "Recomendación de hoy";
  * fragmentos y redactando encima, y la respuesta va a cambiar sin que nadie
  * toque nada. Los otros tres son finales y se pintan quietos.
  *
- * Lo que se anima no es un giro suelto en una esquina: son tres renglones con la
- * forma que va a tener el texto cuando llegue, más un pulso en la insignia. Un
- * hueco con la forma del contenido dice "está viniendo esto"; un indicador
- * genérico solo dice "espera".
+ * Lo que se ve mientras tanto no es una frase que diga que se está preparando:
+ * es el destello girando y tres renglones con la forma que va a tener el texto
+ * cuando llegue. Una frase de espera ocupa el sitio de la recomendación con algo
+ * que hay que leer para descubrir que no dice nada; un hueco con la forma del
+ * contenido dice "está viniendo esto" sin pedir que se lea. La frase sigue
+ * estando para quien usa un lector de pantalla, que no ve girar nada.
  */
 const redactando = computed(() => props.recomendacion.estado === "pendiente");
+
+const { mostrado, escribiendo, poner, escribir } = useMaquinaDeEscribir(
+  props.recomendacion.estado === "pendiente" ? "" : props.recomendacion.texto,
+);
+
+/**
+ * Lo que todavía no se ha escrito, en transparente.
+ *
+ * Está en el DOM desde el primer carácter para que el párrafo ocupe desde el
+ * principio el alto que va a tener acabado. Sin él, el texto crecería línea a
+ * línea y empujaría hacia abajo todo lo que hay debajo en la columna: la
+ * tarjeta de factores y la de formularios bailarían durante los dos segundos
+ * del tecleo.
+ */
+const restante = computed(() => props.recomendacion.texto.slice(mostrado.value.length));
+
+/**
+ * Se teclea lo que **llega**, no lo que ya estaba.
+ *
+ * Venir de `pendiente` es exactamente eso: la redacción terminó mientras la
+ * tarjeta estaba delante. Montar la pantalla en un día ya redactado no es que
+ * llegue nada, y retecleando esa recomendación la pantalla diría que está
+ * trabajando cuando no lo está.
+ *
+ * Y hojear tampoco cuenta, aunque el día de antes estuviera en espera: eso lo
+ * resuelve `SaludView`, que da el día como clave y vuelve a montar la tarjeta
+ * al cambiar de fecha, así que aquí `anterior` siempre es del mismo día.
+ */
+watch(
+  () => props.recomendacion,
+  (nueva, anterior) => {
+    if (nueva.estado === "pendiente") {
+      poner("");
+      return;
+    }
+    if (anterior?.estado === "pendiente") {
+      escribir(nueva.texto);
+      return;
+    }
+    poner(nueva.texto);
+  },
+);
 </script>
 
 <template>
@@ -34,17 +79,26 @@ const redactando = computed(() => props.recomendacion.estado === "pendiente");
       <span>{{ SOBRETITULO }}</span>
     </h2>
 
-    <!-- El texto sigue estando en el DOM mientras se redacta, en un `role`
-         que lo anuncia cuando cambie: quien usa un lector oye "estamos
-         preparando la recomendación" y después la recomendación, sin tener que
-         volver a buscarla. -->
-    <p class="recomendacion__frase" role="status">{{ recomendacion.texto }}</p>
+    <!-- El párrafo que se ve es la animación del texto, no el texto: durante el
+         tecleo cambia sesenta veces por segundo y anunciar cada fotograma
+         dejaría el lector de pantalla hablando encima de sí mismo. Por eso va
+         oculto al lector y el texto de verdad viaja abajo, en la región de
+         estado, que lo anuncia una vez y entero. -->
+    <p v-if="!redactando" class="recomendacion__frase" aria-hidden="true">
+      <span class="recomendacion__escrito">{{ mostrado }}</span
+      ><span v-if="escribiendo" class="recomendacion__cursor"></span
+      ><span class="recomendacion__resto">{{ restante }}</span>
+    </p>
 
     <div v-if="redactando" class="cargando" aria-hidden="true">
       <span class="cargando__renglon"></span>
       <span class="cargando__renglon"></span>
       <span class="cargando__renglon"></span>
     </div>
+
+    <!-- Lo que se lee y no se ve: la espera mientras se redacta y la
+         recomendación entera en cuanto llega, sin pasar por el tecleo. -->
+    <p class="recomendacion__estado oculto-visual" role="status">{{ recomendacion.texto }}</p>
   </section>
 </template>
 
@@ -119,6 +173,25 @@ const redactando = computed(() => props.recomendacion.estado === "pendiente");
   height: var(--blubathon-icono-14);
 }
 
+/*
+ * Y el destello gira: es el indicador de que hay un modelo trabajando ahora
+ * mismo. Gira dentro de su insignia, que no se mueve, así que no desplaza ni
+ * un píxel del sobretítulo de al lado; es una transformación, o sea que el
+ * compositor la resuelve sin `layout` ni `paint` en ningún fotograma.
+ *
+ * Vuelta y media por segundo: más rápido se lee como un error y más lento
+ * parece que se ha quedado colgado.
+ */
+.recomendacion--redactando .recomendacion__destello {
+  animation: recomendacion-gira 1.5s linear infinite;
+}
+
+@keyframes recomendacion-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .recomendacion__frase {
   margin-top: var(--blubathon-esp-12);
   font-size: var(--blubathon-fs-17);
@@ -129,12 +202,36 @@ const redactando = computed(() => props.recomendacion.estado === "pendiente");
   color: var(--blubathon-marca-profundo);
 }
 
-/* La frase de espera no compite con una recomendación de verdad: mientras se
-   redacta es texto de apoyo, y el peso vuelve en cuanto llega la buena. */
-.recomendacion--redactando .recomendacion__frase {
-  font-size: var(--blubathon-fs-135);
-  font-weight: 600;
-  color: var(--blubathon-gris-texto);
+/* Lo que falta por escribir ocupa su sitio sin verse: reserva el alto del
+   párrafo acabado para que nada de abajo se mueva mientras se teclea. */
+.recomendacion__resto {
+  color: transparent;
+}
+
+/*
+ * El cursor, solo mientras se escribe. Va entre lo escrito y lo que falta, así
+ * que se desplaza con el texto sin ocupar ancho propio en la línea acabada.
+ */
+.recomendacion__cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  vertical-align: -0.14em;
+  background: currentcolor;
+  border-radius: 1px;
+  animation: recomendacion-latido 1s ease-in-out infinite;
+}
+
+@keyframes recomendacion-latido {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  55%,
+  100% {
+    opacity: 0;
+  }
 }
 
 /*
@@ -190,11 +287,14 @@ const redactando = computed(() => props.recomendacion.estado === "pendiente");
 
 /*
  * Quien pide menos movimiento sigue viendo que falta algo —los renglones están
- * ahí, en gris fijo— y lo que se quita es el barrido. La frase de estado lo dice
- * escrito de todas formas.
+ * ahí, en gris fijo— y lo que se quita es el barrido, el giro y el parpadeo. El
+ * texto no se teclea: `useMaquinaDeEscribir` lo pone entero, así que aquí no
+ * queda cursor que apagar salvo el de un fotograma suelto.
  */
 @media (prefers-reduced-motion: reduce) {
   .recomendacion--redactando .recomendacion__insignia,
+  .recomendacion--redactando .recomendacion__destello,
+  .recomendacion__cursor,
   .cargando__renglon {
     animation: none;
   }

@@ -1,12 +1,16 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { nextTick } from "vue";
+
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import SaludView from "@/views/SaludView.vue";
 
 import {
   ID_NINO_FALSO,
+  declararRuta,
   diaFalso,
+  emitirEvento,
   historialFalso,
   instalarServidorFalso,
   planFalso,
@@ -155,6 +159,74 @@ describe("SaludView", () => {
 
     await wrapper.get(".aviso").trigger("click");
     expect(wrapper.emitted("abrirCuestionario")).toEqual([[HOY]]);
+  });
+
+  it("la recomendación aparece sola cuando el backend avisa, sin recargar", async () => {
+    // El formulario acaba de enviarse: el episodio existe y el RAG sigue
+    // redactando encima, así que la recomendación viene en `pending`.
+    servidor({
+      [`${CHILD}/recommendations/today`]: {
+        status: "pending",
+        risk_band: "low",
+        recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+        action_text_es: null,
+        purpose_es: null,
+        citations: [],
+        abstention_reason: null,
+        rating: null,
+      },
+    });
+    const wrapper = await montar();
+
+    expect(wrapper.findAll(".cargando__renglon")).toHaveLength(3);
+    expect(wrapper.text()).not.toContain("Mantener la rutina de sueño.");
+
+    // El RAG termina: la API ya devuelve el texto y el backend lo avisa por el
+    // canal. Nadie recarga la página ni vuelve a montar nada.
+    declararRuta(`${CHILD}/recommendations/today`, {
+      status: "matched",
+      risk_band: "low",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      action_text_es: "Mantener la rutina de sueño.",
+      purpose_es: null,
+      citations: [],
+      abstention_reason: null,
+      rating: null,
+    });
+    emitirEvento({
+      type: "recommendation.ready",
+      child_id: ID_NINO_FALSO,
+      prediction_episode_id: "22222222-2222-4222-8222-222222222222",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      status: "matched",
+      abstention_reason: null,
+      at: new Date().toISOString(),
+    });
+    await flushPromises();
+
+    expect(wrapper.find(".cargando").exists()).toBe(false);
+    // La región de estado lleva el texto entero desde el primer fotograma: el
+    // tecleo es de lo que se ve, no de lo que se lee.
+    expect(wrapper.get(".recomendacion__estado").text()).toBe("Mantener la rutina de sueño.");
+  });
+
+  it("el refresco del canal no vacía la pantalla mientras llega", async () => {
+    servidor();
+    const wrapper = await montar();
+
+    emitirEvento({
+      type: "recommendation.redrafted",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      attempt: 2,
+      status: "matched",
+      at: new Date().toISOString(),
+    });
+    await nextTick();
+
+    // Nada de "Cargando": el aviso de carga tapa las tarjetas, y un refresco
+    // que nadie pidió no puede llevarse por delante lo que ya se estaba viendo.
+    expect(wrapper.text()).toContain("18%");
+    expect(wrapper.text()).toContain("Mantener la rutina de sueño.");
   });
 
   it("cada fila de formulario abre el cuestionario de su día", async () => {

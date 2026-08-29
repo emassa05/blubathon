@@ -34,16 +34,85 @@ function sobreDeError(codigo: string): unknown {
   };
 }
 
+let rutasActuales: Rutas = {};
+let rutasCambiadas: Rutas = {};
+
+/**
+ * Cambia lo que contesta **una** ruta, sin volver a instalar nada.
+ *
+ * Reinstalar el servidor cerraría el canal de eventos y con él el socket que la
+ * pantalla ya tiene abierto, que es justo lo que se está probando cuando algo
+ * cambia a mitad de un test: el RAG termina y la misma pantalla montada tiene
+ * que enterarse.
+ *
+ * El cambio va en un mapa aparte y no encima del que se instaló, porque una
+ * ruta puede estar declarada como getter —así es como varía su respuesta un test
+ * que no necesita esto— y asignarle encima reventaría.
+ */
+export function declararRuta(ruta: string, respuesta: RespuestaFalsa | unknown): void {
+  rutasCambiadas[ruta] = respuesta;
+}
+
+/**
+ * Y el doble del canal de eventos (`GET /v1/ws`).
+ *
+ * Va junto al de `fetch` porque monta la misma pantalla: `useResumenSalud` abre
+ * el socket al montarse, y en jsdom `WebSocket` existe pero no hay servidor al
+ * otro lado, así que cada test dejaría una conexión fallando y reintentando
+ * cada tres segundos. Con el doble no se conecta a ningún sitio y además los
+ * tests pueden empujar un evento, que es la única forma de comprobar que la
+ * pantalla reacciona sin recargarse.
+ */
+type Escucha = (evento: unknown) => void;
+
+class SocketFalso {
+  static abiertos: SocketFalso[] = [];
+
+  private readonly escuchas = new Map<string, Set<Escucha>>();
+
+  constructor(readonly url: string) {
+    SocketFalso.abiertos.push(this);
+  }
+
+  addEventListener(tipo: string, escucha: Escucha): void {
+    const registradas = this.escuchas.get(tipo) ?? new Set<Escucha>();
+    registradas.add(escucha);
+    this.escuchas.set(tipo, registradas);
+  }
+
+  close(): void {
+    SocketFalso.abiertos = SocketFalso.abiertos.filter((socket) => socket !== this);
+  }
+
+  recibir(datos: string): void {
+    for (const escucha of this.escuchas.get("message") ?? []) escucha({ data: datos });
+  }
+}
+
+/** Empuja un evento por el canal, como haría el backend al terminar el RAG. */
+export function emitirEvento(evento: unknown): void {
+  const datos = JSON.stringify(evento);
+  for (const socket of [...SocketFalso.abiertos]) socket.recibir(datos);
+}
+
 /**
  * Instala el doble. Las claves son la ruta sin query (`/v1/children`); lo que
  * no esté declarado responde 404 con el sobre de error del backend.
  */
 export function instalarServidorFalso(rutas: Rutas): void {
+  // Por referencia y sin copiar: hay rutas declaradas como getter, que varían su
+  // respuesta entre un caso y otro, y una copia las congelaría en el valor que
+  // tuvieran al instalar.
+  rutasActuales = rutas;
+  rutasCambiadas = {};
+  SocketFalso.abiertos = [];
+  vi.stubGlobal("WebSocket", SocketFalso);
   vi.stubGlobal(
     "fetch",
     vi.fn((entrada: string | URL | Request) => {
       const url = new URL(String(entrada), "http://localhost");
-      const declarada = rutas[url.pathname];
+      const declarada =
+        url.pathname in rutasCambiadas ? rutasCambiadas[url.pathname] : rutasActuales[url.pathname];
       const { estado = 200, cuerpo } =
         declarada === undefined
           ? { estado: 404, cuerpo: sobreDeError("not_found") }

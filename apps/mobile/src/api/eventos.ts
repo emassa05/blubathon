@@ -5,8 +5,9 @@
  * no viaja en la respuesta del `POST`: llega por aquí cuando está lista. Lo
  * mismo con la redacción que dispara una valoración negativa.
  *
- * La pantalla Salud todavía no reacciona a estos eventos —hoy solo lee un día—
- * pero el canal queda montado y tipado para cuando el formulario entre.
+ * Quien escucha es `useResumenSalud`: al llegar el aviso vuelve a pedir el día
+ * en silencio, sin encender el estado de carga, y la tarjeta se encuentra el
+ * texto escrito sin que nadie recargue la página.
  */
 
 import { BASE_API, ORIGEN_API } from "@/api/config";
