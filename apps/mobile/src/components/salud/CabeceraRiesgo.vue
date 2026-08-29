@@ -24,7 +24,14 @@ const SIN_ESTIMACION = "—";
  * cuarenta valores intermedios sería ilegible, así que el nombre accesible
  * salta directo al de destino.
  */
-const { mostrado } = useNumeroAnimado(toRef(props, "riesgo"));
+const { mostrado, reiniciar } = useNumeroAnimado(toRef(props, "riesgo"));
+
+/*
+ * Volver a contar desde cero no es cosa de la cabecera: no sabe que existe un
+ * cuestionario ni cuándo se ha enviado. Se lo pide Salud, que sí lo sabe, y por
+ * eso sale como método en vez de como prop.
+ */
+defineExpose({ animarDesdeCero: reiniciar });
 
 /** Una sola etiqueta legible: "Riesgo de desregulación: 18 por ciento". */
 const etiqueta = computed(() =>

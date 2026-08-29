@@ -26,6 +26,14 @@ type Vista = "salud" | "historial";
 const vista = ref<Vista>("salud");
 /** Fecha ISO del cuestionario abierto, o `null` si no hay ninguno. */
 const cuestionario = ref<string | null>(null);
+/**
+ * Si el cuestionario que está abierto llegó a enviarse.
+ *
+ * Es lo que separa cerrar de terminar: se cierra igual con la equis que con el
+ * "Listo" de la confirmación, y solo en el segundo caso hay una estimación
+ * nueva que enseñar.
+ */
+const enviado = ref(false);
 
 const { ninoId } = useNino();
 const { cargar: cargarHistorial } = useHistorial();
@@ -33,13 +41,34 @@ const { cargar: cargarRecomendacion } = useRecomendacionHoy();
 const { cargar: cargarResultados } = useResultados();
 
 // Salud trae sus datos por su cuenta, así que se le pide el refresco a ella.
-const salud = ref<{ recargar: () => Promise<void> } | null>(null);
+const salud = ref<{
+  recargar: () => Promise<void>;
+  animarRiesgoDesdeCero: () => void;
+} | null>(null);
 
 function abrirCuestionario(fecha: string): void {
   cuestionario.value = fecha;
+  enviado.value = false;
+}
+
+/**
+ * Al cerrar el cuestionario se vuelve a la pantalla que había debajo. Si se
+ * envió, la cifra del riesgo se cuenta desde cero: ya está calculada con este
+ * día —`alEnviar` recargó el resumen—, pero se calculó con el diálogo delante y
+ * nadie la vio moverse.
+ *
+ * Desde el historial no hay cifra a la vista y `salud` es `null`: no pasa nada,
+ * y al volver a Salud la cabecera se monta con su valor puesto.
+ */
+function cerrarCuestionario(): void {
+  cuestionario.value = null;
+  if (!enviado.value) return;
+  enviado.value = false;
+  salud.value?.animarRiesgoDesdeCero();
 }
 
 async function alEnviar(): Promise<void> {
+  enviado.value = true;
   if (ninoId.value === null) return;
   await Promise.all([
     cargarHistorial(ninoId.value, true),
@@ -69,7 +98,7 @@ async function alEnviar(): Promise<void> {
     :key="cuestionario"
     :nino-id="ninoId"
     :fecha="cuestionario"
-    @cerrar="cuestionario = null"
+    @cerrar="cerrarCuestionario"
     @enviado="alEnviar"
   />
 

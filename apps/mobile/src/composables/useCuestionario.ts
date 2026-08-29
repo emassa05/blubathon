@@ -24,8 +24,11 @@
  *   sin tocar: revisarlas una a una, o aceptarlas todas. Aceptarlas todas es lo
  *   que hace `aplicarSugerencias`, y viaja exactamente igual que viajaba el
  *   botón de cada campo —mismo `accept_default`, mismo cuerpo de envío.
- * - "No sé" es una respuesta, distinta de dejar el campo vacío: viaja como
- *   `unknown` y el servidor la registra sin valor.
+ * El contrato admite además una respuesta `unknown` —contestar "no sé" sin dar
+ * valor—, pero el cuestionario ya no la ofrece: era una salida a un dedo de
+ * distancia de cada pregunta, y una pregunta sin contestar y un "no sé" acaban
+ * pesando lo mismo en la estimación. Lo que no se sabe se deja en blanco, que
+ * es lo que el formulario ya permitía.
  *
  * Aparte de eso, los campos numéricos no nacen vacíos: salen en 1. Es un valor
  * de salida de la pantalla, no una sugerencia del servidor, y por eso no se
@@ -52,6 +55,7 @@ import {
   esNumerico,
   especificacionCampo,
   ordenCanonico,
+  sePregunta,
   valorInicialNumerico,
 } from "@/dominio/campos";
 
@@ -82,7 +86,7 @@ export function useCuestionario(opciones: Opciones) {
 
   /**
    * Los campos sobre los que quien responde ha decidido algo: los que ha tocado
-   * a mano, los que ha marcado "no sé" y los que ha aceptado desde la revisión.
+   * a mano y los que ha aceptado desde la revisión.
    *
    * Es lo que separa "contestado" de "tiene un valor en el borrador". Un campo
    * numérico nace en 1 sin que nadie lo haya mirado, y si además tiene
@@ -134,7 +138,12 @@ export function useCuestionario(opciones: Opciones) {
    * red.
    */
   const preguntas = computed<readonly FormQuestion[]>(() => {
-    const delPlan = plan.value?.questions ?? [];
+    // El plan devuelve el catálogo entero, incluidos los campos que el
+    // cuestionario ya no pregunta: se filtran aquí, que es por donde pasan los
+    // dos caminos —el del plan y el del catálogo— antes de contarse en páginas.
+    const delPlan = (plan.value?.questions ?? []).filter((pregunta) =>
+      sePregunta(pregunta.field_code),
+    );
     if (delPlan.length > 0) return delPlan;
     return CAMPOS_DE_CASA.map((campo) => ({
       field_code: campo,
@@ -287,13 +296,6 @@ export function useCuestionario(opciones: Opciones) {
     borradores.value = { ...borradores.value, [campo]: { valor, interaccion } };
   }
 
-  /** "No sé": se registra como respuesta, sin valor. */
-  function noSabe(campo: FieldCode): void {
-    sembrados.delete(campo);
-    tocados.value.add(campo);
-    borradores.value = { ...borradores.value, [campo]: { interaccion: "unknown" } };
-  }
-
   function borrar(campo: FieldCode): void {
     sembrados.delete(campo);
     tocados.value.delete(campo);
@@ -357,7 +359,6 @@ export function useCuestionario(opciones: Opciones) {
     aplicarSugerencias,
     revelarSugerencias,
     responder,
-    noSabe,
     borrar,
     enviar,
   };

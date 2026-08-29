@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
@@ -63,8 +63,26 @@ async function alReportar(valor: "yes" | "no"): Promise<void> {
 // todavía no se sabe nada sería afirmar algo que la API no dijo.
 const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
+/*
+ * La cifra del riesgo, después de enviar el cuestionario.
+ *
+ * El envío ya la ha cambiado por el camino de siempre —`recargar` vuelve a
+ * pedir el resumen y la cabecera anima del valor viejo al nuevo—, pero eso pasa
+ * con el diálogo delante y no lo ve nadie. Al cerrarlo, la cifra ya estaría
+ * puesta.
+ *
+ * Así que se recorre otra vez, entera y desde cero, cuando se vuelve a la
+ * pantalla. No es la animación del cambio: es la de un número que se acaba de
+ * calcular con lo que se acaba de contestar, y que por eso se enseña saliendo.
+ */
+const cabecera = ref<InstanceType<typeof CabeceraRiesgo> | null>(null);
+
+function animarRiesgoDesdeCero(): void {
+  cabecera.value?.animarDesdeCero();
+}
+
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
-defineExpose({ recargar });
+defineExpose({ recargar, animarRiesgoDesdeCero });
 </script>
 
 <template>
@@ -83,6 +101,7 @@ defineExpose({ recargar });
           />
 
           <CabeceraRiesgo
+            ref="cabecera"
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
             :confianza="resumen?.confianza ?? null"
@@ -99,7 +118,10 @@ defineExpose({ recargar });
         </div>
       </div>
 
-      <div class="pantalla__contenido">
+      <div
+        class="pantalla__contenido"
+        :class="{ 'pantalla__contenido--con-aviso': resumen?.formularioPendiente }"
+      >
         <!-- Carga y error ocupan el sitio de las tarjetas, no se superponen a
              ellas: el contenido de un día nunca se lee bajo el de otro. -->
         <p v-if="cargando" class="pantalla__aviso" role="status">
@@ -147,16 +169,21 @@ defineExpose({ recargar });
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
           />
-
-          <AvisoPendiente
-            v-if="resumen.formularioPendiente"
-            class="pantalla__zona--pendiente"
-            :dia="etiquetaAccesible"
-            @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
-          />
         </template>
       </div>
     </div>
+
+    <!--
+      El aviso del formulario pendiente flota sobre la pantalla, así que sale de
+      la columna por lo mismo que sale el diálogo: es `fixed` y su sitio en el
+      DOM ya no decide dónde se ve. Su condición no cambia —sigue apareciendo
+      cuando el día que se está mirando no tiene envío—, solo dónde se dibuja.
+    -->
+    <AvisoPendiente
+      v-if="resumen?.formularioPendiente"
+      :dia="etiquetaAccesible"
+      @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
+    />
 
     <!--
       El diálogo obligatorio va el último y fuera de la columna: es `fixed`, así
@@ -307,6 +334,18 @@ defineExpose({ recargar });
 }
 
 /*
+ * Con el aviso flotando en la esquina, la última tarjeta de la columna acaba
+ * debajo de él y no hay desplazamiento que la saque: `fixed` no se mueve. El
+ * hueco se pide aquí, y solo mientras el aviso está, para que un día ya enviado
+ * no arrastre una franja vacía al final de la página.
+ */
+.pantalla__contenido--con-aviso {
+  padding-bottom: calc(
+    var(--blubathon-esp-26) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/*
  * Carga y error. Una tarjeta más del mismo sistema —misma superficie, mismo
  * radio, misma elevación— y no un bloque aparte: el sitio donde iban a estar
  * las tarjetas no cambia de aspecto según qué haya pasado con la red.
@@ -409,9 +448,11 @@ defineExpose({ recargar });
     /* La pregunta de cierre encabeza el rail por lo mismo que encabeza la
        columna en móvil: es la única con plazo. El aviso del formulario baja un
        puesto —no vence— y los últimos formularios cierran. */
+    /* Sin casilla para el aviso: dejó de ser una tarjeta y flota sobre todo
+       esto. El rail se queda con lo que sí ocupa sitio —la pregunta de cierre,
+       que es la única con plazo, y los últimos formularios. */
     grid-template-areas:
       ". recomendacion resultado   ."
-      ". factores      pendiente   ."
       ". factores      formularios .";
     align-content: start;
     /* Cada tarjeta con su alto: la de factores ocupa dos filas y sin esto se
@@ -421,6 +462,14 @@ defineExpose({ recargar });
     gap: var(--blubathon-esp-20);
     padding: calc(var(--blubathon-esp-20) + var(--blubathon-cupula)) 0
       calc(var(--blubathon-esp-20) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* El mismo hueco que en móvil, sobre el acolchado de la retícula: el aviso
+     flota en la misma esquina y tapa lo mismo. */
+  .pantalla__contenido--con-aviso {
+    padding-bottom: calc(
+      var(--blubathon-esp-20) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .pantalla__zona--recomendacion {
@@ -437,10 +486,6 @@ defineExpose({ recargar });
 
   .pantalla__zona--resultado {
     grid-area: resultado;
-  }
-
-  .pantalla__zona--pendiente {
-    grid-area: pendiente;
   }
 
   /* Carga y error ocupan el sitio de todo lo demás, que es exactamente lo que

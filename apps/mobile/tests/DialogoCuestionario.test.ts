@@ -377,6 +377,47 @@ describe("DialogoCuestionario", () => {
     expect(wrapper.find(".ayuda__globo").exists()).toBe(false);
   });
 
+  it("no ofrece 'No sé' como salida de ninguna pregunta", async () => {
+    const wrapper = abrir();
+    await flushPromises();
+
+    expect(wrapper.find(".no-se").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("No sé");
+  });
+
+  it("no pregunta las conductas ni las notas, aunque el plan las devuelva", async () => {
+    // El plan del servidor sí trae los dos campos: se filtran en la interfaz,
+    // no en la red, y por eso el escenario los pone explícitamente.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (entrada: RequestInfo | URL) => {
+        const url = String(entrada);
+        return url.endsWith("/form-plan")
+          ? responder({
+              ...PLAN,
+              questions: [
+                ...PLAN.questions,
+                { field_code: "behavior_tags", highlighted: false, reason: "canonical_order", voi_nats: null },
+                { field_code: "notes", highlighted: false, reason: "canonical_order", voi_nats: null },
+              ],
+            })
+          : responder(ENVIO);
+      }),
+    );
+
+    const wrapper = abrir();
+    await flushPromises();
+
+    // Las tres del plan caben en un solo paso: los dos campos filtrados no
+    // dejan una segunda página vacía detrás.
+    expect(camposVisibles(wrapper)).toEqual([
+      "sleep_quality",
+      "sleep_hours",
+      "activity_participation",
+    ]);
+    expect(wrapper.text()).toContain("Paso 1 de 1");
+  });
+
   it("sin plan sigue preguntando el catálogo de casa entero", async () => {
     vi.stubGlobal(
       "fetch",
@@ -390,10 +431,11 @@ describe("DialogoCuestionario", () => {
 
     expect(wrapper.text()).toContain("Se preguntan todos los campos");
 
-    // Los 18 campos de casa —el catálogo entero menos `attendance_status`—
-    // siguen preguntándose todos: repartidos en 6 pasos, ninguno de más y
-    // ninguno de menos. Es lo que impide que paginar pierda una pregunta por el
-    // camino cuando el contrato añada un campo nuevo.
+    // Los 16 campos de casa —el catálogo entero menos `attendance_status`, que
+    // no es de casa, y menos `behavior_tags` y `notes`, que ya no se
+    // preguntan— siguen preguntándose todos: repartidos en 6 pasos, ninguno de
+    // más y ninguno de menos. Es lo que impide que paginar pierda una pregunta
+    // por el camino cuando el contrato añada un campo nuevo.
     expect(wrapper.text()).toContain("Paso 1 de 6");
 
     const vistos: (string | undefined)[] = [...camposVisibles(wrapper)];
@@ -402,8 +444,10 @@ describe("DialogoCuestionario", () => {
       vistos.push(...camposVisibles(wrapper));
     }
 
-    expect(vistos).toHaveLength(18);
-    expect(new Set(vistos).size).toBe(18);
+    expect(vistos).toHaveLength(16);
+    expect(new Set(vistos).size).toBe(16);
+    expect(vistos).not.toContain("behavior_tags");
+    expect(vistos).not.toContain("notes");
 
     // Y en el último no se puede seguir: no hay un paso 7 vacío.
     const pasos = wrapper.findAll(".paginador__paso");

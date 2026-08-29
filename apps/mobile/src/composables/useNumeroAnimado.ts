@@ -10,6 +10,11 @@
  * - **Arranca en el valor anterior, no en cero.** Al pasar de un día con 18 a
  *   uno con 22, la cifra recorre esos cuatro puntos. Volver a cero para subir
  *   otra vez se leería como si el dato se hubiera perdido y hubiera vuelto.
+ *
+ *   La excepción es `reiniciar`, y es una excepción por lo mismo: después de
+ *   enviar el cuestionario la cifra no está corrigiéndose, se está calculando
+ *   otra vez con un día más, y recorrerla entera desde cero es lo que hace que
+ *   se lea como el resultado de lo que se acaba de contestar.
  * - **Un solo bucle.** Cambiar de valor a media animación no lanza un segundo
  *   `rAF` que compita con el primero por el mismo `ref`.
  * - **Respeta `prefers-reduced-motion`.** Quien pide menos movimiento recibe la
@@ -40,6 +45,17 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
   const mostrado = ref<number | null>(destino.value);
   let cuadro: number | null = null;
 
+  /**
+   * Si en este entorno no hay animación que hacer: sin `rAF` —una prueba, un
+   * render de servidor—, sin duración, o porque se pidió menos movimiento.
+   * Entonces la cifra se pone y ya está.
+   */
+  function sinAnimacion(): boolean {
+    return (
+      duracion <= 0 || typeof requestAnimationFrame !== "function" || prefiereMenosMovimiento()
+    );
+  }
+
   function parar(): void {
     if (cuadro !== null && typeof cancelAnimationFrame === "function") {
       cancelAnimationFrame(cuadro);
@@ -51,14 +67,7 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
     parar();
 
     const desde = mostrado.value;
-    if (
-      hasta === null ||
-      desde === null ||
-      desde === hasta ||
-      duracion <= 0 ||
-      typeof requestAnimationFrame !== "function" ||
-      prefiereMenosMovimiento()
-    ) {
+    if (hasta === null || desde === null || desde === hasta || sinAnimacion()) {
       mostrado.value = hasta;
       return;
     }
@@ -75,8 +84,27 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
     cuadro = requestAnimationFrame(paso);
   }
 
+  /**
+   * Vuelve a contar, desde cero hasta el valor que haya ahora.
+   *
+   * No espera a que el valor cambie, y por eso hace falta: al volver del
+   * cuestionario la estimación puede haber salido igual que estaba, y entonces
+   * `watch` no dispararía nada y no habría animación ninguna. Lo que se pide
+   * aquí no es "anima el cambio" sino "recorre la cifra entera".
+   *
+   * Con la animación desactivada no hace nada en absoluto: poner un cero para
+   * borrarlo en el mismo fotograma sería un parpadeo, y quien pidió menos
+   * movimiento pidió justo lo contrario de eso. La cifra ya está puesta.
+   */
+  function reiniciar(): void {
+    const hasta = destino.value;
+    if (hasta === null || sinAnimacion()) return;
+    mostrado.value = 0;
+    animar(hasta);
+  }
+
   watch(destino, animar);
   onScopeDispose(parar);
 
-  return { mostrado: readonly(mostrado) };
+  return { mostrado: readonly(mostrado), reiniciar };
 }

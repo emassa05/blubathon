@@ -38,7 +38,6 @@ const props = withDefaults(
 
 const emitir = defineEmits<{
   responder: [valor: ValorCampo, interaccion: Interaccion];
-  noSabe: [];
 }>();
 
 const idControl = useId();
@@ -50,7 +49,6 @@ const etiqueta = computed(() => etiquetaCampo(campo.value));
 const enunciado = computed(() => preguntaCampo(campo.value));
 
 const valor = computed<ValorCampo | undefined>(() => props.borrador?.valor);
-const noSabe = computed(() => props.borrador?.interaccion === "unknown");
 const contestada = computed(() => props.borrador !== undefined);
 
 /**
@@ -280,21 +278,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
         <IconoMas class="numero__glifo" />
       </button>
     </div>
-
-    <div class="campo__cierre">
-      <!-- No es una opción más: es la salida de la pregunta. Por eso no lleva la
-           fila entera con su marca, sino una pastilla suelta y más pequeña. -->
-      <button
-        type="button"
-        class="no-se"
-        :class="{ 'no-se--activo': noSabe }"
-        :aria-pressed="noSabe"
-        @click="emitir('noSabe')"
-      >
-        {{ BLUBATHON_TEXTS_ES.unknownAnswerEs }}
-      </button>
-      <p v-if="noSabe" class="campo__ayuda">{{ BLUBATHON_TEXTS_ES.unknownAnswerHintEs }}</p>
-    </div>
   </fieldset>
 </template>
 
@@ -352,31 +335,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
   display: grid;
   gap: var(--blubathon-esp-8);
   margin-top: var(--blubathon-esp-32);
-}
-
-/* La salida de la pregunta, no una respuesta: pastilla suelta, apagada y del
-   ancho de su texto. Al marcarse toma el mismo verde que lo elegido, porque
-   marcado sí es una respuesta —viaja como `unknown`. */
-.no-se {
-  min-height: var(--blubathon-toque);
-  padding: var(--blubathon-esp-10) var(--blubathon-esp-18);
-  font-size: var(--blubathon-fs-13);
-  font-weight: 600;
-  color: var(--blubathon-gris-texto);
-  background: var(--blubathon-opcion-fondo);
-  border-radius: var(--blubathon-radio-pastilla);
-}
-
-.no-se:focus-visible {
-  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
-  outline-offset: var(--blubathon-foco-offset);
-}
-
-.no-se--activo {
-  font-weight: 700;
-  color: var(--blubathon-opcion-texto-fuerte);
-  background: var(--blubathon-opcion-elegida-fondo);
-  box-shadow: var(--blubathon-elev-1);
 }
 
 .escala {
@@ -549,15 +507,5 @@ const tono = computed<"eleccion" | "repaso">(() =>
 /* Solo su sitio: la pastilla la pone `BotonAccion`, que es la de todos. */
 .sugerencia__usar {
   margin-top: var(--blubathon-esp-10);
-}
-
-.campo__cierre {
-  margin-top: var(--blubathon-esp-10);
-}
-
-.campo__ayuda {
-  margin-top: var(--blubathon-esp-6);
-  font-size: var(--blubathon-fs-11);
-  color: var(--blubathon-gris-texto);
 }
 </style>

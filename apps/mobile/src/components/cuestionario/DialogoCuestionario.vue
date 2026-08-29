@@ -311,7 +311,6 @@ async function enviar(): Promise<void> {
           @responder="
             (valor, interaccion) => cuestionario.responder(pregunta.field_code, valor, interaccion)
           "
-          @no-sabe="cuestionario.noSabe(pregunta.field_code)"
         />
       </section>
     </template>

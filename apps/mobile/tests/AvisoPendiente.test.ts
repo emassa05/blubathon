@@ -8,7 +8,9 @@ describe("AvisoPendiente", () => {
     const wrapper = mount(AvisoPendiente, { props: { dia: "martes 25" } });
 
     expect(wrapper.get(".aviso__etiqueta").text()).toBe("Pendiente");
-    expect(wrapper.get(".aviso__titulo").text()).toBe("Tienes un formulario este día");
+    expect(wrapper.get(".aviso__titulo").text()).toBe(
+      "Hoy no has completado el cuestionario diario",
+    );
   });
 
   it("el CTA nombra el día pendiente y emite abrirFormulario", async () => {
@@ -21,11 +23,11 @@ describe("AvisoPendiente", () => {
     expect(wrapper.emitted("abrirFormulario")).toHaveLength(1);
   });
 
-  it("por defecto pulsa durante 5 segundos", () => {
+  it("por defecto salta durante 5 segundos", () => {
     const wrapper = mount(AvisoPendiente, { props: { dia: "martes 25" } });
 
     expect(wrapper.classes()).toContain("aviso--animado");
-    expect(wrapper.classes()).toContain("aviso--pulso");
+    expect(wrapper.classes()).toContain("aviso--flotante");
     expect(wrapper.attributes("style")).toContain("--blubathon-dur: 5s");
   });
 
@@ -42,6 +44,6 @@ describe("AvisoPendiente", () => {
     const wrapper = mount(AvisoPendiente, { props: { dia: "martes 25", animar: false } });
 
     expect(wrapper.classes()).not.toContain("aviso--animado");
-    expect(wrapper.classes()).not.toContain("aviso--pulso");
+    expect(wrapper.classes()).not.toContain("aviso--flotante");
   });
 });
