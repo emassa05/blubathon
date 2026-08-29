@@ -166,6 +166,8 @@
   --blubathon-icono-16: 16px;
   --blubathon-icono-26: 26px;
   --blubathon-punto: 9px;
+  /* Disco de la inicial. Quien lo use puede bajarlo en su propio ámbito. */
+  --blubathon-avatar: 34px;
 
   /* Panel del terapeuta.
    *

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AvatarNino from "@/components/base/AvatarNino.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import { CLASE_BANDA, bandaRiesgo } from "@/theme/riesgo";
 import type { FichaNino } from "@/types/terapeuta";
@@ -61,7 +62,7 @@ function descripcion(ficha: FichaNino): string {
           :aria-label="descripcion(ficha)"
           @click="emitir('seleccionar', ficha.id)"
         >
-          <span class="fila__punto" aria-hidden="true"></span>
+          <AvatarNino class="fila__avatar" :etiqueta="ficha.etiqueta" :semilla="ficha.id" />
 
           <span class="fila__cuerpo">
             <span class="fila__nombre">{{ ficha.etiqueta }}</span>
@@ -148,20 +149,10 @@ function descripcion(ficha: FichaNino): string {
   background: var(--blubathon-fila-activa);
 }
 
-/*
- * El punto lleva el color de la banda. Es lo único de la fila que lo lleva: la
- * fila entera teñida convertiría la columna en un semáforo de seis luces donde
- * ninguna destaca, y el color aquí tiene que servir para comparar de un vistazo.
- *
- * Nunca va solo: la cifra de la derecha dice lo mismo escrito, así que quien no
- * distingue los tonos no pierde el dato.
- */
-.fila__punto {
-  flex: none;
-  width: var(--blubathon-punto);
-  height: var(--blubathon-punto);
-  background: var(--blubathon-onda-3, var(--blubathon-punto-inactivo));
-  border-radius: 50%;
+/* El disco de la inicial es identidad y no estado: el mismo tono aquí y en la
+   cola de revisión, para reconocer al niño saltando de una columna a otra. */
+.fila__avatar {
+  align-self: center;
 }
 
 .fila__cuerpo {
@@ -204,12 +195,20 @@ function descripcion(ficha: FichaNino): string {
   height: var(--blubathon-icono-12);
 }
 
+/*
+ * La cifra lleva el color de la banda, que la fila hereda de su clase. Es lo
+ * único de la fila que lo lleva: la fila entera teñida convertiría la columna
+ * en un semáforo de seis luces donde ninguna destaca.
+ *
+ * El color nunca va solo, y aquí menos que en ningún sitio: el dato es el
+ * número, así que quien no distingue los tonos no pierde nada.
+ */
 .fila__riesgo {
   flex: none;
   min-width: 3ch;
   font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  color: var(--blubathon-marca-texto);
+  color: var(--blubathon-texto-fuerte, var(--blubathon-marca-texto));
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
