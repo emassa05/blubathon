@@ -125,6 +125,10 @@ describe("evento de desregulación", () => {
       expect(tarjeta.text()).toContain("¿Ocurrió una desregulación?");
       expect(tarjeta.text()).not.toContain("Necesitó apoyo de una persona");
       expect(tarjeta.text()).not.toContain("para responder");
+      // La cara hace el trabajo que hacía el sobretítulo: separar esta tarjeta
+      // de las que solo informan. Con las dos, el rótulo sobraba.
+      expect(tarjeta.find(".resultado__cara").exists()).toBe(true);
+      expect(tarjeta.text()).not.toContain("Resultado pendiente");
       expect(wrapper.find(".resultado__boton--si").exists()).toBe(true);
       expect(wrapper.find(".resultado__boton--no").exists()).toBe(true);
     });

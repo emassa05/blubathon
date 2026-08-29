@@ -5,7 +5,7 @@ import type { OutcomeRequestView } from "@/api/contrato";
 import BotonAccion from "@/components/base/BotonAccion.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
-import IconoRombo from "@/components/icons/IconoRombo.vue";
+import IconMoodSad from "@/components/icons/mood/IconMoodSad.vue";
 import { ventanaEnPalabras } from "@/dominio/ventana";
 
 const props = defineProps<{
@@ -56,18 +56,16 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
 <template>
   <section class="resultado" :aria-labelledby="`${idTitulo} ${idVentana}`">
     <!--
-      La etiqueta lleva insignia y la insignia late. Es lo que la separa de las
-      tarjetas que solo informan: hasta que esta pregunta no se contesta, el
-      baseline se queda sin resultados verificados y el modelo no da cifra. Sin
-      esto era un rótulo naranja de 11px encima de un titular, indistinguible
-      de cualquier otro sobretítulo de la pantalla.
+      La cara, a caballo del borde de arriba: mitad dentro y mitad fuera. Es lo
+      que separa esta tarjeta de las que solo informan —hasta que la pregunta no
+      se contesta, el baseline se queda sin resultados verificados y el modelo
+      no da cifra— y hace ese trabajo mejor que el sobretítulo que había antes,
+      que era un rótulo naranja de 11px indistinguible de cualquier otro.
+
+      Es decorativa: lo que hay que leer es la pregunta, que es el titular.
     -->
-    <p class="resultado__etiqueta">
-      <span class="resultado__insignia" aria-hidden="true">
-        <IconoRombo class="resultado__rombo" />
-      </span>
-      Resultado pendiente
-    </p>
+    <IconMoodSad class="resultado__cara" />
+
     <h2 :id="idTitulo" class="resultado__titulo">{{ PREGUNTA }}</h2>
     <p :id="idVentana" class="resultado__ventana">{{ ventana }}</p>
 
@@ -112,7 +110,18 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
  * aquí con más superficie porque esto sí tiene plazo.
  */
 .resultado {
+  /* La cara y su collar. En un sitio, porque de aquí salen tres cuentas: el
+     hueco de arriba de la tarjeta, cuánto sube la cara y cuánto mide. */
+  --resultado-cara: 64px;
+  --resultado-collar: 5px;
+
+  /* El hueco para la mitad que sobresale. Va en el margen y no en el acolchado
+     porque la cara tiene que salirse de la tarjeta, no caber dentro: sin esto
+     se subiría encima de lo que haya justo antes —la otra pregunta, o la cúpula
+     del panel. */
+  margin-top: calc(var(--resultado-cara) / 2 + var(--resultado-collar));
   padding: var(--blubathon-esp-18) var(--blubathon-esp-16) var(--blubathon-esp-16);
+  text-align: center;
   background:
     radial-gradient(120% 140% at 0% 0%, var(--blubathon-aviso-fondo), transparent 58%),
     var(--blubathon-superficie);
@@ -121,60 +130,26 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
   box-shadow: var(--blubathon-elev-2);
 }
 
-.resultado__etiqueta {
-  display: flex;
-  align-items: center;
-  gap: var(--blubathon-esp-8);
-  font-size: var(--blubathon-fs-12);
-  font-weight: 700;
-  letter-spacing: var(--blubathon-track-012);
-  text-transform: uppercase;
-  color: var(--blubathon-aviso-etiqueta);
-}
-
 /*
- * La insignia late despacio: dos segundos por ciclo y solo la opacidad, que no
- * repinta ni mueve nada de alrededor. Es lo que distingue "pendiente" de
- * "informativo" sin recurrir a un color más fuerte ni a más superficie.
+ * La cara sube hasta quedar partida por el borde: la mitad de su alto, más el
+ * acolchado de arriba de la tarjeta, que también hay que descontar.
+ *
+ * El collar es el mismo blanco de la superficie y se pinta con una sombra, que
+ * no ocupa sitio: así la cara recorta el filete naranja en vez de apoyarse
+ * encima de él, que es lo que la deja leerse como una pieza aparte y no como un
+ * icono grande dentro de la tarjeta.
  */
-.resultado__insignia {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: var(--blubathon-caja-icono);
-  height: var(--blubathon-caja-icono);
-  color: var(--blubathon-aviso-insignia);
-  background: var(--blubathon-aviso-fondo);
+.resultado__cara {
+  display: block;
+  width: var(--resultado-cara);
+  height: var(--resultado-cara);
+  margin: calc((var(--resultado-cara) / 2 + var(--blubathon-esp-18)) * -1) auto
+    var(--blubathon-esp-16);
   border-radius: 50%;
-  animation: resultado-latido 2s ease-in-out infinite;
-}
-
-.resultado__rombo {
-  width: var(--blubathon-icono-14);
-  height: var(--blubathon-icono-14);
-}
-
-@keyframes resultado-latido {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.55;
-  }
-}
-
-/* El latido es un realce, no información: sin él la tarjeta sigue diciendo todo
-   lo que dice. Quien pide menos movimiento se queda con la insignia quieta. */
-@media (prefers-reduced-motion: reduce) {
-  .resultado__insignia {
-    animation: none;
-  }
+  box-shadow: 0 0 0 var(--resultado-collar) var(--blubathon-superficie);
 }
 
 .resultado__titulo {
-  margin-top: var(--blubathon-esp-8);
   font-size: var(--blubathon-fs-17);
   font-weight: 700;
   line-height: 1.3;
