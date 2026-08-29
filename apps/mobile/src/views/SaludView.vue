@@ -45,7 +45,6 @@ const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 const {
   obligatoria,
   informativa,
-  permiteDescartar,
   error: errorResultado,
   enviando,
   responder,
@@ -154,7 +153,6 @@ defineExpose({ recargar, animarRiesgoDesdeCero });
             :solicitud="informativa"
             :enviando="enviando"
             :error="errorResultado"
-            :permite-no="permiteDescartar"
             @reportar="alReportar"
           />
 

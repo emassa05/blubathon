@@ -1,27 +1,14 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
 import type { OutcomeRequestView } from "@/api/contrato";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import IconoRombo from "@/components/icons/IconoRombo.vue";
 
-const props = withDefaults(
-  defineProps<{
-    solicitud: OutcomeRequestView;
-    enviando: boolean;
-    error: string | null;
-    /**
-     * Si "no ocurrió" puede resolver ya.
-     *
-     * Solo con la ventana de 24 h cerrada. Antes, el backend guarda el reporte
-     * y lo deja pendiente, así que el botón parecía no hacer nada: la tarjeta
-     * seguía ahí y la racha no se movía. Ver `permiteDescartar`.
-     */
-    permiteNo?: boolean;
-  }>(),
-  { permiteNo: true },
-);
+defineProps<{
+  solicitud: OutcomeRequestView;
+  enviando: boolean;
+  error: string | null;
+}>();
 
 defineEmits<{
   reportar: [valor: "yes" | "no"];
@@ -38,18 +25,6 @@ defineEmits<{
  * el reporte: aquí solo se decide cómo se enuncia en pantalla.
  */
 const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
-
-/** "el domingo a las 03:26": cuándo cierra la ventana y se puede decir que no. */
-const FORMATO_CIERRE = new Intl.DateTimeFormat("es-ES", {
-  weekday: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const cierre = computed(() => {
-  const fin = Date.parse(props.solicitud.target_end_at);
-  return Number.isNaN(fin) ? null : FORMATO_CIERRE.format(new Date(fin));
-});
 </script>
 
 <template>
@@ -80,11 +55,9 @@ const cierre = computed(() => {
         Sí, ocurrió
       </button>
 
-      <!-- Mientras la ventana siga abierta, un "no" se guarda y no resuelve:
-           el botón no se apaga, se quita, y en su sitio va cuándo se podrá
-           contestar. Un botón apagado sin decir por qué se lee como un fallo. -->
+      <!-- Las dos respuestas, siempre. Un "no" resuelve en cuanto se da: ver
+           `report_is_eligible` en el dominio del backend. -->
       <button
-        v-if="permiteNo"
         type="button"
         class="resultado__boton resultado__boton--no"
         :disabled="enviando"
@@ -94,13 +67,6 @@ const cierre = computed(() => {
         No ocurrió
       </button>
     </div>
-
-    <p v-if="!permiteNo" class="resultado__espera">
-      Para confirmar que <b>no</b> ocurrió hay que esperar a que cierre la ventana de 24 h<template
-        v-if="cierre"
-        >, el {{ cierre }}</template
-      >. Hasta entonces solo se puede reportar lo que sí pasó.
-    </p>
 
     <p v-if="error" class="resultado__error" role="alert">{{ error }}</p>
   </section>
@@ -233,15 +199,6 @@ const cierre = computed(() => {
   flex: none;
   width: var(--blubathon-icono-16);
   height: var(--blubathon-icono-16);
-}
-
-/* La explicación de por qué falta un botón. Va en gris y sin fondo: no es un
-   error ni un aviso, es cómo funciona la pregunta. */
-.resultado__espera {
-  margin-top: var(--blubathon-esp-12);
-  font-size: var(--blubathon-fs-125);
-  line-height: 1.45;
-  color: var(--blubathon-gris-texto);
 }
 
 .resultado__error {

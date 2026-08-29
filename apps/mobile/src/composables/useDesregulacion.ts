@@ -68,33 +68,12 @@ export function useDesregulacion() {
   const bloqueada = computed(() => obligatoria.value !== null);
 
   /**
-   * ¿Resolvería algo un "no ocurrió" ahora mismo?
-   *
-   * Solo con la ventana de 24 h ya cerrada. Antes de eso el backend **acepta**
-   * el reporte —201, `timing_status: "early"`— pero lo deja en `pending` y la
-   * solicitud sigue abierta: la tarjeta no se va, la racha no se mueve y no hay
-   * ningún error que enseñar. Desde fuera se ve como que el botón no hace nada,
-   * que es exactamente lo que hacía.
-   *
-   * Así que se deja de ofrecer mientras no pueda cumplir. El "sí, ocurrió" sí
-   * cuenta desde el primer momento —la ventana empieza en el propio envío—, y
-   * ese se sigue pudiendo pulsar.
-   */
-  const permiteDescartar = computed(
-    () => informativa.value !== null && ventanaCerrada(informativa.value),
-  );
-
-  /**
    * Contesta la pregunta abierta, la exija el diálogo o la enseñe la tarjeta:
    * solo hay una por persona y es la misma solicitud en los dos sitios.
    */
   async function responder(valor: "yes" | "no"): Promise<boolean> {
     const pendiente = solicitud.value;
     if (pendiente === null) return false;
-    // Última defensa: un `no` antes de tiempo se guarda y no resuelve, así que
-    // no se manda. La interfaz ya no lo ofrece —ver `permiteDescartar`—; esto
-    // es para que no lo pueda mandar nadie por otro camino.
-    if (valor === "no" && !ventanaCerrada(pendiente)) return false;
     return reportar(pendiente, valor);
   }
 
@@ -103,7 +82,6 @@ export function useDesregulacion() {
     obligatoria,
     informativa,
     bloqueada,
-    permiteDescartar,
     error,
     enviando: computed(() => enviando.value !== null),
     responder,

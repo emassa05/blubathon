@@ -152,26 +152,15 @@ describe("evento de desregulación", () => {
       // "sí, ocurrió" sea la única salida de un diálogo obligatorio.
       expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
 
-      // "Sí, ocurrió" cuenta desde el primer momento: la ventana empieza en el
-      // propio envío, así que ese sí se puede pulsar.
+      // Las dos respuestas, y ninguna condición de tiempo: el "no" resuelve en
+      // cuanto se da, así que la tarjeta no tiene nada que condicionar.
       expect(wrapper.find(".resultado__boton--si").exists()).toBe(true);
+      expect(wrapper.find(".resultado__boton--no").exists()).toBe(true);
+      expect(wrapper.get(".resultado").text()).not.toContain("El día todavía no termina");
+      expect(wrapper.get(".resultado").text()).not.toContain("para responder");
     });
 
-    it("con la ventana abierta no ofrece el 'no', que no resolvería nada", async () => {
-      servidor([solicitudFalsa(EN_CURSO)]);
-      const wrapper = await montar();
-
-      // El backend acepta ese reporte —201, `early`— y lo deja pendiente: la
-      // solicitud sigue abierta, la tarjeta no se va y la racha no se mueve.
-      // Ofrecerlo era ofrecer un botón que no hacía nada.
-      expect(wrapper.find(".resultado__boton--no").exists()).toBe(false);
-
-      // Y se dice por qué, en vez de dejar el hueco: un botón que falta sin
-      // explicación se lee igual de roto que uno que no responde.
-      expect(wrapper.get(".resultado__espera").text()).toContain("ventana de 24 h");
-    });
-
-    it("el 'no' que no resolvería no llega a salir a la red", async () => {
+    it("el 'no' con la ventana abierta se reporta y cierra la pregunta", async () => {
       servidor([solicitudFalsa(EN_CURSO)]);
       const wrapper = await montar();
 
@@ -179,10 +168,15 @@ describe("evento de desregulación", () => {
         vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/outcome-reports"))
           .length;
 
-      // La tarjeta ya no lo ofrece; esto comprueba la otra mitad, que el
-      // composable tampoco lo mandaría si alguien llegara por otro camino.
-      expect(reportes()).toBe(0);
-      expect(wrapper.find(".resultado__boton--no").exists()).toBe(false);
+      // Ya no queda provisional: el backend lo da por elegible aunque llegue
+      // antes de que cierre la ventana —ver `report_is_eligible`—, así que la
+      // solicitud deja de estar abierta y la tarjeta se va.
+      pendientes = [];
+      await wrapper.get(".resultado__boton--no").trigger("click");
+      await flushPromises();
+
+      expect(reportes()).toBe(1);
+      expect(wrapper.find(".resultado").exists()).toBe(false);
     });
 
     it("sin pregunta abierta no aparece nada", async () => {

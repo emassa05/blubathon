@@ -184,12 +184,14 @@ def compute_resolution(
         and row["timing_status"] in (TimingStatus.EARLY.value, TimingStatus.ON_TIME.value)
         and in_window(row["occurred_at"])
     ]
-    # Un `no` solo es elegible `on_time`: uno temprano queda provisional.
+    # Un `no` también resuelve temprano. Ver `report_is_eligible`: el reporte se
+    # aceptaba y se dejaba provisional, y desde fuera eso no se distingue de que
+    # el botón no haga nada. El `timing_status` sigue guardando que llegó antes.
     eligible_no = [
         row
         for row in reports
         if row["value"] == OutcomeReportValue.NO.value
-        and row["timing_status"] == TimingStatus.ON_TIME.value
+        and row["timing_status"] in (TimingStatus.EARLY.value, TimingStatus.ON_TIME.value)
     ]
 
     def first(rows: list[dict[str, Any]]) -> dict[str, Any]:
