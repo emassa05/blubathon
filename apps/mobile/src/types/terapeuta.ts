@@ -67,17 +67,13 @@ export interface TasaObservada {
  * Son cuentas, no medias. Un riesgo medio de la cartera no significaría nada
  * —cada niño tiene su propia línea base, y promediar líneas base distintas es
  * exactamente lo que el producto se niega a hacer—, así que el widget cuenta
- * cuántos hay en cada banda y cuánto trabajo queda abierto.
+ * cuántos hay en cada banda y no dice nada más.
  */
 export interface ResumenConjunto {
+  /** Tamaño de la cartera. Es el denominador de las barras, no una cifra que
+      se enseñe: el widget cuenta bandas, no carteras. */
   readonly ninos: number;
   readonly porBanda: Readonly<Record<"alto" | "medio" | "bajo" | "desconocido", number>>;
-  /** Preguntas de cierre sin contestar en toda la cartera. */
-  readonly pendientes: number;
-  /** Niños con al menos un día registrado en el historial que se leyó. */
-  readonly conRegistro: number;
-  /** Días registrados sobre días posibles, en toda la cartera, 0-1. */
-  readonly adherencia: number;
 }
 
 /* Vocabulario visible. Vive junto al tipo para que añadir un valor obligue a

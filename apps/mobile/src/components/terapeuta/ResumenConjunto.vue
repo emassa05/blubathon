@@ -31,8 +31,6 @@ const filas = computed(() =>
     parte: props.conjunto.ninos === 0 ? 0 : props.conjunto.porBanda[banda] / props.conjunto.ninos,
   })),
 );
-
-const adherencia = computed(() => `${Math.round(props.conjunto.adherencia * 100)}%`);
 </script>
 
 <template>
@@ -51,27 +49,6 @@ const adherencia = computed(() => `${Math.round(props.conjunto.adherencia * 100)
         <dd class="banda__cuenta">{{ fila.cuenta }}</dd>
         <dd class="banda__barra" aria-hidden="true">
           <span class="banda__relleno" :style="{ inlineSize: `${fila.parte * 100}%` }"></span>
-        </dd>
-      </div>
-    </dl>
-
-    <dl class="totales">
-      <div class="total">
-        <dt class="total__titulo">Niños</dt>
-        <dd class="total__valor">{{ conjunto.ninos }}</dd>
-      </div>
-      <div class="total">
-        <dt class="total__titulo">Con registro</dt>
-        <dd class="total__valor">{{ conjunto.conRegistro }}</dd>
-      </div>
-      <div class="total">
-        <dt class="total__titulo">Adherencia</dt>
-        <dd class="total__valor">{{ adherencia }}</dd>
-      </div>
-      <div class="total">
-        <dt class="total__titulo">Cierres pendientes</dt>
-        <dd class="total__valor" :class="{ 'total__valor--alerta': conjunto.pendientes > 0 }">
-          {{ conjunto.pendientes }}
         </dd>
       </div>
     </dl>
@@ -142,33 +119,5 @@ const adherencia = computed(() => `${Math.round(props.conjunto.adherencia * 100)
      nuevo entra por esta pantalla. */
   background: var(--blubathon-onda-3, var(--blubathon-punto-inactivo));
   border-radius: inherit;
-}
-
-.totales {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--blubathon-esp-12);
-  padding-top: var(--blubathon-esp-14);
-  border-top: 1px solid var(--blubathon-linea);
-}
-
-.total__titulo {
-  font-size: var(--blubathon-fs-11);
-  font-weight: 700;
-  letter-spacing: var(--blubathon-track-012);
-  text-transform: uppercase;
-  color: var(--blubathon-gris-texto);
-}
-
-.total__valor {
-  margin-top: 2px;
-  font-size: var(--blubathon-fs-17);
-  font-weight: 700;
-  color: var(--blubathon-marca-profundo);
-  font-variant-numeric: tabular-nums;
-}
-
-.total__valor--alerta {
-  color: var(--blubathon-aviso-etiqueta);
 }
 </style>
