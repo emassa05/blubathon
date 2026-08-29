@@ -148,7 +148,6 @@
 
   /* Medidas de la página y de las piezas del diseño. */
   --blubathon-ancho-max: 480px;
-  --blubathon-alto-referencia: 844px;
   /*
    * El alto tiene que contar con la cúpula: el contenido sube 44px sobre el
    * panel y le tapa el centro. Con 272 la pastilla de confianza quedaba
@@ -414,6 +413,57 @@
 }
 
 /*
+ * La superficie de lo que escribe la IA.
+ *
+ * En la aplicación del cuidador la recomendación no necesita color propio: se
+ * reconoce por dónde está —la primera tarjeta debajo del panel del riesgo— y
+ * por el azul que ya tiene toda la pantalla detrás. En el panel del terapeuta
+ * no hay nada de eso: son tres widgets blancos sobre un fondo casi blanco, y la
+ * cola de recomendaciones se distinguía de la cartera y del resumen del
+ * conjunto solo por su rótulo.
+ *
+ * El azul es el mismo de la pantalla de Salud, burbujas incluidas, y eso es lo
+ * que se está pidiendo prestado: no es un color nuevo que haya que aprenderse
+ * como "el de la IA", es la superficie sobre la que el cuidador lee exactamente
+ * estos textos al otro lado del producto.
+ *
+ * Si el sorteo del fondo no llegó a correr, esto cae en el color plano de la
+ * página y el widget se ve blanco: un fondo decorativo no puede ser lo que
+ * impida revisar una recomendación.
+ */
+:root {
+  --blubathon-ia-superficie: var(--blubathon-fondo-pagina);
+
+  /*
+   * El disco del destello. Azul, como el de la recomendación en Salud: allí lo
+   * pone la banda del día y aquí no hay banda, así que es el mismo azul de la
+   * marca un punto más cerrado, lo justo para separarse del fondo del widget
+   * (1.3:1, la misma presencia que tiene aquel sobre su tarjeta blanca).
+   */
+  --blubathon-ia-insignia: oklch(0.86 0.06 240);
+
+  /*
+   * Los textos que van directamente sobre ella, sin tarjeta blanca debajo.
+   *
+   * `gris-texto` está calculado contra blanco, donde da 4.8:1, y sobre la
+   * burbuja más oscura de las variantes se queda en 4.1:1: por debajo de AA
+   * justo en las piezas más pequeñas del widget —la regla del muestreo y los
+   * rótulos, de 11px. Este es el mismo gris azulado un escalón más oscuro,
+   * 5.1:1 en ese peor caso, y sigue estando lo bastante por debajo de
+   * `marca-texto` para que el rótulo mande sobre lo que lo acompaña.
+   */
+  --blubathon-ia-texto-suave: oklch(0.5 0.025 245);
+
+  /*
+   * El filete, que separa los dos desplazamientos de la cola. `linea` está
+   * dibujada para el blanco y sobre el azul desaparece —1.08:1—, así que aquí
+   * es un azul más cerrado, con la misma presencia que tiene aquella sobre una
+   * tarjeta.
+   */
+  --blubathon-ia-linea: oklch(0.84 0.03 240);
+}
+
+/*
  * El paso intermedio, y el único sitio donde se cambia una medida ya existente.
  *
  * Entre 480 y 900 no había nada: la aplicación seguía siendo la misma columna
@@ -459,9 +509,8 @@
  * Y el segundo corte lo excluye a propósito con su `min-height: 500px`, así que
  * hasta aquí nadie se ocupaba de él.
  *
- * Lo que cambia son tres medidas y ninguna regla de disposición: el panel es más
- * bajo, la cúpula menos profunda y el alto de referencia deja de forzar una
- * columna más alta que la ventana. La retícula, el orden de las tarjetas y el
+ * Lo que cambia son tres medidas y ninguna regla de disposición: el panel es
+ * más bajo, la cúpula menos profunda y las ondas más cortas. La retícula, el orden de las tarjetas y el
  * diseño de móvil en vertical no se tocan —a 390 px de ancho esta consulta no
  * casa nunca.
  */
@@ -470,6 +519,5 @@
     --blubathon-panel-alto: 168px;
     --blubathon-cupula: 28px;
     --blubathon-ondas-alto: 104px;
-    --blubathon-alto-referencia: 100dvh;
   }
 }

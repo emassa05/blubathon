@@ -169,10 +169,16 @@ function riesgoDe(item: RecommendationInstanceView): number | null {
   gap: var(--blubathon-esp-14);
   min-block-size: 0;
   padding: var(--blubathon-esp-18);
-  /* La tarjeta es blanca y el lavado de color vive dentro, en cada
-     recomendación: teñir también el contenedor pondría un degradado encima de
-     otro y el borde de las tarjetas dejaría de verse. */
-  background: var(--blubathon-superficie);
+  /*
+   * El azul de la pantalla de Salud, burbujas incluidas: es la superficie sobre
+   * la que el cuidador lee estos mismos textos, y aquí dice de un vistazo cuál
+   * de los tres widgets del panel es el que escribe la IA. Blanco, la cola solo
+   * se distinguía de la cartera y del resumen por su rótulo.
+   *
+   * El lavado de la banda sigue viviendo dentro, en cada recomendación, y ahora
+   * se ve mejor que antes: las tarjetas son lo único blanco del widget.
+   */
+  background: var(--blubathon-ia-superficie);
   border-radius: var(--blubathon-radio-24);
   box-shadow: var(--blubathon-elev-1);
 }
@@ -202,25 +208,33 @@ function riesgoDe(item: RecommendationInstanceView): number | null {
   place-items: center;
   width: var(--blubathon-caja-icono);
   height: var(--blubathon-caja-icono);
-  background: var(--blubathon-marca-icono-fondo);
+  /* Azulado, como el de la recomendación en la pantalla del cuidador: el disco
+     de la marca es lo que dice que esto lo escribe la IA, y en blanco se leía
+     como un icono suelto sobre el fondo. */
+  background: var(--blubathon-ia-insignia);
   border-radius: 50%;
 }
 
 .revision__destello {
   width: var(--blubathon-icono-14);
   height: var(--blubathon-icono-14);
+  /* No hereda el color del rótulo: el destello es azul sobre su disco azul,
+     como en Salud, y no un icono del mismo gris que el texto de al lado. */
+  color: var(--blubathon-marca-icono);
 }
 
 /* La regla del muestreo se dice, no se supone. Una cola que no declara que es
    una muestra se lee como el trabajo entero del día. */
 .revision__muestra {
   font-size: var(--blubathon-fs-11);
-  color: var(--blubathon-gris-texto);
+  /* Sobre el azul, no sobre blanco: `gris-texto` se queda en 4.1:1 contra la
+     burbuja más oscura y esta línea es de 11px. */
+  color: var(--blubathon-ia-texto-suave);
 }
 
 .revision__aviso {
   font-size: var(--blubathon-fs-135);
-  color: var(--blubathon-gris-texto);
+  color: var(--blubathon-ia-texto-suave);
 }
 
 .revision__cuerpo {
@@ -268,7 +282,7 @@ function riesgoDe(item: RecommendationInstanceView): number | null {
    arriba corta por la mitad parece la primera de la lista de abajo. */
 .revision--desplegada .grupo--restantes {
   padding-top: var(--blubathon-esp-14);
-  border-top: 1px solid var(--blubathon-linea);
+  border-top: 1px solid var(--blubathon-ia-linea);
 }
 
 .grupo__titulo {
@@ -276,7 +290,7 @@ function riesgoDe(item: RecommendationInstanceView): number | null {
   font-weight: 700;
   letter-spacing: var(--blubathon-track-014);
   text-transform: uppercase;
-  color: var(--blubathon-gris-texto);
+  color: var(--blubathon-ia-texto-suave);
 }
 
 /* El desplazamiento del grupo de abajo va en la lista y no en la sección, para
