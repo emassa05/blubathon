@@ -64,15 +64,16 @@
    * Lo que hay **fuera** del lienzo: la franja que asoma cuando el
    * desplazamiento rebota más allá del final de la página, y el instante en que
    * un navegador móvil esconde su barra y la ventana crece antes de que
-   * `100dvh` se entere. Se ve sobre todo al llegar al final de una pantalla
-   * larga, que es cuando se tira del final.
+   * `100dvh` se entere.
    *
-   * Es el azul en el que muere el fondo con burbujas, no el casi blanco de la
-   * página: contra el borde de abajo de las cinco variantes el salto es de
-   * 1.03:1 y no se lee como un corte. Con `fondo-final` —más claro y casi sin
-   * azul— la franja se veía como una banda recta pegada al contenido.
+   * El valor de verdad lo escribe `theme/fondo.ts` al arrancar, y es el azul en
+   * el que muere **la variante que haya salido**: cada una acaba en uno
+   * distinto, y un plano único para las cinco se ve más oscuro que unas y más
+   * claro que otras justo en el borde, que es donde se compara. Esto es lo que
+   * queda si ese script no llegó a correr, y entonces la página tampoco tiene
+   * burbujas: el mismo plano que ella.
    */
-  --blubathon-fondo-rebote: oklch(0.966 0.026 244);
+  --blubathon-fondo-rebote: var(--blubathon-fondo-final);
 
   /*
    * El fondo con burbujas. `theme/fondo.ts` sortea una variante y la escribe
@@ -202,16 +203,6 @@
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */
   --blubathon-dur: 5s;
-}
-
-/*
- * El panel del terapeuta no lleva el fondo con burbujas —su página es el color
- * plano—, así que fuera de su lienzo tampoco: si rebotara en azul, el borde
- * sería el mismo corte, solo que al revés. `main.ts` marca la raíz al arrancar,
- * que es cuando se decide el perfil y ya no cambia.
- */
-:root[data-rol="terapeuta"] {
-  --blubathon-fondo-rebote: var(--blubathon-fondo-final);
 }
 
 /* Las bandas.
