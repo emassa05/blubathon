@@ -53,8 +53,6 @@ function prefiereMenosMovimiento(): boolean {
 
 export function useMaquinaDeEscribir(inicial = "") {
   const mostrado = ref(inicial);
-  /** Mientras dura, la tarjeta enseña el cursor. Fuera de eso no hay cursor. */
-  const escribiendo = ref(false);
   let cuadro: number | null = null;
 
   function parar(): void {
@@ -62,7 +60,6 @@ export function useMaquinaDeEscribir(inicial = "") {
       cancelAnimationFrame(cuadro);
     }
     cuadro = null;
-    escribiendo.value = false;
   }
 
   /** El texto, ya puesto. Corta cualquier tecleo a medias. */
@@ -83,12 +80,11 @@ export function useMaquinaDeEscribir(inicial = "") {
     const cuanto = Math.min(texto.length * MS_POR_CARACTER, MS_MAXIMO);
     const inicio = performance.now();
     mostrado.value = "";
-    escribiendo.value = true;
 
     const paso = (ahora: number): void => {
       const avance = Math.min(1, (ahora - inicio) / cuanto);
       // `ceil` y no `round`: al primer fotograma ya hay un carácter escrito, así
-      // que el cursor nunca se queda solo delante de la nada.
+      // que el párrafo nunca se queda vacío una vuelta de reloj.
       mostrado.value = texto.slice(0, Math.ceil(texto.length * avance));
       if (avance === 1) {
         parar();
@@ -102,5 +98,5 @@ export function useMaquinaDeEscribir(inicial = "") {
 
   onScopeDispose(parar);
 
-  return { mostrado: readonly(mostrado), escribiendo: readonly(escribiendo), poner, escribir };
+  return { mostrado: readonly(mostrado), poner, escribir };
 }

@@ -32,9 +32,10 @@ describe("TarjetaRecomendacion", () => {
 
     expect(wrapper.get("h2").text()).toBe("Recomendación de hoy");
     expect(wrapper.get(".recomendacion__frase").text()).toBe(TEXTO);
-    // Montar un día ya redactado no teclea nada: no ha llegado, ya estaba.
-    expect(wrapper.find(".recomendacion__cursor").exists()).toBe(false);
+    // Montar un día ya redactado no teclea nada: no ha llegado, ya estaba, así
+    // que está entero desde el primer fotograma y no queda nada por escribir.
     expect(wrapper.get(".recomendacion__escrito").text()).toBe(TEXTO);
+    expect(wrapper.get(".recomendacion__resto").text()).toBe("");
   });
 
   it("ni el fondo ilustrado ni el destello llegan al lector de pantalla", () => {
@@ -77,17 +78,15 @@ describe("TarjetaRecomendacion", () => {
 
     await wrapper.setProps({ recomendacion: { texto: TEXTO, estado: "lista" as const } });
 
-    // Recién llegada: los renglones se van, el cursor aparece y el texto
-    // todavía no está entero.
+    // Recién llegada: los renglones se van y el texto todavía no está entero.
     expect(wrapper.find(".cargando").exists()).toBe(false);
-    expect(wrapper.find(".recomendacion__cursor").exists()).toBe(true);
     expect(wrapper.get(".recomendacion__escrito").text().length).toBeLessThan(TEXTO.length);
 
     vi.advanceTimersByTime(MS_MAXIMO);
     await nextTick();
 
     expect(wrapper.get(".recomendacion__escrito").text()).toBe(TEXTO);
-    expect(wrapper.find(".recomendacion__cursor").exists()).toBe(false);
+    expect(wrapper.get(".recomendacion__resto").text()).toBe("");
   });
 
   it("el hueco del texto está reservado desde el primer carácter", async () => {
@@ -110,9 +109,9 @@ describe("TarjetaRecomendacion", () => {
 
     await wrapper.setProps({ recomendacion: { texto: OTRO, estado: "lista" as const } });
 
-    // No llegó nada: ya estaba escrita. Sin cursor y puesta entera.
-    expect(wrapper.find(".recomendacion__cursor").exists()).toBe(false);
+    // No llegó nada: ya estaba escrita, así que se pone entera de una vez.
     expect(wrapper.get(".recomendacion__escrito").text()).toBe(OTRO);
+    expect(wrapper.get(".recomendacion__resto").text()).toBe("");
   });
 
   it("una abstención se pinta quieta: no hay nada en camino", () => {

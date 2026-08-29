@@ -27,7 +27,7 @@ const SOBRETITULO = "Recomendación de hoy";
  */
 const redactando = computed(() => props.recomendacion.estado === "pendiente");
 
-const { mostrado, escribiendo, poner, escribir } = useMaquinaDeEscribir(
+const { mostrado, poner, escribir } = useMaquinaDeEscribir(
   props.recomendacion.estado === "pendiente" ? "" : props.recomendacion.texto,
 );
 
@@ -86,7 +86,6 @@ watch(
          estado, que lo anuncia una vez y entero. -->
     <p v-if="!redactando" class="recomendacion__frase" aria-hidden="true">
       <span class="recomendacion__escrito">{{ mostrado }}</span
-      ><span v-if="escribiendo" class="recomendacion__cursor"></span
       ><span class="recomendacion__resto">{{ restante }}</span>
     </p>
 
@@ -209,32 +208,6 @@ watch(
 }
 
 /*
- * El cursor, solo mientras se escribe. Va entre lo escrito y lo que falta, así
- * que se desplaza con el texto sin ocupar ancho propio en la línea acabada.
- */
-.recomendacion__cursor {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  vertical-align: -0.14em;
-  background: currentcolor;
-  border-radius: 1px;
-  animation: recomendacion-latido 1s ease-in-out infinite;
-}
-
-@keyframes recomendacion-latido {
-  0%,
-  45% {
-    opacity: 1;
-  }
-
-  55%,
-  100% {
-    opacity: 0;
-  }
-}
-
-/*
  * Los renglones que se están escribiendo.
  *
  * Tres, de anchos distintos y el último corto, que es la forma que tiene un
@@ -287,14 +260,13 @@ watch(
 
 /*
  * Quien pide menos movimiento sigue viendo que falta algo —los renglones están
- * ahí, en gris fijo— y lo que se quita es el barrido, el giro y el parpadeo. El
- * texto no se teclea: `useMaquinaDeEscribir` lo pone entero, así que aquí no
- * queda cursor que apagar salvo el de un fotograma suelto.
+ * ahí, en gris fijo— y lo que se quita es el barrido y el giro. El texto
+ * tampoco se teclea, pero eso no se apaga desde aquí: lo decide
+ * `useMaquinaDeEscribir`, que lo pone entero de una vez.
  */
 @media (prefers-reduced-motion: reduce) {
   .recomendacion--redactando .recomendacion__insignia,
   .recomendacion--redactando .recomendacion__destello,
-  .recomendacion__cursor,
   .cargando__renglon {
     animation: none;
   }
