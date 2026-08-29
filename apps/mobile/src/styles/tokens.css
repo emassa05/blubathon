@@ -179,11 +179,12 @@
    * cifras que lleva miden lo mismo tenga la ventana el ancho que tenga, y una
    * columna elástica solo añadiría aire entre el nombre y su porcentaje.
    */
-  --blubathon-panel-ancho: 1180px;
-  --blubathon-columna-cartera: 340px;
-  /* Alto del gráfico de riesgo. El eje vertical es 0-100 fijo, así que este
-     valor decide cuánta resolución tiene un punto porcentual. */
-  --blubathon-grafico-alto: 132px;
+  --blubathon-panel-ancho: 1240px;
+  /* Lo bastante ancha para que quepa entero un nombre con su paréntesis
+     —"Niña demo 4 (cohorte real)"— sin recortarlo con puntos suspensivos. El
+     panel creció lo mismo que ella, para que la columna de la derecha no
+     pierda sitio al ensancharse esta. */
+  --blubathon-columna-cartera: 400px;
 
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */

@@ -130,50 +130,18 @@ describe("panel del terapeuta", () => {
     expect(filas[1]?.text()).toContain("5%");
   });
 
-  it("cambia el perfil al elegir otro niño", async () => {
+  it("marca la fila elegida y solo esa", async () => {
     servidor();
     const wrapper = await montar();
 
-    expect(wrapper.find("#perfil-titulo").text()).toBe("Niña demo 1");
-    await wrapper.findAll(".fila")[1]?.trigger("click");
-    expect(wrapper.find("#perfil-titulo").text()).toBe("Niño demo 2");
-  });
+    const filas = () => wrapper.findAll(".fila");
+    // La cartera abre con el primero elegido: sin nadie marcado, la columna no
+    // diría desde dónde se está mirando la pantalla.
+    expect(filas()[0]?.attributes("aria-current")).toBe("true");
 
-  it("dibuja la serie con un tramo por racha y describe el gráfico con palabras", async () => {
-    servidor();
-    const wrapper = await montar();
-
-    // Dos días seguidos con cifra son un solo trazo.
-    expect(wrapper.findAll(".grafico__linea")).toHaveLength(1);
-    // Y lo que oye quien no ve el dibujo es la conclusión, no el nombre del
-    // componente.
-    expect(wrapper.find(".grafico__lienzo").attributes("aria-label")).toContain(
-      "riesgo estimado en 2 de 2 días",
-    );
-  });
-
-  it("no une los dos lados de una abstención con una línea recta", async () => {
-    servidor({
-      [`/v1/children/${ANA}/history`]: historialFalso([
-        diaFalso({ fecha: "2026-08-25", probabilidad: 0.6 }),
-        diaFalso({ fecha: "2026-08-24", probabilidad: null }),
-        diaFalso({ fecha: "2026-08-23", probabilidad: 0.2 }),
-      ]),
-    });
-    const wrapper = await montar();
-
-    // Cero tramos —ninguna pareja de días consecutivos tiene cifra— y dos
-    // puntos sueltos. Un `polyline` único habría dibujado una pendiente sobre
-    // el día que el modelo se negó a estimar.
-    expect(wrapper.findAll(".grafico__linea")).toHaveLength(0);
-    expect(wrapper.findAll(".grafico__suelto")).toHaveLength(2);
-  });
-
-  it("se abstiene de dar tasa observada sin resultados confirmados suficientes", async () => {
-    servidor();
-    const wrapper = await montar();
-    expect(wrapper.text()).toContain("Sin base");
-    expect(wrapper.text()).toContain("Hacen falta 5 resultados confirmados");
+    await filas()[1]?.trigger("click");
+    expect(filas()[0]?.attributes("aria-current")).toBeUndefined();
+    expect(filas()[1]?.attributes("aria-current")).toBe("true");
   });
 
   it("cuenta el conjunto por bandas en vez de promediarlo", async () => {

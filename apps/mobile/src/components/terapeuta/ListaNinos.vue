@@ -90,6 +90,7 @@ function descripcion(ficha: FichaNino): string {
 .lista {
   display: flex;
   flex-direction: column;
+  min-block-size: 0;
   padding: var(--blubathon-esp-16);
   background: var(--blubathon-superficie);
   border-radius: var(--blubathon-radio-24);
@@ -110,30 +111,44 @@ function descripcion(ficha: FichaNino): string {
   color: var(--blubathon-gris-texto);
 }
 
+/*
+ * Aire entre filas y no un filete: cada niño es una pieza que se elige entera,
+ * y con la separación el bloque que se ilumina al pasar por encima coincide con
+ * lo que se va a pulsar. Un filete además chocaría con las esquinas redondas.
+ *
+ * El desplazamiento vive aquí y no en la página: la tarjeta llega hasta el
+ * borde de la ventana, así que con veinte niños lo que se mueve es la lista y
+ * el rótulo se queda donde estaba. En móvil la tarjeta no tiene altura fija, no
+ * sobra nada y este `auto` no llega a desplazar nunca.
+ */
 .lista__filas {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--blubathon-esp-6);
+  min-block-size: 0;
   margin-top: var(--blubathon-esp-12);
+  /* Sitio para el anillo de foco de la fila que se desplaza: pegado al borde
+     del contenedor quedaría cortado por la mitad. */
+  padding-right: var(--blubathon-esp-4);
+  overflow-y: auto;
   list-style: none;
-}
-
-/* Filete entre filas, no una caja por fila: la tarjeta ya es la caja, y meter
-   otra dentro dibujaría dos bordes concéntricos. */
-.lista__filas > li + li {
-  border-top: 1px solid var(--blubathon-linea);
+  overscroll-behavior: contain;
 }
 
 .fila {
   display: flex;
-  gap: var(--blubathon-esp-10);
+  gap: var(--blubathon-esp-12);
   align-items: center;
   width: 100%;
   min-height: var(--blubathon-toque);
-  padding: var(--blubathon-esp-10) var(--blubathon-esp-8);
+  padding: var(--blubathon-esp-10);
   font: inherit;
   text-align: left;
   cursor: pointer;
   background: none;
   border: 0;
-  border-radius: var(--blubathon-radio-10);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .fila:hover {

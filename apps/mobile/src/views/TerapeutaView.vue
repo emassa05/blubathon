@@ -4,7 +4,6 @@ import { onMounted, ref } from "vue";
 import { revisarRecomendacion } from "@/api/blubathon";
 import { mensajeDeError } from "@/api/cliente";
 import ListaNinos from "@/components/terapeuta/ListaNinos.vue";
-import PerfilNino from "@/components/terapeuta/PerfilNino.vue";
 import ResumenConjuntoWidget from "@/components/terapeuta/ResumenConjunto.vue";
 import RevisionRecomendacion from "@/components/terapeuta/RevisionRecomendacion.vue";
 import { useTerapeuta } from "@/estado/terapeuta";
@@ -12,10 +11,8 @@ import { useTerapeuta } from "@/estado/terapeuta";
 /**
  * El panel del terapeuta.
  *
- * Tres widgets: la cartera a la izquierda, y a la derecha la revisión de las
- * recomendaciones de hoy encima del resumen del conjunto. El perfil del niño
- * seleccionado cuelga de la columna izquierda, debajo de la lista, porque
- * pertenece a lo que se está mirando y no a lo que hay que decidir.
+ * Tres widgets: la cartera a la izquierda —quién hay y cómo va—, y a la derecha
+ * la revisión de las recomendaciones de hoy encima del resumen del conjunto.
  *
  * Por qué la revisión va arriba a la derecha y no abajo: es lo único de la
  * pantalla que **caduca**. Las recomendaciones son de hoy, y una que nadie
@@ -33,7 +30,6 @@ const {
   cargarCola,
   seleccionado,
   seleccionar,
-  ficha,
   conjunto,
 } = useTerapeuta();
 
@@ -84,8 +80,6 @@ async function decidir(id: string, decision: "approved" | "rejected"): Promise<v
         @seleccionar="seleccionar"
       />
 
-      <PerfilNino v-if="ficha" class="panel__zona--perfil" :ficha="ficha" />
-
       <RevisionRecomendacion
         class="panel__zona--revision"
         :cola="cola"
@@ -135,9 +129,9 @@ async function decidir(id: string, decision: "approved" | "rejected"): Promise<v
 }
 
 /*
- * En móvil es una columna: lista, perfil, revisión, conjunto. Ese es el orden
- * en que se necesitan, y también el orden del DOM, así que la navegación por
- * teclado y la lectura secuencial coinciden con lo que se ve.
+ * En móvil es una columna: lista, revisión, conjunto. Ese es el orden en que se
+ * necesitan, y también el orden del DOM, así que la navegación por teclado y la
+ * lectura secuencial coinciden con lo que se ve.
  */
 .panel__reticula {
   display: flex;
@@ -147,36 +141,53 @@ async function decidir(id: string, decision: "approved" | "rejected"): Promise<v
 }
 
 /*
- * Escritorio: dos brazos. A la izquierda quién es y cómo va —la cartera y el
- * perfil—; a la derecha qué hay que hacer con eso hoy —la revisión— y qué se
- * puede decir del grupo.
+ * Escritorio: dos brazos dentro de una pantalla que no se desplaza. A la
+ * izquierda quién hay y cómo va —la cartera, que ocupa las dos filas—; a la
+ * derecha qué hay que hacer con eso hoy —la revisión— y qué se puede decir del
+ * grupo.
  *
- * Las casillas se declaran enteras y no por colocación automática: el perfil
- * desaparece cuando no hay nadie seleccionado, y con `auto-flow` esa ausencia
- * subiría la revisión a la fila del perfil y la retícula cambiaría de forma.
+ * El panel mide exactamente la ventana y lo que sobra se desplaza **dentro** de
+ * cada widget, no arrastrando la página. Es lo que distingue un panel de una
+ * pantalla de lectura: aquí se compara, y comparar exige que la cartera siga a
+ * la vista mientras se recorre la cola de recomendaciones. Con la página
+ * desplazándose, bajar a la quinta recomendación dejaba fuera a los doce niños.
+ *
+ * `minmax(0, 1fr)` en la primera fila y `auto` en la segunda: el resumen del
+ * conjunto mide lo que mide —son cuatro barras y cuatro cifras, no crece— y
+ * todo lo que sobre es para la revisión.
  */
 @media (min-width: 900px) {
+  .panel {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
   .panel__reticula {
     display: grid;
+    flex: 1;
     grid-template-columns: minmax(0, var(--blubathon-columna-cartera)) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     grid-template-areas:
       "lista revision"
-      "perfil conjunto"
-      "perfil .";
-    align-items: start;
+      "lista conjunto";
+    /* Sin esto, la altura mínima de una casilla es la de su contenido y los dos
+       widgets altos empujarían la retícula por debajo del borde de la ventana. */
+    min-block-size: 0;
     gap: var(--blubathon-esp-20);
   }
 
+  /* La cartera llega hasta abajo aunque le sobre sitio: es la columna desde la
+     que se mira todo lo demás, y una tarjeta que se corta a media altura parece
+     el final de la lista y no el final de los niños. */
   .panel__zona--lista {
     grid-area: lista;
-  }
-
-  .panel__zona--perfil {
-    grid-area: perfil;
+    min-block-size: 0;
   }
 
   .panel__zona--revision {
     grid-area: revision;
+    min-block-size: 0;
   }
 
   .panel__zona--conjunto {
