@@ -336,10 +336,20 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
  *
  * `max()` con cero porque en ventana baja la cúpula es más corta que el
  * acolchado y la resta se va a negativo.
+ *
+ * Esa cuenta reserva el hueco **exacto**: deja la línea apoyada justo en el
+ * punto más profundo del arco, a cero de holgura, y el texto se lee pegado a la
+ * curva. La reserva evita que la tape, que es otra cosa que separarla de ella,
+ * así que encima va una holgura constante. Constante y no proporcional a la
+ * cúpula porque lo que se está separando es texto de un borde, y eso se mide en
+ * lo que el ojo pide, no en lo que mida el arco: en ventana baja la cúpula cae a
+ * 28 y la resta daba 2 px, donde el problema era el mismo.
  */
 .pantalla__racha {
   margin-inline: auto;
-  margin-bottom: max(0px, calc(var(--blubathon-cupula) - var(--blubathon-esp-26)));
+  margin-bottom: calc(
+    max(0px, var(--blubathon-cupula) - var(--blubathon-esp-26)) + var(--blubathon-esp-14)
+  );
 }
 
 /*
