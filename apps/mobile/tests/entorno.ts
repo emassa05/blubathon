@@ -8,3 +8,14 @@
  * exactamente lo que hace desplazarse en una pantalla que no se pinta.
  */
 Element.prototype.scrollIntoView = function scrollIntoView(): void {};
+
+/**
+ * Y por lo mismo tampoco hay `ResizeObserver`: sin disposición no hay tamaño
+ * que observar, así que nunca notificaría. El doble no llama al callback nunca,
+ * que es la verdad en jsdom: todos los elementos miden cero y no cambian.
+ */
+globalThis.ResizeObserver = class {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+};

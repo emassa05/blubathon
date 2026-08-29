@@ -724,7 +724,7 @@ export const NotTrainableReasonValues = {
 } as const;
 
 export interface NotificationEvent {
-  type: "recommendation.ready" | "recommendation.redrafted" | "feedback.recorded";
+  type: "recommendation.ready" | "recommendation.redrafted" | "feedback.recorded" | "review.recorded";
   child_id?: string | null;
   prediction_episode_id?: string | null;
   recommendation_instance_id: string;
@@ -732,6 +732,7 @@ export interface NotificationEvent {
   status?: "matched" | "abstained" | null;
   abstention_reason?: "no_indexed_match" | "draft_unavailable" | "draft_not_grounded" | null;
   rating?: "good" | "bad" | null;
+  decision?: "approved" | "rejected" | null;
   at: string;
 }
 
@@ -1094,6 +1095,30 @@ export interface RecommendationCitation {
   quote_es: string;
 }
 
+/**
+ * A professional's verdict on one drafted recommendation.
+ *
+ * `approved` and `rejected` only. `RecommendationReview` in the domain also
+ * admits substituting a human plan, deferring and declaring the item not
+ * applicable; the live surface exposes the two that a reviewer can act on
+ * without a strategy catalogue behind them, and adding a third here without
+ * the machinery to honour it would be a button that lies.
+ */
+export interface RecommendationDecisionRequest {
+  decision: "approved" | "rejected";
+  note_es?: string | null;
+}
+
+/**
+ * The review as stored. Append only: a change of mind is a new row.
+ */
+export interface RecommendationDecisionResponse {
+  decision_id: string;
+  recommendation_instance_id: string;
+  decision: "approved" | "rejected";
+  reviewed_at: string;
+}
+
 export interface RecommendationInstanceView {
   recommendation_instance_id: string;
   child_id: string;
@@ -1110,6 +1135,9 @@ export interface RecommendationInstanceView {
   abstention_reason?: "no_indexed_match" | "draft_unavailable" | "draft_not_grounded" | null;
   attempt: number;
   rating?: "good" | "bad" | null;
+  in_review_sample?: boolean;
+  review_decision?: "approved" | "rejected" | null;
+  reviewed_at?: string | null;
 }
 
 export interface RecommendationListResponse {
@@ -1139,6 +1167,21 @@ export const RetrievalModeValues = {
   HYBRID: "hybrid",
   LEXICAL_ONLY: "lexical_only",
 } as const;
+
+/**
+ * The sampled slice a professional is asked to review.
+ *
+ * The response carries the draw that produced it —denominator and policy
+ * version— because a queue that does not say it is a sample reads as the
+ * whole workload, and a reviewer would conclude the other four fifths were
+ * never drafted.
+ */
+export interface ReviewQueueResponse {
+  items?: Array<RecommendationInstanceView>;
+  sample_denominator: number;
+  sample_policy_version: string;
+  candidates: number;
+}
 
 export type Role = "caregiver" | "professional" | "clinical_reviewer" | "evidence_reviewer" | "privacy_reviewer" | "model_evaluator" | "tenant_admin" | "auditor";
 export const RoleValues = {

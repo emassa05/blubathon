@@ -143,6 +143,71 @@ def add_feedback(
     return feedback_id
 
 
+def latest_decision(
+    connection: sqlite3.Connection, recommendation_instance_id: str
+) -> sqlite3.Row | None:
+    """La decisión vigente: la última escrita, no la única que hay.
+
+    Desempata por `rowid` y no por `decision_id`. Dos decisiones pueden caer en
+    el mismo `reviewed_at` —el reloj tiene granularidad de milisegundo, y en las
+    pruebas está congelado—, y ahí un UUID v4 como desempate elige al azar: se
+    vería el rechazo que ya se corrigió. `rowid` es el orden de inserción, que
+    es exactamente el orden en que se tomaron las decisiones.
+    """
+
+    return connection.execute(
+        "SELECT * FROM recommendation_decisions WHERE recommendation_instance_id = ?"
+        " ORDER BY reviewed_at DESC, rowid DESC LIMIT 1",
+        (recommendation_instance_id,),
+    ).fetchone()
+
+
+def add_decision(
+    connection: sqlite3.Connection,
+    *,
+    recommendation_instance_id: str,
+    decision: str,
+    note_es: str | None,
+    now: str,
+) -> str:
+    decision_id = str(uuid4())
+    connection.execute(
+        "INSERT INTO recommendation_decisions(decision_id, recommendation_instance_id, decision,"
+        " reviewer_role, note_es, reviewed_at) VALUES (?, ?, ?, 'professional', ?, ?)",
+        (decision_id, recommendation_instance_id, decision, note_es, now),
+    )
+    return decision_id
+
+
+def reviewable_instances(
+    connection: sqlite3.Connection, *, tenant_id: str, limit: int
+) -> list[sqlite3.Row]:
+    """Candidatas a revisión: las que tienen borrador que mirar.
+
+    Una abstenida no entra. No hay texto que aprobar —el sistema ya decidió no
+    entregar nada— y meterla en la cola gastaría la atención del profesional en
+    confirmar un "no" que no cambia. Una `pending` tampoco: todavía se está
+    redactando.
+
+    El muestreo no se hace aquí. El store persiste; quién entra en la muestra lo
+    decide `packages.shared.domain.review`, que es puro y se puede probar sin
+    base de datos.
+    """
+
+    return list(
+        connection.execute(
+            "SELECT i.*, s.display_label AS child_label, f.local_date"
+            " FROM recommendation_instances AS i"
+            " JOIN subjects AS s ON s.subject_id = i.subject_id"
+            " JOIN prediction_episodes AS e ON e.prediction_episode_id = i.prediction_episode_id"
+            " JOIN form_sessions AS f ON f.form_session_id = e.form_session_id"
+            " WHERE i.tenant_id = ? AND i.status = 'matched'"
+            " ORDER BY i.created_at DESC LIMIT ?",
+            (tenant_id, limit),
+        ).fetchall()
+    )
+
+
 def indexed_chunk_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
     return list(
         connection.execute(

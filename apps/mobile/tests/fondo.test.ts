@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { VARIABLE_FONDO, VARIANTES, aplicarFondo, varianteAlAzar } from "@/theme/fondo";
+import {
+  VARIABLE_FONDO,
+  VARIABLE_REBOTE,
+  VARIANTES,
+  aplicarFondo,
+  varianteAlAzar,
+} from "@/theme/fondo";
 
 describe("varianteAlAzar", () => {
   it("reparte el sorteo por todas las variantes, sin salirse", () => {
@@ -30,6 +36,17 @@ describe("aplicarFondo", () => {
     expect(raiz.style.getPropertyValue(VARIABLE_FONDO)).toBe(VARIANTES[2]?.capas);
     expect(raiz.dataset.fondo).toBe(VARIANTES[2]?.id);
   });
+
+  it("escribe el plano de la misma variante, no el de otra", () => {
+    // Lo que se ve fuera del lienzo tiene que ser el final del fondo que se ve
+    // dentro: si los dos valores salen de variantes distintas, el borde de
+    // abajo de la pantalla se lee como un corte.
+    for (const variante of VARIANTES) {
+      const raiz = document.createElement("div");
+      aplicarFondo(raiz, variante);
+      expect(raiz.style.getPropertyValue(VARIABLE_REBOTE)).toBe(variante.plano);
+    }
+  });
 });
 
 describe("las variantes", () => {
@@ -55,6 +72,23 @@ describe("las variantes", () => {
         // Y muy claras: por debajo de esto dejaria de ser ambiente.
         expect(Number(luz)).toBeGreaterThanOrEqual(0.93);
       }
+    }
+  });
+
+  it("el plano de cada una es el final de su degradado, y no un color aparte", () => {
+    for (const variante of VARIANTES) {
+      const plano = variante.plano.match(/oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)/);
+      expect(plano).not.toBeNull();
+      const [, luz, croma, tono] = plano!.map(Number);
+      // El degradado base acaba entre 0.972 y 0.975 de luz, y las burbujas de
+      // abajo lo oscurecen un poco: fuera de esta franja el plano dejaria de
+      // parecer la continuacion de la pagina.
+      expect(luz!).toBeGreaterThanOrEqual(0.96);
+      expect(luz!).toBeLessThanOrEqual(0.98);
+      // Menos croma que las burbujas y dentro de la familia de la marca.
+      expect(croma!).toBeLessThanOrEqual(0.03);
+      expect(tono!).toBeGreaterThanOrEqual(200);
+      expect(tono!).toBeLessThanOrEqual(280);
     }
   });
 

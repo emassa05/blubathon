@@ -14,7 +14,7 @@
     "git diff --exit-code packages/shared/generated packages/shared/examples"
   ],
   "contract_version": "blubathon-contract-0.4.0",
-  "definition_count": 118,
+  "definition_count": 121,
   "domain_version": "0.4.0",
   "examples": [
     "invalid/form_submission.created_without_resources.invalid.json",
@@ -87,9 +87,12 @@
     "PredictionOutput",
     "PredictionOutputView",
     "QuestionPresentation",
+    "RecommendationDecisionRequest",
+    "RecommendationDecisionResponse",
     "RecommendationInstanceView",
     "RecommendationListResponse",
     "ReleaseManifest",
+    "ReviewQueueResponse",
     "RuntimeDecision",
     "RuntimeStrategyMatch",
     "ScenarioBuildResult",
@@ -106,5 +109,5 @@
     "TrainingRun",
     "VoiEstimate"
   ],
-  "schema_hash": "0b3c263b7c267a2f776d793b3e5bfde7f66c159c14168b4a72fd97d174197b5f"
+  "schema_hash": "0525c393f9d8f760d3028036f5d0e8e7f754d42bc90b05f4c6a78a5e3f2b2105"
 }

@@ -567,6 +567,13 @@ class RecommendationInstanceView(BlubathonModel):
     ) = None
     attempt: int = Field(ge=1)
     rating: Literal["good", "bad"] | None = None
+    # La revisión profesional y el rating del cuidador son dos hechos distintos
+    # y viajan en dos campos distintos. Uno dice "esto está respaldado y puede
+    # entregarse"; el otro dice "esto no me sirvió". Colapsarlos haría que un
+    # mal día de una familia se leyera como un reparo clínico.
+    in_review_sample: bool = False
+    review_decision: Literal["approved", "rejected"] | None = None
+    reviewed_at: UtcDatetime | None = None
 
     @model_validator(mode="after")
     def _status_matches_content(self) -> Self:
@@ -587,6 +594,10 @@ class RecommendationInstanceView(BlubathonModel):
                 raise ValueError("abstained states a reason")
             if self.action_text_es is not None or self.purpose_es is not None or self.citations:
                 raise ValueError("abstained carries no draft")
+        if self.status != "matched" and self.review_decision is not None:
+            raise ValueError("only a matched recommendation carries a professional review")
+        if (self.review_decision is None) != (self.reviewed_at is None):
+            raise ValueError("a review states its decision and when it was made")
         return self
 
 
@@ -618,8 +629,52 @@ class FeedbackResponse(BlubathonModel):
     attempt: int = Field(ge=1)
 
 
+class RecommendationDecisionRequest(BlubathonModel):
+    """A professional's verdict on one drafted recommendation.
+
+    `approved` and `rejected` only. `RecommendationReview` in the domain also
+    admits substituting a human plan, deferring and declaring the item not
+    applicable; the live surface exposes the two that a reviewer can act on
+    without a strategy catalogue behind them, and adding a third here without
+    the machinery to honour it would be a button that lies.
+    """
+
+    decision: Literal["approved", "rejected"]
+    note_es: SpanishText | None = None
+
+
+class RecommendationDecisionResponse(BlubathonModel):
+    """The review as stored. Append only: a change of mind is a new row."""
+
+    decision_id: UUID
+    recommendation_instance_id: UUID
+    decision: Literal["approved", "rejected"]
+    reviewed_at: UtcDatetime
+
+
+class ReviewQueueResponse(BlubathonModel):
+    """The sampled slice a professional is asked to review.
+
+    The response carries the draw that produced it —denominator and policy
+    version— because a queue that does not say it is a sample reads as the
+    whole workload, and a reviewer would conclude the other four fifths were
+    never drafted.
+    """
+
+    items: tuple[RecommendationInstanceView, ...] = ()
+    sample_denominator: int = Field(ge=1)
+    sample_policy_version: VersionLabel
+    candidates: int = Field(ge=0)
+    """Recommendations the draw ran over, sampled or not."""
+
+
 class NotificationEvent(BlubathonModel):
-    type: Literal["recommendation.ready", "recommendation.redrafted", "feedback.recorded"]
+    type: Literal[
+        "recommendation.ready",
+        "recommendation.redrafted",
+        "feedback.recorded",
+        "review.recorded",
+    ]
     child_id: UUID | None = None
     prediction_episode_id: UUID | None = None
     recommendation_instance_id: UUID
@@ -629,6 +684,7 @@ class NotificationEvent(BlubathonModel):
         Literal["no_indexed_match", "draft_unavailable", "draft_not_grounded"] | None
     ) = None
     rating: Literal["good", "bad"] | None = None
+    decision: Literal["approved", "rejected"] | None = None
     at: UtcDatetime
 
 

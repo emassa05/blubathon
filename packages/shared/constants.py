@@ -1,4 +1,4 @@
-"""The shared normative constants of C01 to C50.
+"""The shared normative constants of C01 to C51.
 
 Forbids duplicating a literal from this registry, so every module
 level name below reads its value back out of :data:`CONSTANTS` instead of
@@ -152,6 +152,16 @@ _REGISTRY: tuple[ConstantSpec, ...] = (
     _spec("C48", "GROUP_METRIC_MIN_SUBJECTS", 10, "policy"),
     _spec("C49", "GROUP_METRIC_MIN_POSITIVES", 5, "policy"),
     _spec("C50", "GROUP_METRIC_MIN_NEGATIVES", 5, "policy"),
+    _spec(
+        "C51",
+        "REVIEW_SAMPLE_DENOMINATOR",
+        5,
+        "policy",
+        note=(
+            "one live recommendation in five reaches professional review; the draw"
+            " is deterministic on the instance id, so a reload never reshuffles it"
+        ),
+    ),
 )
 
 CONSTANTS: dict[str, ConstantSpec] = {spec.constant_id: spec for spec in _REGISTRY}
@@ -222,6 +232,7 @@ EVAL_MIN_VALID_BOOTSTRAP_FRACTION: float = cast(float, _value("C47"))
 GROUP_METRIC_MIN_SUBJECTS: int = cast(int, _value("C48"))
 GROUP_METRIC_MIN_POSITIVES: int = cast(int, _value("C49"))
 GROUP_METRIC_MIN_NEGATIVES: int = cast(int, _value("C50"))
+REVIEW_SAMPLE_DENOMINATOR: int = cast(int, _value("C51"))
 
 __all__ = [
     "API_PREFIX",
@@ -274,6 +285,7 @@ __all__ = [
     "RAG_LEXICAL_TOP_K",
     "RAG_RRF_K",
     "REFERENCE_TIMEZONE",
+    "REVIEW_SAMPLE_DENOMINATOR",
     "ROBUST_Z_ANOMALY",
     "RUNTIME_LLM_CALLS",
     "SCENARIO_BUILDER_VERSION",

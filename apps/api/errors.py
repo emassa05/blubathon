@@ -22,6 +22,7 @@ ERROR_MESSAGES_ES: dict[str, str] = {
     "outcome_report_invalid_timing": "El momento declarado no cae en la ventana del objetivo.",
     "outcome_occurred_at_required": "Un reporte afirmativo necesita cuándo ocurrió.",
     "outcome_occurred_at_forbidden": "Solo un reporte afirmativo declara cuándo ocurrió.",
+    "recommendation_not_reviewable": "Esa recomendación no tiene borrador que revisar.",
     "pilot_requires_postgresql": "El modo piloto no arranca sobre SQLite.",
     "internal_error": "Ocurrió un error inesperado. El equipo quedó notificado.",
 }

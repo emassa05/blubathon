@@ -17,7 +17,8 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from packages.shared.constants import MAX_RUNTIME_STRATEGIES
+from packages.shared.canonical import content_hash
+from packages.shared.constants import MAX_RUNTIME_STRATEGIES, REVIEW_SAMPLE_DENOMINATOR
 from packages.shared.domain.base import (
     AppendOnlyModel,
     BlubathonModel,
@@ -34,6 +35,41 @@ from packages.shared.enums import (
     Role,
     RuntimeStatus,
 )
+
+REVIEW_SAMPLE_ARTIFACT = "review_sample"
+REVIEW_SAMPLE_POLICY_VERSION = "review-sample-0.4.0"
+"""Version of the draw. Changing it reshuffles the queue on purpose, and the
+old selection stays reproducible from the reviews already stored."""
+
+
+def is_in_review_sample(recommendation_instance_id: UUID) -> bool:
+    """Whether this recommendation is the one in `REVIEW_SAMPLE_DENOMINATOR`
+    that a professional is asked to look at.
+
+    Not every recommendation goes to review. A professional who has to sign off
+    on all of them signs off on none of them with attention, so the queue is a
+    sample: one in five, drawn across the whole tenant and not per child, so the
+    sample says something about the corpus and the drafting rather than about
+    one subject.
+
+    The draw is a hash of the instance id, not `random()`. A random queue would
+    be a different queue on every request: a reload would drop the item being
+    read, and two professionals looking at the same screen would see different
+    work. Hashing the id makes membership a property of the recommendation, so
+    it is stable across reloads, processes and machines, and reproducible when
+    someone asks months later why this one was reviewed and that one was not.
+
+    The id is a UUID v4, so an unkeyed digest is safe here: what `keyed_hash`
+    protects is a low entropy clinical payload, and 122 random bits are not
+    enumerable. No clinical content enters the hash.
+    """
+
+    digest = content_hash(
+        REVIEW_SAMPLE_ARTIFACT,
+        REVIEW_SAMPLE_POLICY_VERSION,
+        str(recommendation_instance_id),
+    )
+    return int(digest[:8], 16) % REVIEW_SAMPLE_DENOMINATOR == 0
 
 
 class RecommendationInstance(BlubathonModel):
