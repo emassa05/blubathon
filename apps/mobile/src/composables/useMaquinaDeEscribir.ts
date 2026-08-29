@@ -14,8 +14,8 @@
  * Dos decisiones que no son obvias:
  *
  * - **El recorrido tiene techo.** A un ritmo fijo por carácter, una
- *   recomendación de setecientos caracteres tardaría casi veinte segundos y
- *   dejaría de ser un remate para ser una espera. Con el techo, un texto corto
+ *   recomendación de setecientos caracteres tardaría casi medio minuto y
+ *   dejaría de ser un remate para ser otra espera. Con el techo, un texto corto
  *   se escribe a ritmo de máquina y uno largo cabe igual en `MS_MAXIMO`.
  * - **Escribir se pide, no se deduce.** El composable no vigila ningún `ref`:
  *   quien llama decide si este texto llega —y se escribe— o si ya estaba —y se
@@ -29,11 +29,23 @@
 
 import { onScopeDispose, readonly, ref } from "vue";
 
-/** Ritmo de tecleo mientras el texto quepa en el techo. */
-export const MS_POR_CARACTER = 16;
+/**
+ * Ritmo de tecleo mientras el texto quepa en el techo.
+ *
+ * Se ve escribir, que es el punto: a treinta caracteres por segundo la frase
+ * aparece de un tirón y lo único que queda de la animación es un parpadeo.
+ */
+export const MS_POR_CARACTER = 32;
 
-/** Y lo que dura como mucho el recorrido entero, sea cual sea el largo. */
-export const MS_MAXIMO = 2400;
+/**
+ * Y lo que dura como mucho el recorrido entero, sea cual sea el largo.
+ *
+ * Una recomendación ronda los setecientos caracteres, así que en la práctica es
+ * este número y no el de arriba el que manda en la tarjeta. Cinco segundos es
+ * lo que tarda en leerse un párrafo así: el texto termina de escribirse más o
+ * menos cuando termina de leerse, y no se espera a nada.
+ */
+export const MS_MAXIMO = 5000;
 
 function prefiereMenosMovimiento(): boolean {
   return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
