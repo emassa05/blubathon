@@ -55,7 +55,6 @@
   --blubathon-aviso-etiqueta: oklch(0.52 0.135 46);
   --blubathon-aviso-titulo: oklch(0.38 0.1 46);
   --blubathon-aviso-insignia: oklch(0.62 0.16 48);
-  --blubathon-aviso-chevron: oklch(0.55 0.09 48);
 
   /* Color de la página, por debajo y alrededor del panel. */
   --blubathon-fondo-final: oklch(0.985 0.006 245);
@@ -204,6 +203,20 @@
      se lo suma a su acolchado cuando hay aviso, para que la última tarjeta se
      pueda leer entera al final del desplazamiento. */
   --blubathon-aviso-hueco: 104px;
+
+  /*
+   * El disco del aviso, que va a caballo del extremo derecho de su pastilla:
+   * la tapa entera por ese lado y sobresale por arriba, por abajo y por fuera.
+   * Es casi el doble de alto que la pastilla —esa desproporción es lo que hace
+   * que se lea como una chapa pegada encima y no como un botón más de la fila—,
+   * y de paso es él quien pone el área táctil: la pastilla sola se queda corta.
+   *
+   * `saliente` es lo que asoma por la derecha, media anchura. Lo usan tanto la
+   * pastilla, para reservarle el hueco en su acolchado, como el propio disco,
+   * para meterse en él.
+   */
+  --blubathon-aviso-disco: 64px;
+  --blubathon-aviso-saliente: calc(var(--blubathon-aviso-disco) / 2);
 
   /* La cara de la pregunta de cierre, que va a caballo del borde de arriba de su
      tarjeta. Lo que sobresale no es solo asunto de la tarjeta: la pantalla es
