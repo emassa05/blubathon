@@ -157,14 +157,15 @@ watch(
  * Se apoya en la cúpula: la parte de abajo cae sobre el blanco, que es lo que la
  * asienta en vez de dejarla flotando en el celeste.
  *
- * Y va un plano por encima del cuerpo, que es el que dibuja ese blanco y llega
- * hasta aquí por debajo de ella. El cuerpo va en el 1 —ver `DialogoModal`—, así
- * que aquí toca el 2: sin él, lo que se desplaza le pasaría por delante en vez
- * de por detrás.
+ * Y va en el plano de arriba del todo. El cuerpo, que es el que dibuja ese
+ * blanco y llega hasta aquí por debajo de ella, va en el 1, y el filo que
+ * difumina el arco en el 2 —ver `DialogoModal`—: aquí toca el 3. Sin él, lo que
+ * se desplaza le pasaría por delante en vez de por detrás, y el difuminado le
+ * comería el borde de abajo.
  */
 .portada__cara {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   width: 84px;
   height: 84px;
   margin-top: var(--blubathon-esp-4);

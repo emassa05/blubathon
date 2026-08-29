@@ -159,6 +159,10 @@ onBeforeUnmount(() => {
           <slot name="portada" :id-titulo="idTitulo" />
         </div>
 
+        <!-- El filo del arco: lo que se desplaza no se parte en seco contra la
+             curva, se deshace en el último milímetro antes de llegar. -->
+        <span v-if="$slots.portada" class="dialogo__filo" aria-hidden="true"></span>
+
         <template v-else>
           <span
             v-if="variante === 'hoja' && cerrable"
@@ -333,6 +337,41 @@ onBeforeUnmount(() => {
  */
 .dialogo--portada .dialogo__pie {
   border-top: 0;
+}
+
+/*
+ * El filo del arco.
+ *
+ * Es el único corte que se difumina: el de arriba. Abajo el cuerpo termina
+ * contra el pie, que es una superficie con su propio canto, y ahí un renglón a
+ * medias se lee como lo que es —queda más—; contra una curva, en cambio, se lee
+ * como un fallo de pintado.
+ *
+ * Va pegado al canto y nada más. Ocupa la banda de la cúpula y se recorta con su
+ * mismo radio —así no asoma por los hombros ni toca el celeste—, pero lo que
+ * decide dónde actúa es la máscara: la misma elipse que dibuja el arco, opaca en
+ * el filo y transparente en cuanto se entra. Es una uña que sigue la curva, no
+ * una franja sobre la banda entera: lo que está dentro de la cúpula se ve nítido
+ * y solo se deshace lo que toca el corte.
+ *
+ * Y llega hasta el borde mismo. Dejar limpios los últimos píxeles —para que el
+ * desenfoque no arrastrase celeste hacia dentro— salía peor de lo que curaba: la
+ * letra volvía a recortarse nítida justo en el canto y el difuminado se leía
+ * como una franja mal puesta un poco más adentro, que es lo contrario de lo que
+ * hace falta aquí.
+ */
+.dialogo__filo {
+  position: absolute;
+  inset: auto 0 0;
+  /* Entre el cuerpo, que va en el 1, y la cara de la portada, que va en el 3:
+     difumina lo que se desplaza sin tocar lo que se apoya en la cúpula. */
+  z-index: 2;
+  height: var(--blubathon-cupula);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  mask-image: radial-gradient(50% 100% at 50% 100%, transparent 74%, #000 100%);
+  pointer-events: none;
 }
 
 /* El asa no se arrastra: dice que esto sube y baja, no que sea una página. */
