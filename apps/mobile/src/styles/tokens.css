@@ -341,6 +341,22 @@
   --blubathon-critica-alta-texto: var(--blubathon-alerta-texto);
   --blubathon-critica-media-fondo: var(--blubathon-aviso-fondo);
   --blubathon-critica-media-texto: var(--blubathon-aviso-etiqueta);
+
+  /*
+   * Confirmación. El único verde de la aplicación, y entra por un sitio muy
+   * concreto: el par de botones con los que el profesional dice si una
+   * recomendación estuvo bien o no.
+   *
+   * No puede reutilizar el azul de marca: ahí el azul ya es "la acción" y los
+   * dos botones son acciones, así que pintar el afirmativo de marca lo
+   * convertiría en el botón por defecto. Y no puede ser una banda de riesgo:
+   * "estuvo bien" no habla del riesgo del niño sino de la calidad del texto.
+   *
+   * Mismas claridades que el par de alerta, así que los contrastes son los
+   * mismos: 6.7:1 del texto sobre su fondo.
+   */
+  --blubathon-exito-fondo: oklch(0.955 0.035 152);
+  --blubathon-exito-texto: oklch(0.45 0.1 152);
 }
 
 /* Lo que llegó con el aviso obligatorio y la versión de escritorio de la
