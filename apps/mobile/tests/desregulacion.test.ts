@@ -195,6 +195,23 @@ describe("evento de desregulación", () => {
       expect(wrapper.find(".resultado").exists()).toBe(false);
     });
 
+    it("hojear a otro día no repite la pregunta", async () => {
+      // Las solicitudes son de la persona y no de la fecha: sin esto salía la
+      // misma tarjeta en todos los días y el navegador parecía no hacer nada.
+      servidor([solicitudFalsa(DE_AYER)]);
+      const wrapper = await montar();
+      expect(wrapper.find(".resultado").exists()).toBe(true);
+
+      await wrapper.get('[aria-label="Día anterior"]').trigger("click");
+      await flushPromises();
+      expect(wrapper.find(".resultado").exists()).toBe(false);
+
+      // Y al volver a hoy sigue estando: no se ha contestado.
+      await wrapper.get('[aria-label="Día siguiente"]').trigger("click");
+      await flushPromises();
+      expect(wrapper.find(".resultado").exists()).toBe(true);
+    });
+
     it("sin pregunta abierta no aparece nada", async () => {
       servidor([]);
       const wrapper = await montar();

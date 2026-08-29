@@ -24,7 +24,8 @@ const emitir = defineEmits<{
 
 // Único punto de la pantalla donde entran los datos. Los componentes reciben
 // `props` ya traducidas y no saben que existe una API.
-const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado();
+const { fechaIso, esHoy, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } =
+  useDiaSeleccionado();
 const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 
 /*
@@ -39,6 +40,21 @@ const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 const { pendientes, enviandoId, errorDe, responder, cargar: cargarResultados } = useDesregulacion();
 
 onMounted(cargarResultados);
+
+/*
+ * Y solo en hoy.
+ *
+ * Las solicitudes son de la persona y no de la fecha, así que sin esto salían
+ * las mismas en todos los días: se hojeaba hacia atrás y la tarjeta seguía
+ * ahí, idéntica, como si cada día tuviera su pregunta sin contestar.
+ *
+ * Hoy es donde se hace lo que hay que hacer. Los demás días son para mirar lo
+ * que pasó, y una tarjeta con dos botones que escriben en los datos de otro día
+ * no es mirar. Esconderla en ellos no esconde nada: lo pendiente de ayer se
+ * sigue contestando desde hoy, que es donde está junto a lo demás que queda por
+ * hacer.
+ */
+const cierresPendientes = computed(() => (esHoy.value ? pendientes.value : []));
 
 /*
  * Todas las preguntas abiertas, y desde que se abren.
@@ -162,10 +178,16 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
             Van en una caja propia porque pueden ser dos: la del envío de ayer y
             la que abrió el de hoy. En la retícula de escritorio esa caja es la
             que ocupa la casilla, y las tarjetas se apilan dentro.
+
+            Solo en hoy: son lo que queda por hacer, no parte de lo que se ve al
+            hojear días hacia atrás.
           -->
-          <div v-if="pendientes.length > 0" class="pantalla__cierres pantalla__zona--resultado">
+          <div
+            v-if="cierresPendientes.length > 0"
+            class="pantalla__cierres pantalla__zona--resultado"
+          >
             <TarjetaResultado
-              v-for="solicitud in pendientes"
+              v-for="solicitud in cierresPendientes"
               :key="solicitud.outcome_request_id"
               :solicitud="solicitud"
               :enviando="enviandoId !== null"
