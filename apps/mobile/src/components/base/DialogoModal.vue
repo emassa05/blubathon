@@ -141,24 +141,46 @@ onBeforeUnmount(() => {
     <div
       ref="contenedor"
       class="dialogo"
+      :class="{ 'dialogo--portada': !!$slots.portada }"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="idTitulo"
       tabindex="-1"
     >
-      <header class="dialogo__cabecera">
-        <span v-if="variante === 'hoja' && cerrable" class="dialogo__asa" aria-hidden="true"></span>
+      <header class="dialogo__cabecera" :class="{ 'dialogo__cabecera--portada': !!$slots.portada }">
+        <!--
+          Con portada, la cabecera **es** la portada: los rótulos se dibujan
+          dentro de ella, que es donde el diseño los pone. Por eso recibe el id
+          del título —el `role="dialog"` sigue tomando su nombre de ese `h2`, lo
+          pinte quien lo pinte— y por eso no se dibujan también aquí: se leerían
+          dos veces. El aspa se queda flotando encima, en el sitio de siempre.
+        -->
+        <div v-if="$slots.portada" class="dialogo__portada">
+          <slot name="portada" :id-titulo="idTitulo" />
+        </div>
 
-        <div class="dialogo__rotulos">
-          <!-- El "(?)" va con el sobretítulo, que es el que nombra de qué es
+        <!-- El filo del arco: lo que se desplaza no se parte en seco contra la
+             curva, se deshace en el último milímetro antes de llegar. -->
+        <span v-if="$slots.portada" class="dialogo__filo" aria-hidden="true"></span>
+
+        <template v-else>
+          <span
+            v-if="variante === 'hoja' && cerrable"
+            class="dialogo__asa"
+            aria-hidden="true"
+          ></span>
+
+          <div class="dialogo__rotulos">
+            <!-- El "(?)" va con el sobretítulo, que es el que nombra de qué es
                  el diálogo, y no con el título, que aquí es la fecha. La ayuda
                  explica el cuestionario, no el martes. -->
-          <p v-if="sobretitulo" class="dialogo__sobretitulo">
-            {{ sobretitulo }}
-            <slot name="ayuda" />
-          </p>
-          <h2 :id="idTitulo" class="dialogo__titulo">{{ titulo }}</h2>
-        </div>
+            <p v-if="sobretitulo" class="dialogo__sobretitulo">
+              {{ sobretitulo }}
+              <slot name="ayuda" />
+            </p>
+            <h2 :id="idTitulo" class="dialogo__titulo">{{ titulo }}</h2>
+          </div>
+        </template>
 
         <button
           v-if="cerrable"
@@ -232,13 +254,124 @@ onBeforeUnmount(() => {
  */
 .dialogo__cabecera {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--blubathon-esp-12);
   padding: var(--blubathon-esp-18) var(--blubathon-esp-16) var(--blubathon-esp-14);
   background: var(--blubathon-superficie);
   border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
   border-bottom: 1px solid var(--blubathon-linea);
+}
+
+/* Con portada la cabecera es la portada y nada más: el acolchado, los rótulos y
+   el fondo son suyos. */
+.dialogo__cabecera--portada {
+  padding: 0;
+  border-bottom: 0;
+}
+
+/* Las esquinas de arriba son las de la hoja, y la portada va a sangre: sin
+   recortarla aquí, su fondo asomaría por fuera del radio. */
+.dialogo__portada {
+  overflow: hidden;
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+}
+
+/*
+ * Y la hoja llega más arriba. La portada se come lo que antes era una cabecera
+ * de dos líneas, y el formulario es lo que tiene que quedarse con el alto: sin
+ * esto, añadir la cara y la fecha se pagaba en preguntas que hay que desplazar.
+ */
+.dialogo--portada {
+  max-height: 96dvh;
+  /*
+   * Y una sola superficie. Sin portada el cuerpo es el color de la página y el
+   * contenido va en tarjetas, que es lo que hace un diálogo con secciones. Con
+   * portada no hay secciones: hay una cabecera de color y debajo un formulario,
+   * así que el cuerpo es del mismo blanco que ese formulario y no se ve un
+   * segundo plano por detrás.
+   */
+  background: var(--blubathon-superficie);
+}
+
+/*
+ * Y el cuerpo emerge de la portada, no empieza donde ella acaba.
+ *
+ * Sube sobre ella con un margen negativo y se recorta con una cúpula, que es lo
+ * mismo que hace el contenido de la pantalla de Salud sobre el panel de riesgo
+ * —ver `SaludView`, `.pantalla__contenido`—. La curva son los dos radios de
+ * arriba con el eje horizontal al 50%: las dos elipses se encuentran en el
+ * centro y forman un arco continuo, sin la esquina que deja un `border-radius`
+ * normal.
+ *
+ * Lo que cambia respecto de la portada es de quién es el arco. Antes lo pintaba
+ * ella, encima de sí misma, y el cuerpo se cortaba en una recta 44px más abajo:
+ * entre la curva y el primer renglón quedaba una banda blanca vacía y el texto
+ * que se desplazaba se partía en línea recta. Ahora el arco **es el borde del
+ * cuerpo**, y como este es el contenedor que se desplaza, su radio recorta
+ * también lo que pasa por dentro: lo que sube se corta siguiendo la curva y
+ * pasa por detrás de la cara, que sube un plano para eso.
+ *
+ * El acolchado de arriba devuelve exactamente lo que se comió el margen, así
+ * que en reposo el formulario empieza donde empezaba. Y `scroll-padding` lo
+ * repite para el desplazamiento: al cambiar de bloque se llama a
+ * `scrollIntoView` —ver `DialogoCuestionario`—, y sin esto la primera pregunta
+ * se pararía debajo del arco.
+ *
+ * El `z-index` es lo que hace que se vea. La cabecera está posicionada —lleva el
+ * aspa y el asa colgadas de ella—, así que se pinta después que el cuerpo, que
+ * no lo está: sin subirlo un plano, el celeste de la portada tapaba la cúpula y
+ * el borde volvía a leerse recto. Encima del cuerpo solo queda la cara, que pide
+ * el plano siguiente.
+ */
+.dialogo--portada .dialogo__cuerpo {
+  position: relative;
+  z-index: 1;
+  padding-top: calc(var(--cuerpo-arriba) + var(--blubathon-cupula));
+  margin-top: calc(var(--blubathon-cupula) * -1);
+  background: var(--blubathon-superficie);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  scroll-padding-top: calc(var(--cuerpo-arriba) + var(--blubathon-cupula));
+}
+
+/*
+ * Y sin filete sobre el pie: el cuerpo y el pie son la misma superficie blanca,
+ * así que una raya entre los dos solo dibujaba un borde donde no hay ninguno.
+ */
+.dialogo--portada .dialogo__pie {
+  border-top: 0;
+}
+
+/*
+ * El filo del arco.
+ *
+ * Es el único corte que se difumina: el de arriba. Abajo el cuerpo termina
+ * contra el pie, que es una superficie con su propio canto, y ahí un renglón a
+ * medias se lee como lo que es —queda más—; contra una curva, en cambio, se lee
+ * como un fallo de pintado.
+ *
+ * Va pegado al canto y nada más. Ocupa la banda de la cúpula y se recorta con su
+ * mismo radio —así no asoma por los hombros ni toca el celeste—, pero lo que
+ * decide dónde actúa es la máscara: la misma elipse que dibuja el arco, opaca en
+ * el filo y transparente en cuanto se entra. Es una uña que sigue la curva, no
+ * una franja sobre la banda entera: lo que está dentro de la cúpula se ve nítido
+ * y solo se deshace lo que toca el corte.
+ *
+ * Y llega hasta el borde mismo. Dejar limpios los últimos píxeles —para que el
+ * desenfoque no arrastrase celeste hacia dentro— salía peor de lo que curaba: la
+ * letra volvía a recortarse nítida justo en el canto y el difuminado se leía
+ * como una franja mal puesta un poco más adentro, que es lo contrario de lo que
+ * hace falta aquí.
+ */
+.dialogo__filo {
+  position: absolute;
+  inset: auto 0 0;
+  /* Entre el cuerpo, que va en el 1, y la cara de la portada, que va en el 3:
+     difumina lo que se desplaza sin tocar lo que se apoya en la cúpula. */
+  z-index: 2;
+  height: var(--blubathon-cupula);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  mask-image: radial-gradient(50% 100% at 50% 100%, transparent 74%, #000 100%);
+  pointer-events: none;
 }
 
 /* El asa no se arrastra: dice que esto sube y baja, no que sea una página. */
@@ -253,9 +386,11 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
 }
 
+/* El hueco de la derecha es el del aspa, que ya no es un hermano de fila sino
+   una pieza flotante: sin él, un título largo se metería por debajo. */
 .dialogo__rotulos {
-  flex: 1;
   min-width: 0;
+  padding-right: var(--blubathon-toque);
 }
 
 .dialogo__sobretitulo {
@@ -276,14 +411,24 @@ onBeforeUnmount(() => {
 }
 
 .dialogo__cerrar {
+  position: absolute;
+  top: var(--blubathon-esp-8);
+  right: var(--blubathon-esp-10);
   display: grid;
-  flex: none;
   place-items: center;
   width: var(--blubathon-toque);
   height: var(--blubathon-toque);
-  margin: calc(var(--blubathon-esp-10) * -1) calc(var(--blubathon-esp-6) * -1) 0 0;
   color: var(--blubathon-marca-texto);
   border-radius: 50%;
+}
+
+/* Sobre la portada el aspa va encima de un color, no de blanco: sin el vidrio
+   detrás se pierde en cuanto la cara que salga sea clara. */
+.dialogo__cabecera--portada .dialogo__cerrar {
+  top: var(--blubathon-esp-10);
+  right: var(--blubathon-esp-10);
+  color: var(--blubathon-marca-profundo);
+  background: var(--blubathon-vidrio);
 }
 
 .dialogo__cerrar:hover {
@@ -301,11 +446,16 @@ onBeforeUnmount(() => {
 }
 
 .dialogo__cuerpo {
+  /* Lo que separa el contenido del borde de arriba, en una variable porque con
+     portada hay que sumarle la cúpula: así la suma se escribe una vez y sigue
+     valiendo en los puntos de corte que cambian el acolchado. */
+  --cuerpo-arriba: var(--blubathon-esp-16);
+
   flex: 1;
   /* Sin esto, un hijo de flex no baja de su alto de contenido y el diálogo
      entero crecería en vez de desplazarse por dentro. */
   min-height: 0;
-  padding: var(--blubathon-esp-16);
+  padding: var(--cuerpo-arriba) var(--blubathon-esp-16) var(--blubathon-esp-16);
   overflow-y: auto;
   /* Al llegar al final, la página de debajo no se lleva el desplazamiento. */
   overscroll-behavior: contain;
@@ -447,7 +597,9 @@ onBeforeUnmount(() => {
   }
 
   .dialogo__cuerpo {
-    padding-block: var(--blubathon-esp-10);
+    --cuerpo-arriba: var(--blubathon-esp-10);
+
+    padding-bottom: var(--blubathon-esp-10);
   }
 
   .velo--centrado {
@@ -472,13 +624,24 @@ onBeforeUnmount(() => {
     border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
   }
 
+  .dialogo__cerrar {
+    top: var(--blubathon-esp-10);
+    right: var(--blubathon-esp-18);
+  }
+
+  .dialogo__cabecera--portada .dialogo__cerrar {
+    right: var(--blubathon-esp-10);
+  }
+
   /* El asa es un gesto de móvil: en escritorio no dice nada. */
   .dialogo__asa {
     display: none;
   }
 
   .dialogo__cuerpo {
-    padding: var(--blubathon-esp-20) var(--blubathon-esp-24);
+    --cuerpo-arriba: var(--blubathon-esp-20);
+
+    padding: var(--cuerpo-arriba) var(--blubathon-esp-24);
   }
 
   .dialogo__pie {

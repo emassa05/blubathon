@@ -3,7 +3,8 @@ import { computed, ref, useId, watch } from "vue";
 
 import type { DefaultSuggestion, FieldCode, FormQuestion, ValorCampo } from "@/api/contrato";
 import { BLUBATHON_TEXTS_ES, type Interaccion } from "@/api/contrato";
-import IconoCheck from "@/components/icons/IconoCheck.vue";
+import BotonAccion from "@/components/base/BotonAccion.vue";
+import OpcionRespuesta from "@/components/base/OpcionRespuesta.vue";
 import IconoMas from "@/components/icons/IconoMas.vue";
 import IconoMenos from "@/components/icons/IconoMenos.vue";
 import {
@@ -134,28 +135,32 @@ function guardarTexto(): void {
   responder(limpio);
 }
 
-const motivoDestacada = computed(() => {
-  if (!props.pregunta.highlighted) return "";
-  return props.pregunta.reason === "staleness"
-    ? "Hace días que no se registra"
-    : props.pregunta.reason === "exploration"
-      ? "Toca revisarla hoy"
-      : "";
-});
+/*
+ * El tono de lo marcado. Mientras se contesta, verde: es lo que ha elegido quien
+ * responde. En el repaso, azul: es lo que se va a enviar por él. Se mira lo
+ * mismo que decide si la sugerencia se enseña, porque es exactamente el mismo
+ * momento —ver `mostrarSugerencia`.
+ */
+const tono = computed<"eleccion" | "repaso">(() =>
+  props.mostrarSugerencia ? "repaso" : "eleccion",
+);
 </script>
 
 <template>
   <fieldset class="campo" :data-campo="campo" :data-contestada="contestada">
-    <legend class="campo__legenda">
-      <span class="campo__titulo">{{ etiqueta }}</span>
-      <span v-if="contestada" class="campo__hecho">
-        <IconoCheck class="campo__tilde" aria-hidden="true" />
-        <span class="oculto-visual">Contestada</span>
-      </span>
-    </legend>
+    <!--
+      La pregunta y nada más.
 
-    <p :id="idPregunta" class="campo__enunciado">{{ enunciado }}</p>
-    <p v-if="motivoDestacada" class="campo__motivo">{{ motivoDestacada }}</p>
+      Antes había tres renglones por campo: el rótulo ("Calidad del sueño"), la
+      pregunta, y a veces por qué se preguntaba hoy ("Hace días que no se
+      registra"). Los tres decían lo mismo con distintas palabras y el rótulo lo
+      decía peor, así que se queda la pregunta, que es lo único que hay que leer
+      para contestar. El rótulo sigue existiendo donde hace falta: nombra cada
+      control para el lector, ahí abajo, sin ocupar pantalla.
+    -->
+    <legend class="campo__legenda">
+      <span :id="idPregunta" class="campo__pregunta">{{ enunciado }}</span>
+    </legend>
 
     <!-- La sugerencia es ayuda, no valor: se ve distinta y hay que aceptarla.
          Y solo se ve cuando se pidió revisarla —ver `mostrarSugerencia`. -->
@@ -165,44 +170,38 @@ const motivoDestacada = computed(() => {
         <b>{{ formatearValor(campo, sugerencia.value) }}</b>
       </p>
       <p class="sugerencia__ayuda">{{ BLUBATHON_TEXTS_ES.defaultSuggestionHintEs }}</p>
-      <button type="button" class="sugerencia__usar" @click="aceptarSugerencia">
+      <BotonAccion class="sugerencia__usar" @click="aceptarSugerencia">
         Usar esta respuesta
-      </button>
+      </BotonAccion>
     </div>
 
     <!-- Sí / No -->
     <div v-if="especificacion?.tipo === 'boolean'" class="opciones" role="group">
-      <button
+      <OpcionRespuesta
         v-for="opcion in [true, false]"
         :key="String(opcion)"
-        type="button"
-        class="opcion"
-        :class="{ 'opcion--activa': valor === opcion }"
-        :aria-pressed="valor === opcion"
+        :etiqueta="opcion ? 'Sí' : 'No'"
+        :marcada="valor === opcion"
+        :tono="tono"
         @click="responder(opcion)"
-      >
-        {{ opcion ? "Sí" : "No" }}
-      </button>
+      />
     </div>
 
     <!-- Una de varias -->
     <div v-else-if="especificacion?.tipo === 'nominal'" class="opciones" role="group">
-      <button
+      <OpcionRespuesta
         v-for="opcion in opciones"
         :key="opcion.valor"
-        type="button"
-        class="opcion"
-        :class="{ 'opcion--activa': valor === opcion.valor }"
-        :aria-pressed="valor === opcion.valor"
+        :etiqueta="opcion.etiqueta"
+        :marcada="valor === opcion.valor"
+        :tono="tono"
         @click="responder(opcion.valor)"
-      >
-        {{ opcion.etiqueta }}
-      </button>
+      />
     </div>
 
     <!-- Escala de 1 a 5. Las anclas son del contrato y no se reescriben. -->
     <div v-else-if="especificacion?.tipo === 'ordinal'" class="escala">
-      <div class="escala__puntos" role="group">
+      <div class="escala__puntos" :class="`escala__puntos--${tono}`" role="group">
         <button
           v-for="punto in escala"
           :key="punto"
@@ -283,10 +282,12 @@ const motivoDestacada = computed(() => {
     </div>
 
     <div class="campo__cierre">
+      <!-- No es una opción más: es la salida de la pregunta. Por eso no lleva la
+           fila entera con su marca, sino una pastilla suelta y más pequeña. -->
       <button
         type="button"
-        class="opcion opcion--suave"
-        :class="{ 'opcion--activa': noSabe }"
+        class="no-se"
+        :class="{ 'no-se--activo': noSabe }"
         :aria-pressed="noSabe"
         @click="emitir('noSabe')"
       >
@@ -304,7 +305,11 @@ const motivoDestacada = computed(() => {
  * una conversación. Separa el filete, igual que en las otras listas.
  */
 .campo {
-  padding-block: var(--blubathon-esp-16);
+  /* El mismo acolchado arriba y abajo en todas: entre una pregunta y la
+     siguiente hay siempre el mismo hueco, y es mayor que el que hay dentro de
+     una —ver el margen de las respuestas—, que es lo que agrupa cada pregunta
+     con lo suyo. */
+  padding-block: var(--blubathon-esp-24);
   border: 0;
 }
 
@@ -313,103 +318,70 @@ const motivoDestacada = computed(() => {
 }
 
 .campo__legenda {
-  display: flex;
-  align-items: center;
-  gap: var(--blubathon-esp-8);
   /* `legend` en un `fieldset` sin borde: se comporta mejor como bloque normal. */
   float: left;
   width: 100%;
 }
 
-.campo__titulo {
-  font-size: var(--blubathon-fs-135);
+/* La única línea de texto del campo, y por eso se lee como un enunciado y no
+   como el rótulo de un formulario: grande, al principio de la línea y con el
+   color de los títulos. Lo que la separa de las respuestas es el margen de
+   estas —esp-32—, cuatro veces el hueco entre una respuesta y la siguiente:
+   primero se lee la pregunta, después se elige. */
+.campo__pregunta {
+  display: block;
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
+  line-height: 1.35;
   color: var(--blubathon-marca-titulo);
-}
-
-.campo__hecho {
-  display: grid;
-  place-items: center;
-  width: var(--blubathon-icono-16);
-  height: var(--blubathon-icono-16);
-  color: var(--blubathon-marca-accion);
-}
-
-.campo__tilde {
-  width: var(--blubathon-icono-12);
-  height: var(--blubathon-icono-12);
-}
-
-.campo__enunciado {
-  clear: both;
-  padding-top: var(--blubathon-esp-4);
-  font-size: var(--blubathon-fs-125);
-  color: var(--blubathon-gris-texto);
-}
-
-.campo__motivo {
-  margin-top: var(--blubathon-esp-6);
-  font-size: var(--blubathon-fs-11);
-  font-weight: 700;
-  letter-spacing: var(--blubathon-track-012);
-  text-transform: uppercase;
-  color: var(--blubathon-marca-accion);
+  text-align: start;
 }
 
 .campo__sin-catalogo {
+  clear: both;
   margin-top: var(--blubathon-esp-10);
   font-size: var(--blubathon-fs-125);
   color: var(--blubathon-gris-texto);
 }
 
+/* Una opción por renglón, no en fila: las etiquetas del contrato son frases
+   —"Interrumpido varias veces"— y en fila daban pastillas de anchos muy
+   distintos que había que leer de reojo. La opción en sí es `OpcionRespuesta`. */
 .opciones {
-  display: flex;
-  flex-wrap: wrap;
+  clear: both;
+  display: grid;
   gap: var(--blubathon-esp-8);
-  margin-top: var(--blubathon-esp-12);
+  margin-top: var(--blubathon-esp-32);
 }
 
-/*
- * Una opción es una pastilla con área táctil completa. El estado seleccionado no
- * es solo color: el borde engorda y el texto se pone en negrita, para que se
- * distinga sin depender del tono.
- */
-.opcion {
+/* La salida de la pregunta, no una respuesta: pastilla suelta, apagada y del
+   ancho de su texto. Al marcarse toma el mismo verde que lo elegido, porque
+   marcado sí es una respuesta —viaja como `unknown`. */
+.no-se {
   min-height: var(--blubathon-toque);
-  padding: var(--blubathon-esp-10) var(--blubathon-esp-16);
+  padding: var(--blubathon-esp-10) var(--blubathon-esp-18);
   font-size: var(--blubathon-fs-13);
   font-weight: 600;
-  color: var(--blubathon-marca-texto);
-  background: var(--blubathon-superficie);
-  border: 1px solid var(--blubathon-linea);
+  color: var(--blubathon-gris-texto);
+  background: var(--blubathon-opcion-fondo);
   border-radius: var(--blubathon-radio-pastilla);
 }
 
-.opcion:hover {
-  border-color: var(--blubathon-punto-activo);
-}
-
-.opcion:focus-visible {
+.no-se:focus-visible {
   outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
   outline-offset: var(--blubathon-foco-offset);
 }
 
-.opcion--activa {
+.no-se--activo {
   font-weight: 700;
-  color: var(--blubathon-marca-profundo);
-  background: var(--blubathon-marca-icono-fondo);
-  border-color: var(--blubathon-marca-accion);
-  border-width: 2px;
-}
-
-.opcion--suave {
-  font-weight: 600;
-  color: var(--blubathon-gris-texto);
-  background: none;
+  color: var(--blubathon-opcion-texto-fuerte);
+  background: var(--blubathon-opcion-elegida-fondo);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .escala {
-  margin-top: var(--blubathon-esp-12);
+  clear: both;
+  margin-top: var(--blubathon-esp-32);
 }
 
 .escala__puntos {
@@ -425,13 +397,12 @@ const motivoDestacada = computed(() => {
 .escala__punto {
   flex: 1;
   min-width: var(--blubathon-toque);
-  min-height: var(--blubathon-toque);
+  min-height: 52px;
   font-size: var(--blubathon-fs-15);
-  font-weight: 700;
-  color: var(--blubathon-marca-texto);
-  background: var(--blubathon-superficie);
-  border: 1px solid var(--blubathon-linea);
-  border-radius: var(--blubathon-radio-14);
+  font-weight: 600;
+  color: var(--blubathon-opcion-texto);
+  background: var(--blubathon-opcion-fondo);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .escala__punto:focus-visible {
@@ -439,11 +410,18 @@ const motivoDestacada = computed(() => {
   outline-offset: var(--blubathon-foco-offset);
 }
 
+/* Los mismos dos tonos que las opciones de fila, por lo mismo: verde es lo que
+   se eligió y azul lo que se va a enviar por ti. */
 .escala__punto--activo {
-  color: var(--blubathon-marca-profundo);
-  background: var(--blubathon-marca-icono-fondo);
-  border-color: var(--blubathon-marca-accion);
-  border-width: 2px;
+  font-weight: 700;
+  color: var(--blubathon-opcion-texto-fuerte);
+  background: var(--blubathon-opcion-elegida-fondo);
+  box-shadow: var(--blubathon-elev-1);
+}
+
+.escala__puntos--repaso .escala__punto--activo {
+  color: var(--blubathon-opcion-repaso-texto);
+  background: var(--blubathon-opcion-repaso-fondo);
 }
 
 .escala__ancla {
@@ -453,11 +431,15 @@ const motivoDestacada = computed(() => {
   color: var(--blubathon-marca-texto);
 }
 
+/* Lo único que se queda en el centro: la cifra con sus dos pasos a los lados es
+   un control simétrico, y arrimarlo al margen lo dejaría cojo. */
 .numero {
+  clear: both;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--blubathon-esp-10);
-  margin-top: var(--blubathon-esp-12);
+  margin-top: var(--blubathon-esp-32);
 }
 
 .numero__paso {
@@ -513,7 +495,8 @@ const motivoDestacada = computed(() => {
 }
 
 .texto {
-  margin-top: var(--blubathon-esp-12);
+  clear: both;
+  margin-top: var(--blubathon-esp-32);
 }
 
 .texto__area {
@@ -541,12 +524,14 @@ const motivoDestacada = computed(() => {
 }
 
 /* La sugerencia no puede parecer un valor ya puesto: fondo propio, borde
-   discontinuo y su acción aparte. */
+   discontinuo y su acción aparte. Azul, como lo marcado del repaso: es la misma
+   cosa contada dos veces —esto es lo que Blubathon enviaría por ti. */
 .sugerencia {
-  margin-top: var(--blubathon-esp-12);
+  clear: both;
+  margin-top: var(--blubathon-esp-32);
   padding: var(--blubathon-esp-12);
-  background: var(--blubathon-marca-icono-fondo);
-  border: 1px dashed var(--blubathon-marca-accion);
+  background: var(--blubathon-opcion-repaso-fondo);
+  border: 1px dashed var(--blubathon-opcion-repaso-texto);
   border-radius: var(--blubathon-radio-14);
 }
 
@@ -561,20 +546,9 @@ const motivoDestacada = computed(() => {
   color: var(--blubathon-marca-texto);
 }
 
+/* Solo su sitio: la pastilla la pone `BotonAccion`, que es la de todos. */
 .sugerencia__usar {
-  min-height: var(--blubathon-toque);
-  margin-top: var(--blubathon-esp-6);
-  padding-inline: var(--blubathon-esp-14);
-  font-size: var(--blubathon-fs-125);
-  font-weight: 700;
-  color: var(--blubathon-superficie);
-  background: var(--blubathon-marca-accion);
-  border-radius: var(--blubathon-radio-pastilla);
-}
-
-.sugerencia__usar:focus-visible {
-  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
-  outline-offset: var(--blubathon-foco-offset);
+  margin-top: var(--blubathon-esp-10);
 }
 
 .campo__cierre {
