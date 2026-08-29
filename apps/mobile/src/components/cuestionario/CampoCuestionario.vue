@@ -38,7 +38,6 @@ const props = withDefaults(
 
 const emitir = defineEmits<{
   responder: [valor: ValorCampo, interaccion: Interaccion];
-  noSabe: [];
 }>();
 
 const idControl = useId();
@@ -50,7 +49,6 @@ const etiqueta = computed(() => etiquetaCampo(campo.value));
 const enunciado = computed(() => preguntaCampo(campo.value));
 
 const valor = computed<ValorCampo | undefined>(() => props.borrador?.valor);
-const noSabe = computed(() => props.borrador?.interaccion === "unknown");
 const contestada = computed(() => props.borrador !== undefined);
 
 /**
@@ -114,7 +112,10 @@ function escribirNumero(evento: Event): void {
   const bruto = (evento.target as HTMLInputElement).value;
   numero.value = bruto;
   if (bruto.trim() === "") return;
-  const convertido = Number(bruto);
+  // La coma decimal es la de aquí. Con `type="number"` el navegador ya la
+  // traducía; en `text` llega tal cual y `Number("2,5")` es `NaN`, que se
+  // descartaría en silencio dejando el campo escrito y el valor sin cambiar.
+  const convertido = Number(bruto.replace(",", "."));
   if (Number.isNaN(convertido)) return;
   responder(acotar(convertido));
 }
@@ -256,14 +257,28 @@ const tono = computed<"eleccion" | "repaso">(() =>
 
       <label class="envoltorio" :for="idControl">
         <span class="oculto-visual">{{ etiqueta }}</span>
+        <!--
+          `text` y no `number`, aunque el dato lo sea.
+
+          Un `input type="number"` trae dos controles de regalo que aquí no
+          pinta nadie: las flechitas nativas dentro del propio campo, que son
+          parte del campo y no se distinguen de él, y el paso con la rueda del
+          ratón cuando está enfocado. Lo segundo es el que muerde: se enfoca el
+          campo, se sigue leyendo el formulario y al desplazar la página la
+          cifra cambia sola, unas veces uno y otras dos. Desde fuera se ve como
+          que los botones + y − suman de más o de menos.
+
+          En `text` no hay flechas ni rueda, y los dos pasos del lado son la
+          única manera de mover la cifra. `inputmode` mantiene el teclado
+          numérico en el móvil, y lo que se escriba lo sigue acotando `acotar`
+          contra el rango del catálogo, igual que antes.
+        -->
         <input
           :id="idControl"
           class="numero__campo"
-          type="number"
+          type="text"
           inputmode="decimal"
-          :min="especificacion?.minimo"
-          :max="especificacion?.maximo"
-          :step="paso"
+          autocomplete="off"
           :value="numero"
           :aria-describedby="idPregunta"
           @input="escribirNumero"
@@ -279,21 +294,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
       >
         <IconoMas class="numero__glifo" />
       </button>
-    </div>
-
-    <div class="campo__cierre">
-      <!-- No es una opción más: es la salida de la pregunta. Por eso no lleva la
-           fila entera con su marca, sino una pastilla suelta y más pequeña. -->
-      <button
-        type="button"
-        class="no-se"
-        :class="{ 'no-se--activo': noSabe }"
-        :aria-pressed="noSabe"
-        @click="emitir('noSabe')"
-      >
-        {{ BLUBATHON_TEXTS_ES.unknownAnswerEs }}
-      </button>
-      <p v-if="noSabe" class="campo__ayuda">{{ BLUBATHON_TEXTS_ES.unknownAnswerHintEs }}</p>
     </div>
   </fieldset>
 </template>
@@ -352,31 +352,6 @@ const tono = computed<"eleccion" | "repaso">(() =>
   display: grid;
   gap: var(--blubathon-esp-8);
   margin-top: var(--blubathon-esp-32);
-}
-
-/* La salida de la pregunta, no una respuesta: pastilla suelta, apagada y del
-   ancho de su texto. Al marcarse toma el mismo verde que lo elegido, porque
-   marcado sí es una respuesta —viaja como `unknown`. */
-.no-se {
-  min-height: var(--blubathon-toque);
-  padding: var(--blubathon-esp-10) var(--blubathon-esp-18);
-  font-size: var(--blubathon-fs-13);
-  font-weight: 600;
-  color: var(--blubathon-gris-texto);
-  background: var(--blubathon-opcion-fondo);
-  border-radius: var(--blubathon-radio-pastilla);
-}
-
-.no-se:focus-visible {
-  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
-  outline-offset: var(--blubathon-foco-offset);
-}
-
-.no-se--activo {
-  font-weight: 700;
-  color: var(--blubathon-opcion-texto-fuerte);
-  background: var(--blubathon-opcion-elegida-fondo);
-  box-shadow: var(--blubathon-elev-1);
 }
 
 .escala {
@@ -549,15 +524,5 @@ const tono = computed<"eleccion" | "repaso">(() =>
 /* Solo su sitio: la pastilla la pone `BotonAccion`, que es la de todos. */
 .sugerencia__usar {
   margin-top: var(--blubathon-esp-10);
-}
-
-.campo__cierre {
-  margin-top: var(--blubathon-esp-10);
-}
-
-.campo__ayuda {
-  margin-top: var(--blubathon-esp-6);
-  font-size: var(--blubathon-fs-11);
-  color: var(--blubathon-gris-texto);
 }
 </style>

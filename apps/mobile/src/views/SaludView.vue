@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
-import DialogoDesregulacion from "@/components/salud/DialogoDesregulacion.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
 import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
@@ -44,7 +43,6 @@ const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
  */
 const {
   obligatoria,
-  informativa,
   error: errorResultado,
   enviando,
   responder,
@@ -52,6 +50,47 @@ const {
 } = useDesregulacion();
 
 onMounted(cargarResultados);
+
+/*
+ * La pregunta de cierre no se ofrece hasta que el día esté registrado.
+ *
+ * La solicitud es de la persona y no de la fecha: la abre un cuestionario y
+ * sigue abierta hasta que se contesta o vence, así que la de ayer sigue viva
+ * hoy. Enseñarla nada más abrir, sobre un día en blanco, la deja sin nada con
+ * qué leerse —la tarjeta no dice de qué ventana habla— y se lee como una
+ * pregunta sobre un día que todavía no ha pasado.
+ *
+ * Así que primero se registra el día y después se cierra el anterior. Es el
+ * orden en que ocurren las dos cosas.
+ *
+ * Tiene un coste y conviene tenerlo escrito: mientras no se envíe el
+ * cuestionario, la pregunta pendiente no se ve, y su plazo corre igual. Saltarse
+ * un día puede dejarla vencida sin que nadie la haya visto, y un episodio sin
+ * resultado verificado no cuenta para el baseline.
+ */
+const diaRegistrado = computed(() => resumen.value !== null && !resumen.value.formularioPendiente);
+
+/**
+ * Una sola pregunta de cierre, en un solo sitio, y solo cuando toca.
+ *
+ * Antes había dos superficies y dos preguntas distintas encadenadas. Al enviar
+ * el cuestionario se abre el episodio de hoy, con su propia pregunta, y a la
+ * vez sigue viva la de ayer: se contestaba la de ayer en el diálogo que
+ * bloquea, y al cerrarlo aparecía la de hoy en la tarjeta. Dos preguntas
+ * idénticas palabra por palabra, una detrás de otra, que se leen como la misma
+ * preguntada dos veces.
+ *
+ * Se queda la tarjeta, que es donde se esperaba, y se le da solo la pregunta
+ * que ya se puede cerrar: `obligatoria` es la de ventana cumplida y todavía en
+ * plazo. La de hoy no entra —su ventana acaba de empezar y "¿ocurrió en las
+ * últimas 24 horas?" no significa nada sobre un día que no ha pasado—; entra
+ * mañana, cuando le toque.
+ *
+ * El diálogo que bloqueaba la pantalla se va con esto. Con el día ya
+ * registrado, lo único que hacía era ponerse delante justo al volver del
+ * formulario.
+ */
+const cierrePendiente = computed(() => (diaRegistrado.value ? obligatoria.value : null));
 
 /** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
 async function alReportar(valor: "yes" | "no"): Promise<void> {
@@ -63,8 +102,31 @@ async function alReportar(valor: "yes" | "no"): Promise<void> {
 // todavía no se sabe nada sería afirmar algo que la API no dijo.
 const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
+/*
+ * La cifra del riesgo, después de enviar el cuestionario.
+ *
+ * El envío ya la ha cambiado por el camino de siempre —`recargar` vuelve a
+ * pedir el resumen y la cabecera anima del valor viejo al nuevo—, pero eso pasa
+ * con el diálogo delante y no lo ve nadie. Al cerrarlo, la cifra ya estaría
+ * puesta.
+ *
+ * Así que se recorre otra vez, entera y desde cero, cuando se vuelve a la
+ * pantalla. No es la animación del cambio: es la de un número que se acaba de
+ * calcular con lo que se acaba de contestar, y que por eso se enseña saliendo.
+ */
+const cabecera = ref<InstanceType<typeof CabeceraRiesgo> | null>(null);
+
+function animarRiesgoDesdeCero(): void {
+  cabecera.value?.animarDesdeCero();
+}
+
+/** Al enviar: la cifra se aparca en cero mientras el diálogo tapa la pantalla. */
+function prepararRiesgo(): void {
+  cabecera.value?.prepararCuenta();
+}
+
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
-defineExpose({ recargar });
+defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
 </script>
 
 <template>
@@ -83,6 +145,7 @@ defineExpose({ recargar });
           />
 
           <CabeceraRiesgo
+            ref="cabecera"
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
             :confianza="resumen?.confianza ?? null"
@@ -99,7 +162,10 @@ defineExpose({ recargar });
         </div>
       </div>
 
-      <div class="pantalla__contenido">
+      <div
+        class="pantalla__contenido"
+        :class="{ 'pantalla__contenido--con-aviso': resumen?.formularioPendiente }"
+      >
         <!-- Carga y error ocupan el sitio de las tarjetas, no se superponen a
              ellas: el contenido de un día nunca se lee bajo el de otro. -->
         <p v-if="cargando" class="pantalla__aviso" role="status">
@@ -126,9 +192,9 @@ defineExpose({ recargar });
             desplazarse para encontrarla.
           -->
           <TarjetaResultado
-            v-if="informativa"
+            v-if="cierrePendiente"
             class="pantalla__zona--resultado"
-            :solicitud="informativa"
+            :solicitud="cierrePendiente"
             :enviando="enviando"
             :error="errorResultado"
             @reportar="alReportar"
@@ -147,28 +213,20 @@ defineExpose({ recargar });
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
           />
-
-          <AvisoPendiente
-            v-if="resumen.formularioPendiente"
-            class="pantalla__zona--pendiente"
-            :dia="etiquetaAccesible"
-            @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
-          />
         </template>
       </div>
     </div>
 
     <!--
-      El diálogo obligatorio va el último y fuera de la columna: es `fixed`, así
-      que su sitio en el DOM no decide dónde se ve, y el último es el único que
-      no obliga a leer la pantalla entera para encontrarlo.
+      El aviso del formulario pendiente flota sobre la pantalla, así que sale de
+      la columna por lo mismo que sale el diálogo: es `fixed` y su sitio en el
+      DOM ya no decide dónde se ve. Su condición no cambia —sigue apareciendo
+      cuando el día que se está mirando no tiene envío—, solo dónde se dibuja.
     -->
-    <DialogoDesregulacion
-      v-if="obligatoria"
-      :solicitud="obligatoria"
-      :enviando="enviando"
-      :error="errorResultado"
-      @responder="alReportar"
+    <AvisoPendiente
+      v-if="resumen?.formularioPendiente"
+      :dia="etiquetaAccesible"
+      @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
     />
   </main>
 </template>
@@ -319,6 +377,18 @@ defineExpose({ recargar });
 }
 
 /*
+ * Con el aviso flotando en la esquina, la última tarjeta de la columna acaba
+ * debajo de él y no hay desplazamiento que la saque: `fixed` no se mueve. El
+ * hueco se pide aquí, y solo mientras el aviso está, para que un día ya enviado
+ * no arrastre una franja vacía al final de la página.
+ */
+.pantalla__contenido--con-aviso {
+  padding-bottom: calc(
+    var(--blubathon-esp-26) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/*
  * Carga y error. Una tarjeta más del mismo sistema —misma superficie, mismo
  * radio, misma elevación— y no un bloque aparte: el sitio donde iban a estar
  * las tarjetas no cambia de aspecto según qué haya pasado con la red.
@@ -405,9 +475,11 @@ defineExpose({ recargar });
     /* La pregunta de cierre encabeza el rail por lo mismo que encabeza la
        columna en móvil: es la única con plazo. El aviso del formulario baja un
        puesto —no vence— y los últimos formularios cierran. */
+    /* Sin casilla para el aviso: dejó de ser una tarjeta y flota sobre todo
+       esto. El rail se queda con lo que sí ocupa sitio —la pregunta de cierre,
+       que es la única con plazo, y los últimos formularios. */
     grid-template-areas:
       ". recomendacion resultado   ."
-      ". factores      pendiente   ."
       ". factores      formularios .";
     align-content: start;
     /* Cada tarjeta con su alto: la de factores ocupa dos filas y sin esto se
@@ -417,6 +489,14 @@ defineExpose({ recargar });
     gap: var(--blubathon-esp-20);
     padding: calc(var(--blubathon-esp-20) + var(--blubathon-cupula)) 0
       calc(var(--blubathon-esp-20) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* El mismo hueco que en móvil, sobre el acolchado de la retícula: el aviso
+     flota en la misma esquina y tapa lo mismo. */
+  .pantalla__contenido--con-aviso {
+    padding-bottom: calc(
+      var(--blubathon-esp-20) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .pantalla__zona--recomendacion {
@@ -433,10 +513,6 @@ defineExpose({ recargar });
 
   .pantalla__zona--resultado {
     grid-area: resultado;
-  }
-
-  .pantalla__zona--pendiente {
-    grid-area: pendiente;
   }
 
   /* Carga y error ocupan el sitio de todo lo demás, que es exactamente lo que

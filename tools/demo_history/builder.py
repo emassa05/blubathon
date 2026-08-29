@@ -45,6 +45,11 @@ from packages.shared.constants import (
 #: Hora local en la que se da por contestado el cuestionario de cada día.
 HORA_DE_ENVIO = 9
 
+# Lo que se retrocede el ancla cuando la hora de envío todavía no ha llegado,
+# para que la ventana del último día sembrado quede cerrada y no enganche al
+# primer cuestionario que se envíe.
+MARGEN_VENTANA_CERRADA = timedelta(minutes=1)
+
 #: El reporte llega una hora después de cerrarse la ventana del objetivo: ya es
 #: `on_time` (que es lo que exige un `no`) y sigue lejos del vencimiento.
 HORAS_HASTA_EL_REPORTE = TARGET_HORIZON_HOURS + 1
@@ -215,6 +220,26 @@ def build_history(
         time(HORA_DE_ENVIO, 0),
         tzinfo=REFERENCE_ZONE,
     )
+
+    # Y el ancla no puede caer en el futuro.
+    #
+    # El último día sembrado es `hoy - 1`, y su ventana de 24 h acaba justo en
+    # `hoy`. Con la hora fija, eso es hoy a las 09:00: sembrar antes de esa hora
+    # deja el último episodio todavía abierto, y entonces el primer cuestionario
+    # que se envíe no abre uno nuevo —se engancha a ese, `episode_linked`— y el
+    # día se queda sin estimación propia. Es el mismo enganche que arregló el
+    # comentario de arriba, por el otro lado: aquel era la fecha y este es la
+    # hora.
+    #
+    # Sembrando de madrugada el ancla retrocede hasta un instante antes de
+    # ahora, que es lo justo para que esa ventana ya haya cerrado. La fecha
+    # local de cada día no se mueve: restar un minuto no cruza la medianoche
+    # salvo en el propio minuto de las 00:00, y ahí el día que se deja libre
+    # sigue siendo el de hoy.
+    ahora = datetime.now(REFERENCE_ZONE)
+    if hoy > ahora:
+        hoy = ahora - MARGEN_VENTANA_CERRADA
+
     sembrados: list[DiaSembrado] = []
     try:
         # De más antiguo a más reciente, para que cada episodio vea a los

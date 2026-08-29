@@ -42,6 +42,7 @@ const {
   resultado,
   borradores,
   enOrden,
+  aPreguntar,
   sugerencias,
   sugerenciasPendientes,
   contestadas,
@@ -72,10 +73,13 @@ const MENSAJE_ENVIO: Record<FormSubmissionResponse["status"], string> = {
  *
  * No hay categorías. Un bloque no significa nada —no es "el sueño", no es "la
  * comida"—, es sencillamente dónde se cortó la lista para que quepan tres
- * preguntas sin desplazar. Por eso el corte se hace sobre `enOrden` y no sobre
- * ningún reparto temático: quien decide qué se pregunta primero sigue siendo el
- * plan del servidor, y quien decide el orden del resto sigue siendo el orden
- * canónico del catálogo.
+ * preguntas sin desplazar. Por eso el corte se hace sobre `aPreguntar` y no
+ * sobre ningún reparto temático: quien decide qué se pregunta primero sigue
+ * siendo el plan del servidor, y quien decide el orden del resto sigue siendo
+ * el orden canónico del catálogo.
+ *
+ * `aPreguntar` y no `enOrden`: lo que Blubathon ya aprendió no se pregunta, y
+ * por tanto tampoco ocupa página.
  *
  * Tres, y no cuatro ni cinco, porque tres campos con su enunciado y sus
  * controles es lo que cabe en la hoja de un teléfono sin que haya que hacer
@@ -86,10 +90,10 @@ const POR_PAGINA = 3;
 
 const pagina = ref(0);
 
-const paginas = computed(() => Math.max(1, Math.ceil(enOrden.value.length / POR_PAGINA)));
+const paginas = computed(() => Math.max(1, Math.ceil(aPreguntar.value.length / POR_PAGINA)));
 
 const visibles = computed(() =>
-  enOrden.value.slice(pagina.value * POR_PAGINA, pagina.value * POR_PAGINA + POR_PAGINA),
+  aPreguntar.value.slice(pagina.value * POR_PAGINA, pagina.value * POR_PAGINA + POR_PAGINA),
 );
 
 const enPrimera = computed(() => pagina.value === 0);
@@ -118,13 +122,12 @@ async function irA(destino: number): Promise<void> {
 /* ---------------------------------------------------------------------------
  * El paso de revisión.
  *
- * Las sugerencias no se ven mientras se contesta: el formulario ya es largo y
- * dieciocho cajas de ayuda lo hacían más largo justo donde intentaba ser más
- * corto. Pero esconderlas del todo sería peor que enseñarlas —se enviarían
- * valores que nadie ha visto—, así que la decisión no desaparece, se mueve al
- * final y se toma una sola vez.
+ * Los campos que Blubathon ya aprendió no se preguntan —ver `aPreguntar`—, así
+ * que al llegar aquí no se ha visto ninguno de sus valores. Esconderlos del
+ * todo sería enviar por ti respuestas que nadie ha leído, así que la decisión
+ * no desaparece: se toma una sola vez, al final, sobre la lista entera.
  *
- * Al guardar, si quedaron sugerencias sin tocar, en vez de enviar se enseña qué
+ * Al guardar, si hay sugerencias sin decidir, en vez de enviar se enseña qué
  * son y se pregunta. Dos salidas y las dos acaban en un envío:
  *
  * - **Revisarlas** vuelve al formulario con esos campos abiertos y sus
@@ -230,8 +233,9 @@ async function enviar(): Promise<void> {
               las preguntas van de tres en tres.
             </p>
             <p>
-              Las primeras son las que más falta hacen hoy. Si alguna la respondes casi siempre
-              igual, Blubathon la rellena por ti y te la enseña al final por si quieres cambiarla.
+              Las primeras son las que más falta hacen hoy. Las que respondes casi siempre igual
+              no se te preguntan: Blubathon las rellena por ti y te las enseña al final por si
+              quieres cambiarlas.
             </p>
           </GloboAyuda>
         </template>
@@ -255,12 +259,11 @@ async function enviar(): Promise<void> {
     <div v-else-if="paso === 'revision'" class="revision">
       <h3 class="revision__titulo">Respuestas que se enviarán por ti</h3>
       <p class="revision__detalle">
-        Estas
         {{
           sugerenciasPendientes.length === 1
-            ? "es la que no respondiste"
-            : "son las que no respondiste"
-        }}. Blubathon propone lo que sueles responder, a partir de tus últimos dos meses.
+            ? "Esta no se te preguntó porque la respondes casi siempre igual"
+            : "Estas no se te preguntaron porque las respondes casi siempre igual"
+        }}. Blubathon las rellena con lo que sueles responder, a partir de tus últimos dos meses.
       </p>
 
       <ResumenSugerencias :sugerencias="sugerenciasPendientes" />
@@ -295,7 +298,7 @@ async function enviar(): Promise<void> {
         <!-- Al volver de la revisión el formulario ya no se pagina: son las
              preguntas que se pidió revisar y son todas las que hay. -->
         <template v-if="soloSugeridas">
-          <h3 class="grupo__titulo">Respuestas sugeridas</h3>
+          <h3 class="grupo__titulo">Lo que Blubathon responde por ti</h3>
           <p class="grupo__subtitulo">
             Cambia las que quieras. Las que dejes como están se guardan con el valor sugerido.
           </p>
@@ -311,7 +314,6 @@ async function enviar(): Promise<void> {
           @responder="
             (valor, interaccion) => cuestionario.responder(pregunta.field_code, valor, interaccion)
           "
-          @no-sabe="cuestionario.noSabe(pregunta.field_code)"
         />
       </section>
     </template>

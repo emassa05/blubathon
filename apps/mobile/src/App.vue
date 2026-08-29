@@ -35,6 +35,14 @@ type Vista = "salud" | "historial";
 const vista = ref<Vista>("salud");
 /** Fecha ISO del cuestionario abierto, o `null` si no hay ninguno. */
 const cuestionario = ref<string | null>(null);
+/**
+ * Si el cuestionario que está abierto llegó a enviarse.
+ *
+ * Es lo que separa cerrar de terminar: se cierra igual con la equis que con el
+ * "Listo" de la confirmación, y solo en el segundo caso hay una estimación
+ * nueva que enseñar.
+ */
+const enviado = ref(false);
 
 const { ninoId } = useNino();
 const { cargar: cargarHistorial } = useHistorial();
@@ -42,13 +50,39 @@ const { cargar: cargarRecomendacion } = useRecomendacionHoy();
 const { cargar: cargarResultados } = useResultados();
 
 // Salud trae sus datos por su cuenta, así que se le pide el refresco a ella.
-const salud = ref<{ recargar: () => Promise<void> } | null>(null);
+const salud = ref<{
+  recargar: () => Promise<void>;
+  animarRiesgoDesdeCero: () => void;
+  prepararRiesgo: () => void;
+} | null>(null);
 
 function abrirCuestionario(fecha: string): void {
   cuestionario.value = fecha;
+  enviado.value = false;
+}
+
+/**
+ * Al cerrar el cuestionario se vuelve a la pantalla que había debajo. Si se
+ * envió, la cifra del riesgo se cuenta desde cero: ya está calculada con este
+ * día —`alEnviar` recargó el resumen—, pero se calculó con el diálogo delante y
+ * nadie la vio moverse.
+ *
+ * Desde el historial no hay cifra a la vista y `salud` es `null`: no pasa nada,
+ * y al volver a Salud la cabecera se monta con su valor puesto.
+ */
+function cerrarCuestionario(): void {
+  cuestionario.value = null;
+  if (!enviado.value) return;
+  enviado.value = false;
+  salud.value?.animarRiesgoDesdeCero();
 }
 
 async function alEnviar(): Promise<void> {
+  enviado.value = true;
+  // Antes de recargar: la cifra se aparca en cero ahora, con el diálogo aún
+  // delante, para que el valor nuevo no asome durante la transición de salida y
+  // vuelva a caer a cero cuando arranque la cuenta.
+  salud.value?.prepararRiesgo();
   if (ninoId.value === null) return;
   await Promise.all([
     cargarHistorial(ninoId.value, true),
@@ -78,14 +112,14 @@ async function alEnviar(): Promise<void> {
 
     <!-- La clave es la fecha: cambiar de día vuelve a montar el diálogo, y con él
        el plan y el borrador. Un cuestionario no se arrastra de un día a otro. -->
-    <DialogoCuestionario
-      v-if="cuestionario !== null && ninoId !== null"
-      :key="cuestionario"
-      :nino-id="ninoId"
-      :fecha="cuestionario"
-      @cerrar="cuestionario = null"
-      @enviado="alEnviar"
-    />
+  <DialogoCuestionario
+    v-if="cuestionario !== null && ninoId !== null"
+    :key="cuestionario"
+    :nino-id="ninoId"
+    :fecha="cuestionario"
+    @cerrar="cerrarCuestionario"
+    @enviado="alEnviar"
+  />
 
     <!-- Sin la lista de `GET /children` no hay `child_id`, y sin `child_id` no
        hay ninguna llamada que hacer. Se dice, en vez de dejar un botón muerto. -->

@@ -56,8 +56,10 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
         Sí, ocurrió
       </BotonAccion>
 
-      <BotonAccion
-        variante="marca"
+      <!-- Las dos respuestas, siempre. Un "no" resuelve en cuanto se da: ver
+           `report_is_eligible` en el dominio del backend. -->
+      <button
+        type="button"
         class="resultado__boton resultado__boton--no"
         :disabled="enviando"
         @click="$emit('reportar', 'no')"

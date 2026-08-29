@@ -1,8 +1,9 @@
 """Timing, eligibility and resolution of outcomes.
 
 The distinctions these tests protect are the ones that matter most: absence
-is not a negative, an explicit `unknown` resolves nothing, an early `no` stays
-provisional, and once an episode has conflicted it never becomes clean again.
+is not a negative, an explicit `unknown` resolves nothing, a reported `no`
+resolves as soon as it is given, and once an episode has conflicted it never
+becomes clean again.
 """
 
 from __future__ import annotations
@@ -92,10 +93,18 @@ def test_the_window_start_is_open_so_an_event_at_the_cutoff_is_not_a_label() -> 
     assert not report_is_eligible(at_cutoff, WINDOW)
 
 
-def test_an_early_no_is_never_eligible() -> None:
+def test_an_early_no_is_eligible() -> None:
+    """An early `no` resolves, and is still recorded as having arrived early.
+
+    It used to stay provisional on the grounds that it cannot know about the
+    rest of the window. Accepting it and then ignoring it gives the caregiver
+    nothing back, so the report now counts; `timing_status` keeps the fact that
+    it came in before the window closed.
+    """
+
     early_no = report("early-no", value=OutcomeReportValue.NO, reported_at=BEFORE_END)
     assert early_no.timing_status is TimingStatus.EARLY
-    assert not report_is_eligible(early_no, WINDOW)
+    assert report_is_eligible(early_no, WINDOW)
 
 
 def test_an_on_time_no_is_eligible() -> None:
@@ -138,10 +147,19 @@ def test_an_explicit_unknown_leaves_the_resolution_pending() -> None:
     assert outcome.status is OutcomeResolutionStatus.PENDING
 
 
-def test_an_early_no_keeps_the_resolution_pending() -> None:
+def test_an_early_no_resolves_before_the_window_closes() -> None:
     early_no = report("early-no", value=OutcomeReportValue.NO, reported_at=BEFORE_END)
     outcome = derive_resolution([early_no], WINDOW, now=BEFORE_END)
-    assert outcome.status is OutcomeResolutionStatus.PENDING
+    assert outcome.status is OutcomeResolutionStatus.NO
+    assert outcome.qualifying_report_id == early_no.outcome_report_id
+
+
+def test_a_late_no_is_still_not_eligible() -> None:
+    """Nothing changed past the deadline: there the episode already resolved."""
+
+    late_no = report("late-no", value=OutcomeReportValue.NO, reported_at=AFTER_DEADLINE)
+    assert late_no.timing_status is TimingStatus.LATE
+    assert not report_is_eligible(late_no, WINDOW)
 
 
 def test_a_valid_early_yes_resolves_before_the_window_closes() -> None:

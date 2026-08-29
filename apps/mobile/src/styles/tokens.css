@@ -200,6 +200,11 @@
      pierda sitio al ensancharse esta. */
   --blubathon-columna-cartera: 400px;
 
+  /* Lo que el aviso flotante tapa de la esquina de abajo. El contenido de Salud
+     se lo suma a su acolchado cuando hay aviso, para que la última tarjeta se
+     pueda leer entera al final del desplazamiento. */
+  --blubathon-aviso-hueco: 104px;
+
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */
   --blubathon-dur: 5s;

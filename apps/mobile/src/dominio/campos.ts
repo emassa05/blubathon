@@ -60,9 +60,34 @@ export function especificacionCampo(codigo: FieldCode): EspecificacionCampo | un
  */
 export const ORIGEN_CASA = "home";
 
+/**
+ * Los campos que el catálogo admite para casa pero el cuestionario no pregunta.
+ *
+ * No se quitan del contrato ni del catálogo —el servidor los sigue aceptando y
+ * otra fuente podría enviarlos—, se quitan de lo que se le pone delante a quien
+ * responde. Los dos piden texto libre al final de un formulario que ya es
+ * largo, y ninguno de los dos alimenta la estimación: `behavior_tags` necesita
+ * un catálogo de conductas que todavía no está publicado, así que su campo solo
+ * podía decir que no se preguntaba, y `notes` es una caja abierta que se
+ * responde en blanco casi siempre.
+ *
+ * Se filtra aquí y no en el componente porque el plan del servidor también los
+ * devuelve: quitarlos de la plantilla dejaría el hueco, pero el paginador
+ * seguiría contándolos y habría páginas vacías al final.
+ */
+export const CAMPOS_NO_PREGUNTADOS: readonly FieldCode[] = ["behavior_tags", "notes"];
+
+const OMITIDOS = new Set<FieldCode>(CAMPOS_NO_PREGUNTADOS);
+
+/** Si el cuestionario pregunta este campo. Vale para el plan y para el catálogo. */
+export function sePregunta(codigo: FieldCode): boolean {
+  return !OMITIDOS.has(codigo);
+}
+
 /** Los campos que el cuestionario de casa puede preguntar, en orden canónico. */
 export const CAMPOS_DE_CASA: readonly FieldCode[] = BLUBATHON_FIELD_CATALOG.canonicalOrder.filter(
-  (codigo) => especificacionCampo(codigo)?.origenes.includes(ORIGEN_CASA) ?? false,
+  (codigo) =>
+    sePregunta(codigo) && (especificacionCampo(codigo)?.origenes.includes(ORIGEN_CASA) ?? false),
 );
 
 /** Posición de un campo en el orden canónico. Ordena listas sin inventar criterio. */

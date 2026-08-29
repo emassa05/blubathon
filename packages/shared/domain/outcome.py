@@ -199,18 +199,28 @@ def report_is_eligible(report: OutcomeReport, window: OutcomeWindow) -> bool:
     """Eligibility rules 1 and 2 of the resolution algorithm.
 
     A `yes` may resolve early once the event has actually happened inside the
-    window. A `no` may only resolve on time, because an early `no` cannot know
-    about the rest of the window.
+    window.
+
+    A `no` may resolve early too. It did not use to: the argument was that an
+    early `no` cannot know about the rest of the window, so it was recorded and
+    left provisional until the window closed. That is true of the reading, but
+    it was the wrong place to enforce it. The caregiver is the only source of
+    this answer, and the interface has a button that asks for it; a report that
+    is accepted, stored and then ignored gives back no signal at all — the
+    request stays open, the card stays up and nothing says why. Between refusing
+    the answer and taking it, taking it is the honest one, and `timing_status`
+    still records that it came in early for anyone measuring later.
+
+    A late report is still not eligible, either way: past the capture deadline
+    the episode has already resolved and reopening it is a different decision.
     """
 
+    if report.timing_status not in {TimingStatus.EARLY, TimingStatus.ON_TIME}:
+        return False
     if report.value is OutcomeReportValue.YES:
-        if report.timing_status not in {TimingStatus.EARLY, TimingStatus.ON_TIME}:
-            return False
         occurred = report.occurred_at
         return occurred is not None and window.target_start_at < occurred <= window.target_end_at
-    if report.value is OutcomeReportValue.NO:
-        return report.timing_status is TimingStatus.ON_TIME
-    return False
+    return report.value is OutcomeReportValue.NO
 
 
 class ResolutionOutcome(NamedTuple):

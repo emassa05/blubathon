@@ -1,6 +1,5 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import axe from "axe-core";
-import { nextTick } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { exigeRespuesta } from "@/composables/useDesregulacion";
@@ -32,11 +31,18 @@ const EPISODIO = "22222222-2222-4222-8222-222222222222";
  */
 let pendientes: unknown[] = [];
 
-function servidor(solicitudes: unknown[]): void {
+/**
+ * @param dias El historial. Por defecto, hoy ya registrado: es la condición de
+ *   la pregunta de cierre, que no se ofrece sobre un día en blanco.
+ */
+function servidor(
+  solicitudes: unknown[],
+  dias: unknown[] = [diaFalso({ fecha: HOY, probabilidad: 0.18 })],
+): void {
   pendientes = solicitudes;
   instalarServidorFalso({
     "/v1/children": { children: [{ child_id: ID_NINO_FALSO, display_label: "Niña demo 1" }] },
-    [`${CHILD}/history`]: historialFalso([diaFalso({ fecha: HOY, probabilidad: 0.18 })]),
+    [`${CHILD}/history`]: historialFalso(dias),
     [`${CHILD}/form-plan`]: planFalso(["sleep_quality"]),
     [`${CHILD}/recommendations/today`]: {
       status: "matched",
@@ -99,32 +105,24 @@ describe("evento de desregulación", () => {
   });
 
   describe("en la pantalla de Salud", () => {
-    it("tapa la pantalla hasta que se responde", async () => {
+    it("la pregunta que ya toca se ofrece en la tarjeta, sin tapar la pantalla", async () => {
       servidor([solicitudFalsa(CONTESTABLE)]);
       const wrapper = await montar();
 
-      const dialogo = wrapper.get('[role="dialog"]');
-      expect(dialogo.attributes("aria-modal")).toBe("true");
+      // Un solo sitio: la tarjeta del menú. El diálogo que bloqueaba se fue,
+      // porque con el día ya registrado solo se ponía delante justo al volver
+      // del formulario.
+      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+
+      const tarjeta = wrapper.get(".resultado");
       // Una sola pregunta, corta, y las dos respuestas. Ni las anclas ni el
       // plazo: el enunciado del contrato es de tres renglones y hay que leerlo
       // entero antes de poder contestar sí o no.
-      expect(dialogo.text()).toContain("¿Ocurrió una desregulación en las últimas 24 horas?");
-      expect(dialogo.text()).not.toContain("Necesitó apoyo de una persona");
-      expect(dialogo.text()).not.toContain("para responder");
-    });
-
-    it("no se puede cerrar sin contestar: ni aspa, ni velo, ni Escape", async () => {
-      servidor([solicitudFalsa(CONTESTABLE)]);
-      const wrapper = await montar();
-
-      // Ni aspa ni velo pulsable: no es que estén desactivados, es que no
-      // existen. Un control que no lleva a ningún sitio no debería anunciarse.
-      expect(wrapper.find(".dialogo__cerrar").exists()).toBe(false);
-      expect(wrapper.find("button.velo__fondo").exists()).toBe(false);
-
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-      await nextTick();
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+      expect(tarjeta.text()).toContain("¿Ocurrió una desregulación en las últimas 24 horas?");
+      expect(tarjeta.text()).not.toContain("Necesitó apoyo de una persona");
+      expect(tarjeta.text()).not.toContain("para responder");
+      expect(wrapper.find(".resultado__boton--si").exists()).toBe(true);
+      expect(wrapper.find(".resultado__boton--no").exists()).toBe(true);
     });
 
     it("al responder se va y vuelve a pedir el resumen del día", async () => {
@@ -137,27 +135,41 @@ describe("evento de desregulación", () => {
 
       // Al reportar, la lista se vuelve a pedir; ya sin la solicitud abierta.
       pendientes = [];
-      await wrapper.get(".desregulacion__boton--no").trigger("click");
+      await wrapper.get(".resultado__boton--no").trigger("click");
       await flushPromises();
 
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+      expect(wrapper.find(".resultado").exists()).toBe(false);
       expect(peticiones()).toBe(antes + 1);
     });
 
-    it("con la ventana abierta informa en la tarjeta y deja pasar", async () => {
+    it("la pregunta de un episodio recién abierto todavía no se hace", async () => {
+      // Es la que abre el propio envío de hoy: su ventana acaba de empezar, así
+      // que "¿ocurrió en las últimas 24 horas?" no significa nada todavía.
+      //
+      // Preguntarla al momento era la mitad de un problema real: se contestaba
+      // la de ayer y acto seguido salía esta, palabra por palabra igual, y se
+      // leía como la misma pregunta dos veces. Le toca mañana.
       servidor([solicitudFalsa(EN_CURSO)]);
       const wrapper = await montar();
 
-      // Sigue sin bloquear la pantalla: eso no cambia, y es lo que impide que
-      // "sí, ocurrió" sea la única salida de un diálogo obligatorio.
+      expect(wrapper.find(".resultado").exists()).toBe(false);
+      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+    });
+
+    it("con el día sin registrar no se ofrece el cierre, aunque esté abierto", async () => {
+      // La solicitud es de ayer y sigue abierta, pero hoy está en blanco:
+      // primero se registra el día y después se cierra el anterior.
+      servidor([solicitudFalsa(CONTESTABLE)], []);
+
+      const wrapper = await montar();
+
+      // Ni la tarjeta ni el diálogo, que es el que además taparía el camino
+      // hacia el propio formulario que hay que rellenar.
+      expect(wrapper.find(".resultado").exists()).toBe(false);
       expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
 
-      // La tarjeta ofrece las dos respuestas y ninguna condición de tiempo: ni
-      // cuándo se podrá decir que no, ni hasta cuándo hay plazo.
-      expect(wrapper.find(".resultado__boton--si").exists()).toBe(true);
-      expect(wrapper.find(".resultado__boton--no").exists()).toBe(true);
-      expect(wrapper.get(".resultado").text()).not.toContain("El día todavía no termina");
-      expect(wrapper.get(".resultado").text()).not.toContain("para responder");
+      // Y el aviso del formulario sí: es lo único que toca hacer ahora.
+      expect(wrapper.find(".aviso").exists()).toBe(true);
     });
 
     it("sin pregunta abierta no aparece nada", async () => {
