@@ -112,7 +112,10 @@ function escribirNumero(evento: Event): void {
   const bruto = (evento.target as HTMLInputElement).value;
   numero.value = bruto;
   if (bruto.trim() === "") return;
-  const convertido = Number(bruto);
+  // La coma decimal es la de aquí. Con `type="number"` el navegador ya la
+  // traducía; en `text` llega tal cual y `Number("2,5")` es `NaN`, que se
+  // descartaría en silencio dejando el campo escrito y el valor sin cambiar.
+  const convertido = Number(bruto.replace(",", "."));
   if (Number.isNaN(convertido)) return;
   responder(acotar(convertido));
 }
@@ -254,14 +257,28 @@ const tono = computed<"eleccion" | "repaso">(() =>
 
       <label class="envoltorio" :for="idControl">
         <span class="oculto-visual">{{ etiqueta }}</span>
+        <!--
+          `text` y no `number`, aunque el dato lo sea.
+
+          Un `input type="number"` trae dos controles de regalo que aquí no
+          pinta nadie: las flechitas nativas dentro del propio campo, que son
+          parte del campo y no se distinguen de él, y el paso con la rueda del
+          ratón cuando está enfocado. Lo segundo es el que muerde: se enfoca el
+          campo, se sigue leyendo el formulario y al desplazar la página la
+          cifra cambia sola, unas veces uno y otras dos. Desde fuera se ve como
+          que los botones + y − suman de más o de menos.
+
+          En `text` no hay flechas ni rueda, y los dos pasos del lado son la
+          única manera de mover la cifra. `inputmode` mantiene el teclado
+          numérico en el móvil, y lo que se escriba lo sigue acotando `acotar`
+          contra el rango del catálogo, igual que antes.
+        -->
         <input
           :id="idControl"
           class="numero__campo"
-          type="number"
+          type="text"
           inputmode="decimal"
-          :min="especificacion?.minimo"
-          :max="especificacion?.maximo"
-          :step="paso"
+          autocomplete="off"
           :value="numero"
           :aria-describedby="idPregunta"
           @input="escribirNumero"

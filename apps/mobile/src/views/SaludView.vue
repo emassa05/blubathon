@@ -4,7 +4,6 @@ import { computed, onMounted, ref } from "vue";
 
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
-import DialogoDesregulacion from "@/components/salud/DialogoDesregulacion.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
 import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
@@ -44,7 +43,6 @@ const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
  */
 const {
   obligatoria,
-  informativa,
   error: errorResultado,
   enviando,
   responder,
@@ -72,11 +70,27 @@ onMounted(cargarResultados);
  */
 const diaRegistrado = computed(() => resumen.value !== null && !resumen.value.formularioPendiente);
 
-/** La tarjeta informativa, solo con el día ya registrado. */
-const cierreInformativo = computed(() => (diaRegistrado.value ? informativa.value : null));
-
-/** Y lo mismo con el diálogo que bloquea: no se atraviesa en el camino al formulario. */
-const cierreObligatorio = computed(() => (diaRegistrado.value ? obligatoria.value : null));
+/**
+ * Una sola pregunta de cierre, en un solo sitio, y solo cuando toca.
+ *
+ * Antes había dos superficies y dos preguntas distintas encadenadas. Al enviar
+ * el cuestionario se abre el episodio de hoy, con su propia pregunta, y a la
+ * vez sigue viva la de ayer: se contestaba la de ayer en el diálogo que
+ * bloquea, y al cerrarlo aparecía la de hoy en la tarjeta. Dos preguntas
+ * idénticas palabra por palabra, una detrás de otra, que se leen como la misma
+ * preguntada dos veces.
+ *
+ * Se queda la tarjeta, que es donde se esperaba, y se le da solo la pregunta
+ * que ya se puede cerrar: `obligatoria` es la de ventana cumplida y todavía en
+ * plazo. La de hoy no entra —su ventana acaba de empezar y "¿ocurrió en las
+ * últimas 24 horas?" no significa nada sobre un día que no ha pasado—; entra
+ * mañana, cuando le toque.
+ *
+ * El diálogo que bloqueaba la pantalla se va con esto. Con el día ya
+ * registrado, lo único que hacía era ponerse delante justo al volver del
+ * formulario.
+ */
+const cierrePendiente = computed(() => (diaRegistrado.value ? obligatoria.value : null));
 
 /** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
 async function alReportar(valor: "yes" | "no"): Promise<void> {
@@ -178,9 +192,9 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
             desplazarse para encontrarla.
           -->
           <TarjetaResultado
-            v-if="cierreInformativo"
+            v-if="cierrePendiente"
             class="pantalla__zona--resultado"
-            :solicitud="cierreInformativo"
+            :solicitud="cierrePendiente"
             :enviando="enviando"
             :error="errorResultado"
             @reportar="alReportar"
@@ -213,19 +227,6 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
       v-if="resumen?.formularioPendiente"
       :dia="etiquetaAccesible"
       @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
-    />
-
-    <!--
-      El diálogo obligatorio va el último y fuera de la columna: es `fixed`, así
-      que su sitio en el DOM no decide dónde se ve, y el último es el único que
-      no obliga a leer la pantalla entera para encontrarlo.
-    -->
-    <DialogoDesregulacion
-      v-if="cierreObligatorio"
-      :solicitud="cierreObligatorio"
-      :enviando="enviando"
-      :error="errorResultado"
-      @responder="alReportar"
     />
   </main>
 </template>
