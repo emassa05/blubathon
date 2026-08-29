@@ -81,8 +81,13 @@ function animarRiesgoDesdeCero(): void {
   cabecera.value?.animarDesdeCero();
 }
 
+/** Al enviar: la cifra se aparca en cero mientras el diálogo tapa la pantalla. */
+function prepararRiesgo(): void {
+  cabecera.value?.prepararCuenta();
+}
+
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
-defineExpose({ recargar, animarRiesgoDesdeCero });
+defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
 </script>
 
 <template>

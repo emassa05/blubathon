@@ -101,13 +101,11 @@ describe("DialogoCuestionario", () => {
     // Un solo formulario, sin índice ni bloques temáticos que abrir.
     expect(wrapper.findAll("[data-categoria]")).toHaveLength(0);
 
-    // Las tres preguntas del plan caben en un paso, y `sleep_quality` va
-    // delante porque es la destacada: paginar no toca el orden del plan.
-    expect(camposVisibles(wrapper)).toEqual([
-      "sleep_quality",
-      "sleep_hours",
-      "activity_participation",
-    ]);
+    // De las tres del plan solo se preguntan dos: `activity_participation`
+    // tiene un valor aprendido en `defaults`, así que no se pregunta y sale al
+    // final para confirmarla. `sleep_quality` va delante porque es la
+    // destacada: paginar no toca el orden del plan.
+    expect(camposVisibles(wrapper)).toEqual(["sleep_quality", "sleep_hours"]);
     expect(wrapper.text()).toContain("Paso 1 de 1");
   });
 
@@ -377,6 +375,25 @@ describe("DialogoCuestionario", () => {
     expect(wrapper.find(".ayuda__globo").exists()).toBe(false);
   });
 
+  it("no pregunta lo que ya aprendió, y lo saca al final", async () => {
+    const wrapper = abrir();
+    await flushPromises();
+
+    // El plan lo devuelve entre las `questions`, pero también entre los
+    // `defaults`: preguntarlo sería preguntar lo que ya se sabe.
+    expect(camposVisibles(wrapper)).not.toContain("activity_participation");
+
+    // Y al guardar sale, dicho por lo que es: no una pregunta sin responder,
+    // sino una que no se llegó a hacer.
+    await wrapper.get(".pie .boton--principal").trigger("click");
+    await flushPromises();
+
+    const revision = wrapper.get(".revision").text();
+    expect(revision).toContain("no se te preguntó");
+    expect(revision).not.toContain("no respondiste");
+    expect(wrapper.get(".sugeridas").text()).toContain("Participación en actividades");
+  });
+
   it("no ofrece 'No sé' como salida de ninguna pregunta", async () => {
     const wrapper = abrir();
     await flushPromises();
@@ -408,13 +425,9 @@ describe("DialogoCuestionario", () => {
     const wrapper = abrir();
     await flushPromises();
 
-    // Las tres del plan caben en un solo paso: los dos campos filtrados no
-    // dejan una segunda página vacía detrás.
-    expect(camposVisibles(wrapper)).toEqual([
-      "sleep_quality",
-      "sleep_hours",
-      "activity_participation",
-    ]);
+    // Lo que queda cabe en un solo paso: ni las conductas y las notas ni el
+    // campo ya aprendido dejan una segunda página vacía detrás.
+    expect(camposVisibles(wrapper)).toEqual(["sleep_quality", "sleep_hours"]);
     expect(wrapper.text()).toContain("Paso 1 de 1");
   });
 

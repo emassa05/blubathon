@@ -168,6 +168,35 @@ export function useCuestionario(opciones: Opciones) {
    */
   const enOrden = computed<readonly FormQuestion[]>(() => [...destacadas.value, ...resto.value]);
 
+  const sugerencias = computed(() => {
+    const indice = new Map<FieldCode, DefaultSuggestion>();
+    for (const sugerencia of plan.value?.defaults ?? []) {
+      indice.set(sugerencia.field_code, sugerencia);
+    }
+    return indice;
+  });
+
+  /**
+   * Lo que el formulario pregunta de verdad: `enOrden` menos lo que ya se sabe.
+   *
+   * El plan devuelve dos cosas y no son la misma lista. `questions` es todo lo
+   * que se **puede** preguntar; `defaults` es lo que Blubathon ya aprendió de
+   * los últimos dos meses porque se responde casi siempre igual. Preguntar lo
+   * segundo es preguntar lo que ya se sabe: alarga el formulario justo con los
+   * campos donde la respuesta era previsible, y deja la revisión del final sin
+   * nada que revisar salvo lo que se acaba de contestar a mano.
+   *
+   * Así que lo aprendido no se pregunta. Sale al final, en la revisión, como lo
+   * que Blubathon va a enviar por ti, con la opción de cambiarlo.
+   *
+   * Se mira la sugerencia y no si se ha tocado, para que el conjunto de
+   * preguntas no cambie a media sesión: si dependiera de lo contestado, aceptar
+   * o editar algo repaginaría el formulario por debajo.
+   */
+  const aPreguntar = computed<readonly FormQuestion[]>(() =>
+    enOrden.value.filter((pregunta) => !sugerencias.value.has(pregunta.field_code)),
+  );
+
   /*
    * El valor de salida de los campos numéricos.
    *
@@ -199,16 +228,8 @@ export function useCuestionario(opciones: Opciones) {
     if (cambio) borradores.value = copia;
   }
 
-  watch(preguntas, (lista) => sembrarNumericos(lista.map((pregunta) => pregunta.field_code)), {
+  watch(aPreguntar, (lista) => sembrarNumericos(lista.map((pregunta) => pregunta.field_code)), {
     immediate: true,
-  });
-
-  const sugerencias = computed(() => {
-    const indice = new Map<FieldCode, DefaultSuggestion>();
-    for (const sugerencia of plan.value?.defaults ?? []) {
-      indice.set(sugerencia.field_code, sugerencia);
-    }
-    return indice;
   });
 
   const contestadas = computed(
@@ -350,6 +371,7 @@ export function useCuestionario(opciones: Opciones) {
     destacadas,
     resto,
     enOrden,
+    aPreguntar,
     sugerencias,
     sugerenciasPendientes,
     contestadas,

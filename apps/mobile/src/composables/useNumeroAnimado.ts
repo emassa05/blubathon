@@ -71,6 +71,8 @@ function prefiereMenosMovimiento(): boolean {
 export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUENTA) {
   const mostrado = ref<number | null>(destino.value);
   let cuadro: number | null = null;
+  /** Con la cuenta armada, la cifra se queda en cero y `watch` no la mueve. */
+  let esperandoCuenta = false;
 
   /**
    * Si en este entorno no hay animación que hacer: sin `rAF` —una prueba, un
@@ -130,15 +132,48 @@ export function useNumeroAnimado(destino: Ref<number | null>, duracion = MS_CUEN
    */
   function reiniciar(duracionCuenta = MS_CUENTA_DESDE_CERO): void {
     const hasta = destino.value;
-    if (hasta === null || sinAnimacion(duracionCuenta)) return;
+    const armada = esperandoCuenta;
+    esperandoCuenta = false;
+
+    if (hasta === null || sinAnimacion(duracionCuenta)) {
+      // Si estaba armada hay un cero aparcado que hay que recoger; si no, la
+      // cifra ya está puesta y esto no la toca.
+      if (armada) mostrado.value = hasta;
+      return;
+    }
+
     mostrado.value = 0;
     animar(hasta, duracionCuenta, suavizarDesdeCero);
   }
 
+  /**
+   * Aparca la cifra en cero y la deja ahí hasta que `reiniciar` la suelte.
+   *
+   * Es la primera mitad de la cuenta y existe por un problema de momentos. El
+   * valor nuevo llega en cuanto se envía el cuestionario, con el diálogo aún
+   * delante; la cuenta se lanza al cerrarlo. En medio está la transición de
+   * salida del diálogo, que dura lo suyo y deja ver la pantalla de debajo: ahí
+   * se leía la cifra final, y un instante después caía a cero para empezar a
+   * subir. Se veía el resultado dos veces y la segunda parecía un fallo.
+   *
+   * Armando la cuenta al enviar, el valor nuevo entra con la cifra ya en cero y
+   * tapada, y lo único que se ve al cerrar es la subida.
+   */
+  function prepararCuenta(): void {
+    if (sinAnimacion(MS_CUENTA_DESDE_CERO)) return;
+    parar();
+    esperandoCuenta = true;
+    mostrado.value = 0;
+  }
+
   // Con la referencia suelta, `watch` le pasaría el valor viejo como segundo
   // argumento y ese sitio es ahora la duración.
-  watch(destino, (nuevo) => animar(nuevo));
+  watch(destino, (nuevo) => {
+    // Armada, el valor nuevo se guarda sin enseñarse: lo enseña la cuenta.
+    if (esperandoCuenta) return;
+    animar(nuevo);
+  });
   onScopeDispose(parar);
 
-  return { mostrado: readonly(mostrado), reiniciar };
+  return { mostrado: readonly(mostrado), reiniciar, prepararCuenta };
 }

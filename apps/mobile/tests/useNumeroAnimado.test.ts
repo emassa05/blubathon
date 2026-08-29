@@ -104,6 +104,46 @@ describe("useNumeroAnimado", () => {
     parar();
   });
 
+  it("armada, el valor nuevo no asoma: la cifra se queda en cero", async () => {
+    const { destino, mostrado, reiniciar, prepararCuenta, parar } = montar(18);
+
+    // Se arma al enviar, con el diálogo aún tapando la pantalla.
+    prepararCuenta();
+    expect(mostrado.value).toBe(0);
+
+    // El resumen se recarga y llega la cifra nueva. Antes se animaba aquí, y
+    // como el diálogo tarda en irse, se leía el resultado durante la salida y
+    // volvía a caer a cero al arrancar la cuenta.
+    destino.value = 42;
+    await Promise.resolve();
+    vi.advanceTimersByTime(MS_CUENTA * 2);
+    expect(mostrado.value).toBe(0);
+
+    // Y al cerrar, la cuenta entera y una sola vez.
+    reiniciar(DURACION);
+    expect(mostrado.value).toBe(0);
+    vi.advanceTimersByTime(DURACION);
+    expect(mostrado.value).toBe(42);
+    parar();
+  });
+
+  it("armada sin animación, la cifra se recoge en vez de quedarse en cero", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+
+    const { mostrado, reiniciar, prepararCuenta, parar } = montar(18);
+
+    // Con menos movimiento no se arma nada, así que no hay cero que recoger.
+    prepararCuenta();
+    expect(mostrado.value).toBe(18);
+
+    reiniciar();
+    expect(mostrado.value).toBe(18);
+    parar();
+  });
+
   it("reiniciar no hace nada sin cifra: no hay recorrido que enseñar", () => {
     const { mostrado, reiniciar, parar } = montar(null);
 

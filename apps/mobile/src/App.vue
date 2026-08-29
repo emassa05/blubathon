@@ -44,6 +44,7 @@ const { cargar: cargarResultados } = useResultados();
 const salud = ref<{
   recargar: () => Promise<void>;
   animarRiesgoDesdeCero: () => void;
+  prepararRiesgo: () => void;
 } | null>(null);
 
 function abrirCuestionario(fecha: string): void {
@@ -69,6 +70,10 @@ function cerrarCuestionario(): void {
 
 async function alEnviar(): Promise<void> {
   enviado.value = true;
+  // Antes de recargar: la cifra se aparca en cero ahora, con el diálogo aún
+  // delante, para que el valor nuevo no asome durante la transición de salida y
+  // vuelva a caer a cero cuando arranque la cuenta.
+  salud.value?.prepararRiesgo();
   if (ninoId.value === null) return;
   await Promise.all([
     cargarHistorial(ninoId.value, true),
