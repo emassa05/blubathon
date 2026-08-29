@@ -129,8 +129,14 @@ describe("evento de desregulación", () => {
       // de las que solo informan. Con las dos, el rótulo sobraba.
       expect(tarjeta.find(".resultado__cara").exists()).toBe(true);
       expect(tarjeta.text()).not.toContain("Resultado pendiente");
-      expect(wrapper.find(".resultado__boton--si").exists()).toBe(true);
-      expect(wrapper.find(".resultado__boton--no").exists()).toBe(true);
+      // Una palabra cada uno, con la respuesta entera en el nombre accesible:
+      // saltando de botón en botón no se tiene la pregunta delante.
+      const si = wrapper.get(".resultado__boton--si");
+      const no = wrapper.get(".resultado__boton--no");
+      expect(si.text()).toBe("Sí");
+      expect(no.text()).toBe("No");
+      expect(si.attributes("aria-label")).toBe("Sí, ocurrió");
+      expect(no.attributes("aria-label")).toBe("No ocurrió");
     });
 
     it("la pregunta que abre el envío de hoy se ofrece ya, sin esperar a mañana", async () => {

@@ -3,8 +3,6 @@ import { computed, useId } from "vue";
 
 import type { OutcomeRequestView } from "@/api/contrato";
 import BotonAccion from "@/components/base/BotonAccion.vue";
-import IconoCheck from "@/components/icons/IconoCheck.vue";
-import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import IconMoodSad from "@/components/icons/mood/IconMoodSad.vue";
 import { ventanaEnPalabras } from "@/dominio/ventana";
 
@@ -70,14 +68,24 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
     <p :id="idVentana" class="resultado__ventana">{{ ventana }}</p>
 
     <div class="resultado__acciones">
+      <!--
+        Una palabra cada uno. La pregunta está justo encima y completa, así que
+        repetir "ocurrió" en los dos botones no añadía nada: lo que se elige es
+        sí o no.
+
+        El `aria-label` sí lo dice entero. Quien navega saltando de botón en
+        botón no tiene la pregunta delante, y "sí" a secas no es una respuesta a
+        nada. Empieza por el rótulo visible, que es lo que pide el criterio
+        "etiqueta en el nombre".
+      -->
       <BotonAccion
         variante="negativo"
         class="resultado__boton resultado__boton--si"
+        aria-label="Sí, ocurrió"
         :disabled="enviando"
         @click="$emit('reportar', 'yes')"
       >
-        <IconoAlerta class="resultado__icono" aria-hidden="true" />
-        Sí, ocurrió
+        Sí
       </BotonAccion>
 
       <!-- Las dos respuestas, siempre. Un "no" resuelve en cuanto se da: ver
@@ -85,11 +93,11 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
       <BotonAccion
         variante="positivo"
         class="resultado__boton resultado__boton--no"
+        aria-label="No ocurrió"
         :disabled="enviando"
         @click="$emit('reportar', 'no')"
       >
-        <IconoCheck class="resultado__icono" aria-hidden="true" />
-        No ocurrió
+        No
       </BotonAccion>
     </div>
 
@@ -178,12 +186,6 @@ const PREGUNTA = "¿Ocurrió una desregulación?";
    reparten la fila y envuelven en pantallas estrechas. */
 .resultado__boton {
   flex: 1 1 10rem;
-}
-
-.resultado__icono {
-  flex: none;
-  width: var(--blubathon-icono-16);
-  height: var(--blubathon-icono-16);
 }
 
 .resultado__error {
