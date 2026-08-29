@@ -105,21 +105,32 @@ export function planFalso(destacados: readonly string[]): unknown {
   };
 }
 
+/** El episodio de una solicitud, para poder declarar su ruta de reporte. */
+export function idEpisodioFalso(sufijo = "a"): string {
+  return `2222222${sufijo}-2222-4222-8222-222222222222`;
+}
+
 /**
  * Una solicitud de resultado abierta: la pregunta de cierre que deja cada día
  * registrado. Los dos plazos se dan en horas desde ahora, porque lo que decide
- * si se puede exigir la respuesta no es la fecha sino dónde cae el reloj:
- * negativo es "ya pasó".
+ * si se puede contestar no es la fecha sino dónde cae el reloj: negativo es
+ * "ya pasó".
+ *
+ * `sufijo` distingue una solicitud de otra cuando hay dos abiertas a la vez
+ * —la del envío de ayer y la del de hoy—, que es el caso normal desde que la
+ * pantalla las ofrece todas.
  */
 export function solicitudFalsa(opciones: {
   finVentanaEnHoras: number;
   vencimientoEnHoras: number;
   ninoId?: string;
+  sufijo?: string;
 }): unknown {
   const enHoras = (horas: number) => new Date(Date.now() + horas * 3_600_000).toISOString();
+  const sufijo = opciones.sufijo ?? "a";
   return {
-    outcome_request_id: "44444444-4444-4444-8444-444444444444",
-    prediction_episode_id: "22222222-2222-4222-8222-222222222222",
+    outcome_request_id: `4444444${sufijo}-4444-4444-8444-444444444444`,
+    prediction_episode_id: idEpisodioFalso(sufijo),
     subject_id: opciones.ninoId ?? ID_NINO_FALSO,
     target_definition_version: "1.0.0",
     question_es: "¿Hubo un evento de desregulación en las últimas 24 horas?",

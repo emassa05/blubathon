@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { computed, useId } from "vue";
+
 import type { OutcomeRequestView } from "@/api/contrato";
 import BotonAccion from "@/components/base/BotonAccion.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import IconoRombo from "@/components/icons/IconoRombo.vue";
+import { ventanaEnPalabras } from "@/dominio/ventana";
 
-defineProps<{
+const props = defineProps<{
   solicitud: OutcomeRequestView;
   enviando: boolean;
   error: string | null;
@@ -14,6 +17,23 @@ defineProps<{
 defineEmits<{
   reportar: [valor: "yes" | "no"];
 }>();
+
+/*
+ * Puede haber dos tarjetas a la vez, así que el `id` del titular no puede ser
+ * una constante: dos elementos con el mismo `id` dejan el `aria-labelledby` de
+ * la segunda apuntando al titular de la primera.
+ *
+ * Y la región se nombra con el titular **y** el periodo. El titular solo es
+ * idéntico en las dos —es la misma pregunta— y con eso quien navega por
+ * regiones oye dos veces lo mismo sin manera de saber cuál es cuál. Es lo que
+ * `landmark-unique` de axe comprueba.
+ */
+const idTitulo = useId();
+const idVentana = useId();
+
+/** De qué 24 horas habla esta pregunta. Es lo único que separa una tarjeta de
+    la otra cuando hay dos. */
+const ventana = computed(() => ventanaEnPalabras(props.solicitud));
 
 /**
  * La pregunta, en una línea.
@@ -24,12 +44,17 @@ defineEmits<{
  * o no. Lo que se pregunta es lo mismo; lo que cambia es que se lee de un
  * vistazo. La definición formal sigue siendo la del contrato y viaja intacta en
  * el reporte: aquí solo se decide cómo se enuncia en pantalla.
+ *
+ * Tampoco dice ya "en las últimas 24 horas". Con dos preguntas abiertas a la
+ * vez eso era falso en una de las dos —la de ayer habla de una ventana que
+ * cerró hace horas, la de hoy de una que aún no ha terminado— y encima las
+ * dejaba idénticas. El periodo va debajo, dicho entero.
  */
-const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
+const PREGUNTA = "¿Ocurrió una desregulación?";
 </script>
 
 <template>
-  <section class="resultado" aria-labelledby="resultado-titulo">
+  <section class="resultado" :aria-labelledby="`${idTitulo} ${idVentana}`">
     <!--
       La etiqueta lleva insignia y la insignia late. Es lo que la separa de las
       tarjetas que solo informan: hasta que esta pregunta no se contesta, el
@@ -43,12 +68,13 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
       </span>
       Resultado pendiente
     </p>
-    <h2 id="resultado-titulo" class="resultado__titulo">{{ PREGUNTA }}</h2>
+    <h2 :id="idTitulo" class="resultado__titulo">{{ PREGUNTA }}</h2>
+    <p :id="idVentana" class="resultado__ventana">{{ ventana }}</p>
 
     <div class="resultado__acciones">
       <BotonAccion
         variante="negativo"
-        class="resultado__boton"
+        class="resultado__boton resultado__boton--si"
         :disabled="enviando"
         @click="$emit('reportar', 'yes')"
       >
@@ -60,7 +86,7 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
            `report_is_eligible` en el dominio del backend. -->
       <BotonAccion
         variante="positivo"
-        class="resultado__boton"
+        class="resultado__boton resultado__boton--no"
         :disabled="enviando"
         @click="$emit('reportar', 'no')"
       >
@@ -153,6 +179,15 @@ const PREGUNTA = "¿Ocurrió una desregulación en las últimas 24 horas?";
   font-weight: 700;
   line-height: 1.3;
   color: var(--blubathon-marca-profundo);
+}
+
+/* El periodo, en gris y un cuerpo por debajo del titular: acompaña a la
+   pregunta, no compite con ella. */
+.resultado__ventana {
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  line-height: 1.4;
+  color: var(--blubathon-gris-texto);
 }
 
 /* Envuelven en pantallas estrechas: dos áreas táctiles de 44 no caben en 320
