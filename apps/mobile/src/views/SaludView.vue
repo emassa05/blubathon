@@ -2,11 +2,13 @@
 import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
 import { computed, onMounted, ref } from "vue";
 
+import type { OutcomeRequestView as SolicitudPendiente } from "@/api/contrato";
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
 import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
+import { comprobacionDe } from "@/dominio/comprobacion";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
@@ -23,78 +25,72 @@ const emitir = defineEmits<{
 
 // Único punto de la pantalla donde entran los datos. Los componentes reciben
 // `props` ya traducidas y no saben que existe una API.
-const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado();
+const { fechaIso, esHoy, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } =
+  useDiaSeleccionado();
 const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 
 /*
- * La pregunta de cierre —¿hubo un evento de desregulación?— no depende del día
- * que se esté mirando: es la que el sistema dejó abierta y hay que contestar
- * antes de que venza.
+ * Qué ocurrió de verdad en los días que se anunciaron como el de hoy.
  *
- * Llega de dos maneras, y cuál toca lo decide `useDesregulacion`, no esta
- * pantalla:
- *
- * - **Obligatoria**, en un diálogo delante de todo, cuando ya se puede
- *   contestar que sí y que no. Hasta que no se responde no hay pantalla.
- * - **Informativa**, en la tarjeta de siempre, mientras la ventana de 24 h
- *   sigue abierta y un "no ocurrió" todavía no resolvería nada. Exigirla ahí
- *   dejaría "sí, ocurrió" como única salida y ese falso positivo se escribiría
- *   en los datos de los que sale la estimación siguiente.
+ * Se resuelve aquí y no en el adaptador porque hace falta la cifra para saber
+ * qué tramo toca, y la cifra es de la pantalla: el mismo día visto con otra
+ * estimación caería en otro tramo. La calibración entera viaja en el resumen.
  */
-const {
-  obligatoria,
-  error: errorResultado,
-  enviando,
-  responder,
-  cargar: cargarResultados,
-} = useDesregulacion();
+const comprobacion = computed(() =>
+  comprobacionDe(resumen.value?.calibracion ?? null, resumen.value?.riesgo ?? null),
+);
+
+/*
+ * Las preguntas de cierre —¿hubo un evento de desregulación?— no dependen del
+ * día que se esté mirando: son las que el sistema dejó abiertas y hay que
+ * contestar antes de que venzan.
+ *
+ * Se enseñan todas las que siguen en plazo, en la misma tarjeta de siempre y
+ * una debajo de otra. Cuáles son lo decide `useDesregulacion`, no esta
+ * pantalla; aquí solo se pintan.
+ */
+const { pendientes, enviandoId, errorDe, responder, cargar: cargarResultados } = useDesregulacion();
 
 onMounted(cargarResultados);
 
 /*
- * La pregunta de cierre no se ofrece hasta que el día esté registrado.
+ * Y solo en hoy.
  *
- * La solicitud es de la persona y no de la fecha: la abre un cuestionario y
- * sigue abierta hasta que se contesta o vence, así que la de ayer sigue viva
- * hoy. Enseñarla nada más abrir, sobre un día en blanco, la deja sin nada con
- * qué leerse —la tarjeta no dice de qué ventana habla— y se lee como una
- * pregunta sobre un día que todavía no ha pasado.
+ * Las solicitudes son de la persona y no de la fecha, así que sin esto salían
+ * las mismas en todos los días: se hojeaba hacia atrás y la tarjeta seguía
+ * ahí, idéntica, como si cada día tuviera su pregunta sin contestar.
  *
- * Así que primero se registra el día y después se cierra el anterior. Es el
- * orden en que ocurren las dos cosas.
- *
- * Tiene un coste y conviene tenerlo escrito: mientras no se envíe el
- * cuestionario, la pregunta pendiente no se ve, y su plazo corre igual. Saltarse
- * un día puede dejarla vencida sin que nadie la haya visto, y un episodio sin
- * resultado verificado no cuenta para el baseline.
+ * Hoy es donde se hace lo que hay que hacer. Los demás días son para mirar lo
+ * que pasó, y una tarjeta con dos botones que escriben en los datos de otro día
+ * no es mirar. Esconderla en ellos no esconde nada: lo pendiente de ayer se
+ * sigue contestando desde hoy, que es donde está junto a lo demás que queda por
+ * hacer.
  */
-const diaRegistrado = computed(() => resumen.value !== null && !resumen.value.formularioPendiente);
+const cierresPendientes = computed(() => (esHoy.value ? pendientes.value : []));
 
-/**
- * Una sola pregunta de cierre, en un solo sitio, y solo cuando toca.
+/*
+ * Todas las preguntas abiertas, y desde que se abren.
  *
- * Antes había dos superficies y dos preguntas distintas encadenadas. Al enviar
- * el cuestionario se abre el episodio de hoy, con su propia pregunta, y a la
- * vez sigue viva la de ayer: se contestaba la de ayer en el diálogo que
- * bloquea, y al cerrarlo aparecía la de hoy en la tarjeta. Dos preguntas
- * idénticas palabra por palabra, una detrás de otra, que se leen como la misma
- * preguntada dos veces.
+ * Antes hacían falta dos condiciones para enseñar una sola: que el día que se
+ * está mirando estuviera ya registrado, y que la ventana de 24 h de la pregunta
+ * hubiera cerrado. Juntas dejaban la tarjeta invisible justo cuando se la
+ * esperaba —al volver del cuestionario no aparecía nada, porque la pregunta que
+ * ese envío acababa de abrir no entraba hasta el día siguiente— y escondían la
+ * de ayer sin contestar mientras hoy siguiera en blanco, con su plazo corriendo
+ * igual.
  *
- * Se queda la tarjeta, que es donde se esperaba, y se le da solo la pregunta
- * que ya se puede cerrar: `obligatoria` es la de ventana cumplida y todavía en
- * plazo. La de hoy no entra —su ventana acaba de empezar y "¿ocurrió en las
- * últimas 24 horas?" no significa nada sobre un día que no ha pasado—; entra
- * mañana, cuando le toque.
+ * Las dos se van. Lo que sigue mandando es el plazo, que es lo único que decide
+ * si el reporte resuelve, y de eso se encarga `useDesregulacion`.
  *
- * El diálogo que bloqueaba la pantalla se va con esto. Con el día ya
- * registrado, lo único que hacía era ponerse delante justo al volver del
- * formulario.
+ * Lo que sí se paga: la pregunta de hoy habla de una ventana que todavía no ha
+ * terminado. Contestarla "no ocurrió" resuelve el episodio con lo que se sabe
+ * ahora, y lo que pase en las horas que quedan ya no entra. Por eso cada
+ * tarjeta dice de qué periodo habla en vez de dar por hecho que es "el día".
  */
-const cierrePendiente = computed(() => (diaRegistrado.value ? obligatoria.value : null));
 
 /** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
-async function alReportar(valor: "yes" | "no"): Promise<void> {
-  if (await responder(valor)) await recargar();
+async function alReportar(solicitud: SolicitudPendiente, valor: "yes" | "no"): Promise<void> {
+  if (await responder(solicitud, valor)) await recargar();
 }
 
 // Mientras se carga o cuando falla no hay estimación, y eso es exactamente la
@@ -148,7 +144,7 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
             ref="cabecera"
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
-            :confianza="resumen?.confianza ?? null"
+            :comprobacion="comprobacion"
           />
 
           <!-- La racha acompaña a la cifra dentro del panel: las dos hablan de
@@ -184,23 +180,41 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
         -->
         <template v-else-if="resumen">
           <!--
-            La pregunta de cierre va la primera, por encima de la recomendación.
-            Es la única pieza de la pantalla con un plazo —fuera de él el reporte
-            se guarda y no resuelve nada— y la única de la que depende que el
-            modelo vuelva a tener cifra. Estaba la cuarta de la columna, debajo
-            de dos tarjetas que solo informan, y en un teléfono había que
-            desplazarse para encontrarla.
-          -->
-          <TarjetaResultado
-            v-if="cierrePendiente"
-            class="pantalla__zona--resultado"
-            :solicitud="cierrePendiente"
-            :enviando="enviando"
-            :error="errorResultado"
-            @reportar="alReportar"
-          />
+            Las preguntas de cierre van las primeras, por encima de la
+            recomendación. Son las únicas piezas de la pantalla con un plazo
+            —fuera de él el reporte se guarda y no resuelve nada— y de ellas
+            depende que el modelo vuelva a tener cifra. Estaban las cuartas de la
+            columna, debajo de dos tarjetas que solo informan, y en un teléfono
+            había que desplazarse para encontrarlas.
 
+            Van en una caja propia porque pueden ser dos: la del envío de ayer y
+            la que abrió el de hoy. En la retícula de escritorio esa caja es la
+            que ocupa la casilla, y las tarjetas se apilan dentro.
+
+            Solo en hoy: son lo que queda por hacer, no parte de lo que se ve al
+            hojear días hacia atrás.
+          -->
+          <div
+            v-if="cierresPendientes.length > 0"
+            class="pantalla__cierres pantalla__zona--resultado"
+          >
+            <TarjetaResultado
+              v-for="solicitud in cierresPendientes"
+              :key="solicitud.outcome_request_id"
+              :solicitud="solicitud"
+              :enviando="enviandoId !== null"
+              :error="errorDe(solicitud)"
+              @reportar="(valor) => alReportar(solicitud, valor)"
+            />
+          </div>
+
+          <!-- La clave es el día, y con ella cambiar de fecha vuelve a montar la
+               tarjeta. Es lo que separa "la redacción terminó" de "estoy
+               mirando otro día": la tarjeta teclea el texto que llega mientras
+               está delante, y sin esto hojear de un día todavía en espera a uno
+               ya redactado se leería como si acabara de escribirse. -->
           <TarjetaRecomendacion
+            :key="resumen.fecha"
             class="pantalla__zona--recomendacion"
             :recomendacion="resumen.recomendacion"
           />
@@ -334,10 +348,20 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
  *
  * `max()` con cero porque en ventana baja la cúpula es más corta que el
  * acolchado y la resta se va a negativo.
+ *
+ * Esa cuenta reserva el hueco **exacto**: deja la línea apoyada justo en el
+ * punto más profundo del arco, a cero de holgura, y el texto se lee pegado a la
+ * curva. La reserva evita que la tape, que es otra cosa que separarla de ella,
+ * así que encima va una holgura constante. Constante y no proporcional a la
+ * cúpula porque lo que se está separando es texto de un borde, y eso se mide en
+ * lo que el ojo pide, no en lo que mida el arco: en ventana baja la cúpula cae a
+ * 28 y la resta daba 2 px, donde el problema era el mismo.
  */
 .pantalla__racha {
   margin-inline: auto;
-  margin-bottom: max(0px, calc(var(--blubathon-cupula) - var(--blubathon-esp-26)));
+  margin-bottom: calc(
+    max(0px, var(--blubathon-cupula) - var(--blubathon-esp-26)) + var(--blubathon-esp-14)
+  );
 }
 
 /*
@@ -386,6 +410,25 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
   padding-bottom: calc(
     var(--blubathon-esp-26) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
   );
+}
+
+/*
+ * Las preguntas de cierre se apilan con la misma separación que las tarjetas
+ * entre sí: dos preguntas seguidas tienen que leerse como dos, no como un
+ * bloque.
+ *
+ * Y el bloque sube lo que su cara sobresale. Cada tarjeta se reserva ese hueco
+ * por su cuenta, que es lo correcto entre una pregunta y la siguiente; encima
+ * de la primera no hay nada que esquivar —solo la curva de la cúpula, que en el
+ * centro, que es justo por donde va la cara, está vacía— y ese hueco era medio
+ * dedo de pantalla gastado en nada. Así la tarjeta empieza donde empezaría
+ * cualquier otra y la cara se apoya en la curva.
+ */
+.pantalla__cierres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--blubathon-esp-14);
+  margin-top: calc(var(--blubathon-cierre-saliente) * -1);
 }
 
 /*

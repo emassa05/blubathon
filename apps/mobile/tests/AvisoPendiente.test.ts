@@ -4,13 +4,18 @@ import { describe, expect, it } from "vitest";
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 
 describe("AvisoPendiente", () => {
-  it("muestra la etiqueta y el título del aviso", () => {
+  it("la pastilla avisa de que hoy falta el cuestionario", () => {
     const wrapper = mount(AvisoPendiente, { props: { dia: "martes 25" } });
 
-    expect(wrapper.get(".aviso__etiqueta").text()).toBe("Pendiente");
-    expect(wrapper.get(".aviso__titulo").text()).toBe(
-      "Hoy no has completado el cuestionario diario",
-    );
+    expect(wrapper.get(".aviso__pastilla").text()).toBe("¡Hoy te falta el cuestionario!");
+  });
+
+  it("el disco lleva el icono y no lo anuncia dos veces", () => {
+    const wrapper = mount(AvisoPendiente, { props: { dia: "martes 25" } });
+
+    const insignia = wrapper.get(".aviso__insignia");
+    expect(insignia.attributes("aria-hidden")).toBe("true");
+    expect(insignia.find(".aviso__icono").exists()).toBe(true);
   });
 
   it("el CTA nombra el día pendiente y emite abrirFormulario", async () => {

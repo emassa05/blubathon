@@ -60,7 +60,6 @@ describe("HistorialView", () => {
     const wrapper = mount(HistorialView);
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Ana");
     expect(wrapper.get(".detalle__estado").text()).toBe("Respondido");
     expect(wrapper.text()).toContain("Hay una recomendación guardada para este día.");
     // El track personal se abstiene: se dice, no se enseña un cero.

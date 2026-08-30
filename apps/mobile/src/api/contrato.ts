@@ -18,6 +18,8 @@ export type {
   ChildHistoryOutcome,
   ChildHistoryPrediction,
   ChildHistoryRecommendation,
+  CalibrationBand,
+  CalibrationResponse,
   ChildHistoryResponse,
   ChildListItem,
   ChildListResponse,

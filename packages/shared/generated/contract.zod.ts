@@ -22,6 +22,23 @@ export const AuthoringReviewKindSchema = z.enum(["evidence", "clinical", "privac
 
 export const AuthoringReviewObjectTypeSchema = z.enum(["target_definition", "document", "strategy", "recommendation_set", "catalog"]);
 
+export const CalibrationBandSchema = z.object({
+  "band": z.enum(["low", "medium", "high"]),
+  "days": z.number().int().gte(0),
+  "episodes": z.number().int().gte(0),
+  "announced": z.number().gte(0.0).lte(1.0),
+  "observed": z.number().gte(0.0).lte(1.0),
+  "interval": z.array(z.unknown()).min(2).max(2),
+}).strict();
+
+export const CalibrationResponseSchema = z.object({
+  "bands": z.array(z.lazy(() => CalibrationBandSchema)).optional(),
+  "brier": z.union([z.number(), z.null()]).optional(),
+  "days": z.number().int().gte(0).optional(),
+  "episodes": z.number().int().gte(0).optional(),
+  "caveat_es": z.string().min(1),
+}).strict();
+
 export const ChallengerTrainingProtocolVersionSchema = z.object({
   "protocol_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
   "optimizer": z.string(),

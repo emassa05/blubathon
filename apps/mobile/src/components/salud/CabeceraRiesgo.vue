@@ -4,12 +4,22 @@ import { computed, toRef } from "vue";
 import GloboAyuda from "@/components/base/GloboAyuda.vue";
 import IconoEscudo from "@/components/icons/IconoEscudo.vue";
 import { useNumeroAnimado } from "@/composables/useNumeroAnimado";
+import type { Comprobacion } from "@/dominio/comprobacion";
 
 const props = defineProps<{
   /** Riesgo de desregulación, 0-100. `null` cuando el modelo se abstiene. */
   riesgo: number | null;
-  /** Confianza del modelo en ese riesgo, 0-100. `null` si no hay estimación. */
-  confianza: number | null;
+  /**
+   * Qué ocurrió de verdad en los días que se anunciaron como este. `null`
+   * mientras el tramo no tenga días suficientes para decir nada.
+   *
+   * Sustituye al "nivel de confianza". Aquel salía de la anchura del intervalo
+   * del modelo, así que medía cuántos días de historial había y se quedaba
+   * clavado en 79-80% con cualquiera establecido; pero se leía como cuánto
+   * acertaba, que es otra cosa y no la estaba diciendo. Esto sí, y además se
+   * puede desmentir.
+   */
+  comprobacion: Comprobacion | null;
 }>();
 
 const SOBRETITULO = "Riesgo de desregulación";
@@ -80,13 +90,19 @@ const etiqueta = computed(() =>
       </span>
     </h1>
 
-    <!-- Sin estimación no hay confianza que dar: la pastilla desaparece en vez
-         de mostrar un cero, que se leería como "confianza nula". -->
-    <p v-if="confianza !== null" class="riesgo__confianza">
+    <!-- Mientras el tramo no tenga días suficientes la pastilla no está: un
+         intervalo de cuarenta puntos no comprueba nada, y enseñarlo daría la
+         impresión contraria —ver `DIAS_MINIMOS`. -->
+    <p v-if="comprobacion !== null" class="riesgo__confianza">
       <IconoEscudo class="riesgo__escudo" aria-hidden="true" />
-      <span
-        >Nivel de confianza <b class="riesgo__dato">{{ confianza }}%</b></span
-      >
+      <span>
+        En días así ocurrió el
+        <b class="riesgo__dato">{{ comprobacion.observado }}%</b>
+        <span class="riesgo__margen">
+          ({{ comprobacion.intervalo[0] }}–{{ comprobacion.intervalo[1] }}%, {{ comprobacion.dias }}
+          días)
+        </span>
+      </span>
     </p>
   </header>
 </template>
@@ -156,9 +172,17 @@ const etiqueta = computed(() =>
   letter-spacing: 0;
 }
 
+/* El margen y los días acompañan a la cifra sin competir con ella: un
+   porcentaje sin saber sobre cuántos días se midió no se puede leer, pero
+   tampoco es lo primero que se mira. */
+.riesgo__margen {
+  font-size: var(--blubathon-fs-11);
+  opacity: 0.85;
+}
+
 /*
- * La confianza va en pastilla, no suelta: es un dato secundario y en vidrio se
- * lee sobre cualquier punto del gradiente, sin depender de dónde caiga.
+ * La comprobación va en pastilla, no suelta: es un dato secundario y en vidrio
+ * se lee sobre cualquier punto del gradiente, sin depender de dónde caiga.
  */
 .riesgo__confianza {
   display: flex;

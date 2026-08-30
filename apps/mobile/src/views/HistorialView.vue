@@ -18,7 +18,7 @@ const emitir = defineEmits<{
   abrirCuestionario: [fecha: string];
 }>();
 
-const { ninoId, etiqueta: nombreDelNino, cargar: cargarNino } = useNino();
+const { ninoId, cargar: cargarNino } = useNino();
 const { porFecha, cargando, cargado, error, cargar: cargarHistorial } = useHistorial();
 
 const hoy = ref(hoyIso());
@@ -83,8 +83,6 @@ function irASemana(cantidad: number): void {
         <p class="historial__sobretitulo">Historial</p>
         <h1 class="historial__titulo">Cuestionarios</h1>
       </div>
-
-      <p v-if="nombreDelNino" class="historial__nino">{{ nombreDelNino }}</p>
     </header>
 
     <div class="historial__cuerpo">
@@ -149,17 +147,10 @@ function irASemana(cantidad: number): void {
   background: var(--blubathon-fondo-pagina);
 }
 
-/*
- * Envuelve. El nombre de quien se sigue es un dato del servidor y puede ser tan
- * largo como se quiera: con `flex: none` y sin envolver, en un teléfono estrecho
- * se comía el ancho y dejaba "Cuestionarios" partido en dos renglones de una
- * palabra cada uno. Ahora la pastilla baja de línea antes de estrujar el título.
- */
 .historial__cabecera {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--blubathon-esp-8) var(--blubathon-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .historial__volver {
@@ -188,9 +179,7 @@ function irASemana(cantidad: number): void {
 }
 
 .historial__rotulos {
-  /* Base 10rem: por debajo de eso el título prefiere llevarse la pastilla a la
-     línea siguiente antes que partirse él. */
-  flex: 1 1 10rem;
+  flex: 1;
   min-width: 0;
 }
 
@@ -206,20 +195,6 @@ function irASemana(cantidad: number): void {
   font-size: var(--blubathon-fs-20);
   font-weight: 700;
   color: var(--blubathon-marca-profundo);
-}
-
-.historial__nino {
-  flex: 0 1 auto;
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: var(--blubathon-esp-6) var(--blubathon-esp-12);
-  font-size: var(--blubathon-fs-125);
-  font-weight: 700;
-  color: var(--blubathon-marca-accion);
-  background: var(--blubathon-marca-icono-fondo);
-  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .historial__cuerpo {

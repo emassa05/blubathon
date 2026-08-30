@@ -206,3 +206,52 @@ def child_submission_days(
             (tenant_id, subject_id, limit),
         ).fetchall()
     )
+
+
+def resolved_predictions(
+    connection: sqlite3.Connection,
+    *,
+    tenant_id: str,
+) -> list[sqlite3.Row]:
+    """Lo que se anunció y lo que ocurrió, de toda la cohorte de la organización.
+
+    Un par por episodio resuelto: la probabilidad que se **enseñó** ese día y si
+    hubo episodio. Nada más, porque es lo único que la calibración necesita y
+    porque cualquier otra columna invitaría a cruzarla con la persona, que es
+    justo lo que esta medida no hace.
+
+    El track se elige igual que en `child_submission_days`, y tiene que seguir
+    siendo igual: si se calibrara sobre un track distinto del que se ve, estaría
+    midiendo un número que nadie llegó a leer. Por eso `exposed = 1` y el mismo
+    orden de preferencia.
+
+    Solo entran los desenlaces vigentes —los que nadie ha superado con uno
+    posterior— y solo `yes` y `no`: un `unknown` o un conflicto no dicen si
+    ocurrió, y contarlos como "no" convertiría una duda en un acierto.
+    """
+
+    return list(
+        connection.execute(
+            "SELECT p.probability, r.status AS outcome_status"
+            " FROM prediction_episodes AS e"
+            " JOIN prediction_outputs AS p"
+            "  ON p.prediction_output_id = ("
+            "     SELECT o.prediction_output_id FROM prediction_outputs AS o"
+            "      WHERE o.prediction_episode_id = e.prediction_episode_id"
+            "        AND o.exposed = 1"
+            "        AND o.status = 'ok'"
+            "        AND o.probability IS NOT NULL"
+            "      ORDER BY CASE o.track_id"
+            "                 WHEN 'real_logit_challenger_v1' THEN 0"
+            "                 WHEN 'real_personal_baseline_v1' THEN 1"
+            "                 ELSE 2 END"
+            "      LIMIT 1)"
+            " JOIN outcome_resolutions AS r"
+            "  ON r.prediction_episode_id = e.prediction_episode_id"
+            "  AND NOT EXISTS (SELECT 1 FROM outcome_resolutions AS newer"
+            "                  WHERE newer.supersedes_id = r.outcome_resolution_id)"
+            " WHERE e.tenant_id = ? AND r.status IN ('yes', 'no')"
+            " ORDER BY e.as_of_at",
+            (tenant_id,),
+        ).fetchall()
+    )

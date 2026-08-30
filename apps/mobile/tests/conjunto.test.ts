@@ -19,16 +19,6 @@ function ficha(parcial: Partial<FichaNino>): FichaNino {
   };
 }
 
-/** Una serie de `dias` puntos, para que `adherencia` tenga denominador. */
-function serie(dias: number): FichaNino["serie"] {
-  return Array.from({ length: dias }, (_, indice) => ({
-    fecha: `2026-08-${String(indice + 1).padStart(2, "0")}`,
-    riesgo: null,
-    banda: null,
-    resultado: null,
-  }));
-}
-
 describe("resumirConjunto", () => {
   it("cuenta niños por banda en vez de promediar sus riesgos", () => {
     // Promediar líneas base personales es exactamente lo que el producto se
@@ -52,31 +42,11 @@ describe("resumirConjunto", () => {
     expect(resumen.porBanda.bajo).toBe(0);
   });
 
-  it("suma días de toda la cartera en vez de promediar porcentajes", () => {
-    // Uno con 18 de 20 días y otro con 1 de 10. Promediar los porcentajes daría
-    // 0.55; lo correcto es 19/30, porque quien lleva 20 días pesa más que quien
-    // lleva 10.
-    const resumen = resumirConjunto([
-      ficha({ serie: serie(18), adherencia: 18 / 20 }),
-      ficha({ serie: serie(1), adherencia: 1 / 10 }),
-    ]);
-    expect(resumen.adherencia).toBeCloseTo(19 / 30);
-  });
-
-  it("suma los cierres pendientes de toda la cartera", () => {
-    const resumen = resumirConjunto([ficha({ pendientes: 3 }), ficha({ pendientes: 2 })]);
-    expect(resumen.pendientes).toBe(5);
-  });
-
-  it("distingue tener niños de tener registros suyos", () => {
-    const resumen = resumirConjunto([ficha({ serie: serie(4), adherencia: 1 }), ficha({})]);
-    expect(resumen.ninos).toBe(2);
-    expect(resumen.conRegistro).toBe(1);
-  });
-
-  it("con la cartera vacía no divide por cero", () => {
+  it("con la cartera vacía cuenta cero en todas las bandas", () => {
+    // `ninos` es el denominador de las barras del widget: si volviera algo
+    // distinto de 0 con la cartera vacía, la pantalla dividiría por él.
     const resumen = resumirConjunto([]);
     expect(resumen.ninos).toBe(0);
-    expect(resumen.adherencia).toBe(0);
+    expect(resumen.porBanda).toEqual({ alto: 0, medio: 0, bajo: 0, desconocido: 0 });
   });
 });

@@ -1,5 +1,7 @@
 /** Tipos del dominio de la pantalla Salud. Nombres de dominio en español. */
 
+import type { CalibrationResponse } from "@/api/contrato";
+
 export type IconoFactor = "luna" | "rombo";
 
 /**
@@ -80,7 +82,14 @@ export interface ResumenSalud {
    * intervalo —el challenger logístico no lo hace—. Ninguno de los dos casos se
    * rellena con un número.
    */
-  readonly confianza: number | null;
+  /**
+   * La calibración de la cohorte, tal como la publica la API.
+   *
+   * Cruda y no ya resuelta al tramo de hoy: el tramo depende de la cifra, y
+   * `comprobacionDe` los junta donde se pintan. Guardarla entera deja además
+   * enseñar los otros tramos sin pedirla otra vez.
+   */
+  readonly calibracion: CalibrationResponse | null;
   readonly recomendacion: Recomendacion;
   readonly factores: readonly FactorRiesgo[];
   readonly formularios: readonly RegistroFormulario[];

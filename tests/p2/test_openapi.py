@@ -2,6 +2,7 @@
 
 EXPECTED = {
     ("get", "/health"),
+    ("get", "/v1/calibration"),
     ("get", "/v1/children"),
     ("get", "/v1/children/{child_id}"),
     ("get", "/v1/children/{child_id}/history"),

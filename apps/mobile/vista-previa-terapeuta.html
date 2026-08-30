@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>Blubathon — vista previa del panel</title>
+    <!--
+      Página de usar y tirar, fuera del build: `index.html` es el único punto de
+      entrada de verdad. Sirve para mirar el panel del terapeuta con la cola de
+      revisión llena mientras la base de la demo solo tiene tres recomendaciones
+      redactadas y ninguna entra en la muestra de 1 de cada 5.
+
+      Solo intercepta `/recommendations/review-queue`. Todo lo demás —niños,
+      historial, conjunto— sale del backend de verdad.
+    -->
+    <script>
+      const original = window.fetch.bind(window);
+      const NINOS = [
+        ["Niña demo 4", "medium"],
+        ["Niño demo 5", "medium"],
+        ["Niño demo 10", "high"],
+        ["Niña demo 6", "unknown"],
+        ["Niña demo 7", "medium"],
+      ];
+      const TEXTOS = [
+        "Se recomienda revisar los patrones de sueño durante la próxima semana. Los registros de los últimos 30 días muestran irregularidades significativas en los horarios de inicio del sueño, con variaciones de más de 2 horas entre días de semana y fines de semana, lo que puede estar contribuyendo a la deuda de sueño acumulada y al aumento del índice.",
+        "El índice de riesgo ha aumentado 12 puntos en los últimos 15 días. Se sugiere programar una sesión de seguimiento adicional antes de la fecha habitual. Los datos indican una reducción en la adherencia al protocolo y posibles cambios en el entorno familiar que podrían explicar la tendencia observada durante el periodo.",
+        "Alerta de riesgo alto detectada. Este niño presenta indicadores que superan el umbral del 70%. Se recomienda revisión prioritaria del caso y considerar la activación del protocolo de intervención temprana. Coordinar con el equipo multidisciplinario antes del fin de la semana para acordar los siguientes pasos.",
+        "La niña ha registrado datos en solo 1 de los últimos 30 días. Se recomienda contactar a la familia para verificar si existen barreras técnicas o motivacionales que estén impidiendo el uso regular del sistema.",
+        "Adelantar la rutina de sueño treinta minutos.",
+      ];
+      window.fetch = async (entrada, init) => {
+        const url = String(entrada?.url ?? entrada);
+        if (!url.includes("/recommendations/review-queue")) return original(entrada, init);
+
+        const ninos = await (await original("/v1/children")).json();
+        const lista = ninos.children ?? [];
+        return new Response(
+          JSON.stringify({
+            sample_denominator: 5,
+            sample_policy_version: "review-sample-0.4.0",
+            candidates: 24,
+            items: NINOS.map(([etiqueta, banda], i) => ({
+              recommendation_instance_id: `0000000${i}-0000-4000-8000-00000000000${i}`,
+              child_id: lista[i % Math.max(lista.length, 1)]?.child_id ?? `nino-${i}`,
+              child_label: etiqueta,
+              prediction_episode_id: "22222222-2222-4222-8222-222222222222",
+              local_date: "2026-08-29",
+              created_at: "2026-08-29T12:00:00Z",
+              risk_band: banda,
+              query_es: "sueño interrumpido",
+              status: "matched",
+              action_text_es: TEXTOS[i],
+              purpose_es: "Reducir la deuda de sueño acumulada antes de la próxima sesión.",
+              citations:
+                i === 0
+                  ? [
+                      {
+                        document_title_es: "Guía de apoyos (ficticia)",
+                        locator: "p. 12",
+                        quote_es:
+                          "Un horario estable de acostarse reduce los despertares nocturnos.",
+                      },
+                    ]
+                  : [],
+              abstention_reason: null,
+              attempt: 1,
+              rating: null,
+              in_review_sample: true,
+              review_decision: null,
+              reviewed_at: null,
+            })),
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      };
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+    <!-- `?abierto=1` despliega el widget solo, para capturar ese estado. -->
+    <script>
+      if (new URLSearchParams(location.search).has("abierto")) {
+        setTimeout(() => {
+          for (const boton of document.querySelectorAll("button")) {
+            if (boton.textContent.trim().startsWith("Ver más")) boton.click();
+          }
+        }, 1500);
+      }
+    </script>
+  </body>
+</html>

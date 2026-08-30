@@ -159,7 +159,18 @@ def build_dataset(
                 as_of=as_of,
             )
             seen_labels.append(label)
-            if any(deviation is None for deviation in deviations.values()):
+            # El entrenamiento sigue exigiendo los dos predictores observados, y
+            # no se conforma con la desviación cero que el runtime sí acepta.
+            #
+            # La definición de la feature es la misma —la de `predictor_deviations`,
+            # que es justo lo que no puede diferir—; lo que difiere es a qué filas
+            # se entrena, que es otra decisión y siempre lo fue. Un cero imputado
+            # es "no sé qué pasó ese día", y entrenar con eso mete filas sin señal
+            # que solo encogen los coeficientes. Puntuar con él es distinto: ahí no
+            # se elige la fila, la fila es el día que hay, y un cero cae de lleno
+            # dentro de lo que el modelo vio, porque los días en la costumbre
+            # también dan cero.
+            if deviations.costumbre_desconocida or not deviations.todos_observados:
                 without_predictors += 1
                 continue
 
@@ -167,8 +178,8 @@ def build_dataset(
                 ChallengerRow(
                     subject_id=UUID(subject_id),
                     p_base=p_base,
-                    sleep_deviation=deviations[FieldCode.SLEEP_QUALITY],
-                    regulation_deviation=deviations[FieldCode.DAILY_REGULATION_STATE],
+                    sleep_deviation=deviations.valores[FieldCode.SLEEP_QUALITY],
+                    regulation_deviation=deviations.valores[FieldCode.DAILY_REGULATION_STATE],
                     label=label,
                 )
             )

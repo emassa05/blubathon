@@ -155,6 +155,39 @@ export const AuthoringReviewObjectTypeValues = {
 } as const;
 
 /**
+ * Un tramo de riesgo: lo que anunció y lo que ocurrió de verdad.
+ *
+ * `announced` contra `observed` es la lectura entera. Si el intervalo de
+ * `observed` cubre a `announced`, los días no desmienten al modelo; si no lo
+ * cubre, el modelo se equivoca sistemáticamente en ese tramo y `days` dice si
+ * hay bastantes días como para creérselo.
+ */
+export interface CalibrationBand {
+  band: "low" | "medium" | "high";
+  days: number;
+  episodes: number;
+  announced: number;
+  observed: number;
+  interval: Array<unknown>;
+}
+
+/**
+ * La calibración de la cohorte de una organización.
+ *
+ * De la cohorte y no de una persona: verificar una frecuencia con ±10 puntos
+ * pide del orden de cien días **en cada tramo**, y una sola persona tarda años
+ * en repartirlos. Juntando a todas se cumple en semanas, al precio de que esto
+ * responde "el modelo acierta" y no "el modelo acierta contigo".
+ */
+export interface CalibrationResponse {
+  bands?: Array<CalibrationBand>;
+  brier?: number | null;
+  days?: number;
+  episodes?: number;
+  caveat_es: string;
+}
+
+/**
  * Optimiser settings fixed before a run, not per-run flags.
  */
 export interface ChallengerTrainingProtocolVersion {
