@@ -173,15 +173,6 @@ describe("cola de revisión", () => {
     expect(wrapper.find(".revision__muestra").text()).toContain("9 redactadas");
   });
 
-  it("enseña las citas junto a la recomendación que hay que aprobar", async () => {
-    servidor();
-    const wrapper = await montar();
-    // Aprobar sin ver la fuente sería firmar a ciegas: la recomendación solo
-    // existe porque cada afirmación salió de un fragmento del corpus.
-    expect(wrapper.find(".citas").text()).toContain("Guía de apoyos (ficticia)");
-    expect(wrapper.find(".citas").text()).toContain("p. 12");
-  });
-
   it("manda la decisión y refleja el veredicto que devuelve el servidor", async () => {
     servidor();
     const wrapper = await montar();

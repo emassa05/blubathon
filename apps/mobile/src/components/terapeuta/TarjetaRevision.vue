@@ -18,7 +18,6 @@ const props = defineProps<{
 
 const emitir = defineEmits<{
   decidir: [id: string, decision: "approved" | "rejected"];
-  verPerfil: [id: string];
 }>();
 
 const abierto = ref(false);
@@ -108,10 +107,6 @@ const decidida = computed(() => props.item.review_decision ?? null);
         <p class="tarjeta__nombre">{{ item.child_label ?? "Niño sin etiqueta" }}</p>
         <p class="tarjeta__estado">{{ estado }}</p>
       </div>
-
-      <button type="button" class="tarjeta__perfil" @click="emitir('verPerfil', item.child_id)">
-        Ver perfil
-      </button>
     </header>
 
     <p ref="parrafo" class="tarjeta__texto" :class="{ 'tarjeta__texto--recortado': !abierto }">
@@ -130,19 +125,6 @@ const decidida = computed(() => props.item.review_decision ?? null);
       {{ abierto ? "Leer menos" : "Leer más" }}
       <IconoFlecha class="tarjeta__flecha" :class="{ 'tarjeta__flecha--atras': abierto }" />
     </button>
-
-    <!--
-      Las citas no son adorno: la recomendación solo existe si cada afirmación
-      salió de un fragmento del corpus, y lo que el profesional está juzgando es
-      exactamente eso. Por eso no se esconden detrás del "Leer más" como el
-      resto del texto: sin la fuente delante, responder sería firmar a ciegas.
-    -->
-    <ul v-if="item.citations?.length" class="citas">
-      <li v-for="(cita, i) in item.citations" :key="i" class="citas__cita">
-        <p class="citas__texto">«{{ cita.quote_es }}»</p>
-        <p class="citas__fuente">{{ cita.document_title_es }} · {{ cita.locator }}</p>
-      </li>
-    </ul>
 
     <p v-if="decidida" class="veredicto" :class="`veredicto--${decidida}`" role="status">
       {{ ETIQUETA_DECISION[decidida] }}
@@ -219,21 +201,6 @@ const decidida = computed(() => props.item.review_decision ?? null);
   font-variant-numeric: tabular-nums;
 }
 
-.tarjeta__perfil {
-  flex: none;
-  padding: var(--blubathon-esp-6) var(--blubathon-esp-10);
-  font-size: var(--blubathon-fs-12);
-  font-weight: 700;
-  color: var(--blubathon-marca-accion);
-  background: var(--blubathon-vidrio);
-  border-radius: var(--blubathon-radio-pastilla);
-}
-
-.tarjeta__perfil:hover {
-  background: var(--blubathon-marca-icono-fondo);
-}
-
-.tarjeta__perfil:focus-visible,
 .tarjeta__mas:focus-visible {
   outline: var(--blubathon-foco-grosor) solid var(--blubathon-marca-accion);
   outline-offset: var(--blubathon-foco-offset);
@@ -286,30 +253,6 @@ const decidida = computed(() => props.item.review_decision ?? null);
 
 .tarjeta__flecha--atras {
   transform: rotate(90deg);
-}
-
-.citas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--blubathon-esp-8);
-}
-
-.citas__cita {
-  padding-left: var(--blubathon-esp-10);
-  border-left: 2px solid var(--blubathon-linea);
-}
-
-.citas__texto {
-  font-size: var(--blubathon-fs-12);
-  font-style: italic;
-  line-height: 1.45;
-  color: var(--blubathon-marca-texto);
-}
-
-.citas__fuente {
-  margin-top: 2px;
-  font-size: var(--blubathon-fs-11);
-  color: var(--blubathon-gris-texto);
 }
 
 .veredicto {

@@ -88,7 +88,6 @@ async function decidir(id: string, decision: "approved" | "rejected"): Promise<v
         :enviando="enviando"
         :fichas="fichas"
         @decidir="decidir"
-        @ver-perfil="seleccionar"
       />
 
       <ResumenConjuntoWidget class="panel__zona--conjunto" :conjunto="conjunto" />

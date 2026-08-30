@@ -19,14 +19,13 @@ const props = defineProps<{
 
 defineEmits<{
   decidir: [id: string, decision: "approved" | "rejected"];
-  verPerfil: [id: string];
 }>();
 
 /**
  * Cuántas se ven sin desplegar.
  *
  * Dos, y no las cinco de la muestra: el widget comparte columna con el resumen
- * del conjunto, y una lista de cinco tarjetas con sus citas y sus botones deja
+ * del conjunto, y una lista de cinco tarjetas con su texto y sus botones deja
  * el resto de la pantalla fuera de vista sin que nadie lo haya pedido.
  */
 const A_LA_VISTA = 2;
@@ -103,7 +102,6 @@ function riesgoDe(item: RecommendationInstanceView): number | null {
               :riesgo="riesgoDe(item)"
               :enviando="enviando !== null"
               @decidir="(id, decision) => $emit('decidir', id, decision)"
-              @ver-perfil="(id) => $emit('verPerfil', id)"
             />
           </li>
         </ul>
@@ -122,7 +120,6 @@ function riesgoDe(item: RecommendationInstanceView): number | null {
                 :riesgo="riesgoDe(item)"
                 :enviando="enviando !== null"
                 @decidir="(id, decision) => $emit('decidir', id, decision)"
-                @ver-perfil="(id) => $emit('verPerfil', id)"
               />
             </li>
           </ul>
