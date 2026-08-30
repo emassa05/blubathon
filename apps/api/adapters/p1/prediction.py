@@ -270,19 +270,32 @@ class P1Prediction:
             source=Source.HOME,
             as_of_at=cutoff,
         )
-        if any(value is None for value in deviations.values()):
+        # Sin la costumbre del sujeto no hay desviación que definir, y eso no se
+        # puede suplir con nada: es su propio motivo.
+        if deviations.costumbre_desconocida:
             return self._challenger_abstains(
                 input_data_origin,
                 shadow["model_version"],
                 PredictionAbstentionReason.PERSONAL_PREDICTOR_HISTORY_INSUFFICIENT,
+            )
+        # Faltar un predictor del día no tumba la estimación —su desviación
+        # esperada es cero y el otro sigue contando—, pero faltar todos sí: sin
+        # ninguna respuesta de hoy el challenger no estaría diciendo nada del día,
+        # solo repitiendo la tasa base corrida por su intercepto. Ahí se calla y
+        # la pantalla enseña la tasa base, que es lo que de verdad tiene.
+        if not deviations.alguno_observado:
+            return self._challenger_abstains(
+                input_data_origin,
+                shadow["model_version"],
+                PredictionAbstentionReason.PREDICTOR_MISSING,
             )
 
         probability = fit.predict(
             ChallengerRow(
                 subject_id=UUID(subject_id),
                 p_base=baseline.probability,
-                sleep_deviation=deviations[FieldCode.SLEEP_QUALITY],
-                regulation_deviation=deviations[FieldCode.DAILY_REGULATION_STATE],
+                sleep_deviation=deviations.valores[FieldCode.SLEEP_QUALITY],
+                regulation_deviation=deviations.valores[FieldCode.DAILY_REGULATION_STATE],
                 label=0,
             )
         )

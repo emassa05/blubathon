@@ -24,6 +24,7 @@ from ml.prediction import (
     sigmoid,
     train_challenger,
 )
+from ml.prediction.challenger import PredictorDeviations, predictor_deviations
 from packages.shared.domain.outcome import OutcomeResolution
 from packages.shared.enums import (
     CohortKind,
@@ -497,3 +498,108 @@ def test_a_trainable_dataset_produces_a_candidate_and_nothing_more() -> None:
     assert result.fit is not None and result.fit.converged
     assert result.model_version == "real-logit-challenger-0.3.0"
     assert not hasattr(result, "deployed")
+
+
+# --- Un predictor que falta el día no tumba la estimación entera ------------
+
+
+def _dias_de_costumbre(field_code: FieldCode, valores: tuple[str, ...]) -> list:
+    """Historial anterior al corte, uno por día, para fijar la costumbre."""
+
+    return [
+        observation(
+            f"{field_code.value}-{index}",
+            field_code=field_code,
+            value=valor,
+            effective_at=NOW - timedelta(days=index + 1),
+        )
+        for index, valor in enumerate(valores)
+    ]
+
+
+def _del_dia(field_code: FieldCode, valor: str) -> list:
+    return [
+        observation(
+            f"{field_code.value}-hoy",
+            field_code=field_code,
+            value=valor,
+            effective_at=NOW,
+        )
+    ]
+
+
+def _desviaciones(rows: list) -> PredictorDeviations:
+    return predictor_deviations(
+        rows,
+        tenant_id=TENANT,
+        subject_id=SUBJECT,
+        source=Source.HOME,
+        as_of_at=NOW,
+    )
+
+
+SUENO_MITAD = ("interrupted", "restorative") * 3
+REGULACION_MITAD = ("frequent_dysregulation", "excellent") * 3
+
+
+def test_a_predictor_absent_today_deviates_zero_and_the_other_still_counts() -> None:
+    """Sin la respuesta de hoy la desviación es su valor esperado, que es cero."""
+
+    rows = (
+        _dias_de_costumbre(FieldCode.SLEEP_QUALITY, SUENO_MITAD)
+        + _dias_de_costumbre(FieldCode.DAILY_REGULATION_STATE, REGULACION_MITAD)
+        # Hoy se contesta el sueño y no la regulación, que es lo que pasa cuando
+        # el cuestionario se guarda a medias.
+        + _del_dia(FieldCode.SLEEP_QUALITY, "interrupted")
+    )
+    desviaciones = _desviaciones(rows)
+
+    assert not desviaciones.costumbre_desconocida
+    assert desviaciones.alguno_observado
+    assert not desviaciones.todos_observados
+    assert desviaciones.observados == frozenset({FieldCode.SLEEP_QUALITY})
+    # El sueño se desvía de su costumbre; la regulación no aporta ni resta.
+    assert desviaciones.valores[FieldCode.SLEEP_QUALITY] == pytest.approx(0.5)
+    assert desviaciones.valores[FieldCode.DAILY_REGULATION_STATE] == 0.0
+
+
+def test_no_predictor_answered_today_leaves_nothing_to_say_about_the_day() -> None:
+    rows = _dias_de_costumbre(FieldCode.SLEEP_QUALITY, SUENO_MITAD) + _dias_de_costumbre(
+        FieldCode.DAILY_REGULATION_STATE, REGULACION_MITAD
+    )
+    desviaciones = _desviaciones(rows)
+
+    assert not desviaciones.costumbre_desconocida
+    assert not desviaciones.alguno_observado
+    assert all(valor == 0.0 for valor in desviaciones.valores.values())
+
+
+def test_an_unknown_habit_is_still_undefined_and_never_becomes_a_zero() -> None:
+    """Faltar la costumbre y faltar el día no son lo mismo: solo el segundo imputa."""
+
+    rows = (
+        # Tres días de sueño: por debajo del mínimo, así que no hay costumbre.
+        _dias_de_costumbre(FieldCode.SLEEP_QUALITY, SUENO_MITAD[:3])
+        + _dias_de_costumbre(FieldCode.DAILY_REGULATION_STATE, REGULACION_MITAD)
+        + _del_dia(FieldCode.SLEEP_QUALITY, "interrupted")
+        + _del_dia(FieldCode.DAILY_REGULATION_STATE, "excellent")
+    )
+    desviaciones = _desviaciones(rows)
+
+    assert desviaciones.costumbre_desconocida
+    assert desviaciones.valores[FieldCode.SLEEP_QUALITY] is None
+
+
+def test_an_other_answer_today_deviates_zero_rather_than_blocking_the_estimate() -> None:
+    """`other` no lo codifica el predictor: es un día sin ese dato, no un cero real."""
+
+    rows = (
+        _dias_de_costumbre(FieldCode.SLEEP_QUALITY, SUENO_MITAD)
+        + _dias_de_costumbre(FieldCode.DAILY_REGULATION_STATE, REGULACION_MITAD)
+        + _del_dia(FieldCode.SLEEP_QUALITY, "other")
+        + _del_dia(FieldCode.DAILY_REGULATION_STATE, "excellent")
+    )
+    desviaciones = _desviaciones(rows)
+
+    assert desviaciones.valores[FieldCode.SLEEP_QUALITY] == 0.0
+    assert desviaciones.observados == frozenset({FieldCode.DAILY_REGULATION_STATE})
