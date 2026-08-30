@@ -193,10 +193,13 @@
    * columna elástica solo añadiría aire entre el nombre y su porcentaje.
    */
   --blubathon-panel-ancho: 1240px;
-  /* Lo bastante ancha para que quepa entero un nombre con su paréntesis
-     —"Niña demo 4 (cohorte real)"— sin recortarlo con puntos suspensivos. El
-     panel creció lo mismo que ella, para que la columna de la derecha no
-     pierda sitio al ensancharse esta. */
+  /* Lo bastante ancha para que quepa entero el nombre más largo de la cartera
+     sin recortarlo con puntos suspensivos. El panel creció lo mismo que ella,
+     para que la columna de la derecha no pierda sitio al ensancharse esta.
+
+     La medida se tomó con nombres más largos, cuando la semilla les colgaba un
+     paréntesis —"(cohorte)", "(solo sueño)"—; le sobra sitio y no se ha
+     reajustado, porque estrecharla movería también el ancho del panel. */
   --blubathon-columna-cartera: 400px;
 
   /* Lo que el aviso flotante tapa de la esquina de abajo. El contenido de Salud
