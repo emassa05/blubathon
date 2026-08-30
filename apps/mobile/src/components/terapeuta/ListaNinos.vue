@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AvatarNino from "@/components/base/AvatarNino.vue";
-import IconoAlerta from "@/components/icons/IconoAlerta.vue";
 import { CLASE_BANDA, bandaRiesgo } from "@/theme/riesgo";
 import type { FichaNino } from "@/types/terapeuta";
 
@@ -25,11 +24,7 @@ function descripcion(ficha: FichaNino): string {
     ficha.riesgo === null
       ? "sin estimación de riesgo"
       : `riesgo ${Math.round(ficha.riesgo)} por ciento`;
-  const pendientes =
-    ficha.pendientes === 0
-      ? ""
-      : `, ${ficha.pendientes} ${ficha.pendientes === 1 ? "cierre pendiente" : "cierres pendientes"}`;
-  return `${ficha.etiqueta}, ${riesgo}${pendientes}`;
+  return `${ficha.etiqueta}, ${riesgo}`;
 }
 </script>
 
@@ -69,14 +64,6 @@ function descripcion(ficha: FichaNino): string {
             <span class="fila__detalle">
               {{ ficha.serie.length }} {{ ficha.serie.length === 1 ? "día" : "días" }} registrados
             </span>
-          </span>
-
-          <!-- Los cierres pendientes van en la fila y no en el perfil: son la
-               razón por la que el terapeuta elegiría mirar a este niño antes
-               que a otro, y en el perfil solo los vería después de elegirlo. -->
-          <span v-if="ficha.pendientes > 0" class="fila__pendientes" aria-hidden="true">
-            <IconoAlerta class="fila__alerta" />
-            {{ ficha.pendientes }}
           </span>
 
           <span class="fila__riesgo" aria-hidden="true">{{ cifra(ficha.riesgo) }}</span>
@@ -190,24 +177,6 @@ function descripcion(ficha: FichaNino): string {
 .fila__detalle {
   font-size: var(--blubathon-fs-12);
   color: var(--blubathon-gris-texto);
-}
-
-.fila__pendientes {
-  display: inline-flex;
-  flex: none;
-  gap: var(--blubathon-esp-4);
-  align-items: center;
-  padding: 2px var(--blubathon-esp-6);
-  font-size: var(--blubathon-fs-11);
-  font-weight: 700;
-  color: var(--blubathon-aviso-etiqueta);
-  background: var(--blubathon-aviso-fondo);
-  border-radius: var(--blubathon-radio-pastilla);
-}
-
-.fila__alerta {
-  width: var(--blubathon-icono-12);
-  height: var(--blubathon-icono-12);
 }
 
 /*
