@@ -28,11 +28,11 @@ import { ErrorBlubathon } from "@/api/errores";
 import {
   historialNino,
   planFormulario,
+  calibracionCohorte,
   recomendacionDeEpisodio,
   recomendacionDeHoy,
 } from "@/api/blubathon";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
-import { confianzaDelIntervalo } from "@/dominio/incertidumbre";
 import { unificarPorDia } from "@/dominio/historial";
 import { rachaSinDesregulacion } from "@/dominio/rachas";
 import { reconciliar, respuestasDe } from "@/estado/respuestas";
@@ -258,11 +258,21 @@ export async function cargarResumenSalud(opciones: {
   // acabaras de contestarlos. La copia local es lo único que sabe qué se envió.
   const yaRespondido = respuestasDe(idNino, fechaIso) ?? {};
 
-  const [plan, deHoy] = await Promise.all([
+  const [plan, deHoy, calibracion] = await Promise.all([
     esHoy
       ? planFormulario(idNino, { source: "caregiver_daily", answers: yaRespondido }, signal)
       : Promise.resolve(null),
     esHoy ? recomendacionDeHoy(idNino, signal) : Promise.resolve(null),
+    /*
+     * La calibración se pide siempre, también en días pasados: no es del día ni
+     * de la persona, es de la organización entera, y un día de la semana pasada
+     * se comprueba con los mismos tramos que hoy.
+     *
+     * Y si falla no se lleva la pantalla por delante. Es un dato de apoyo: sin
+     * él la cifra sigue siendo la cifra, solo que sin la línea que dice cuánto
+     * ha acertado. Cualquier otro fallo de esta pantalla sí es un error.
+     */
+    calibracionCohorte(signal).catch(() => null),
   ]);
 
   const dia = dias.find((candidato) => candidato.local_date === fechaIso) ?? null;
@@ -275,10 +285,9 @@ export async function cargarResumenSalud(opciones: {
   return {
     fecha: fechaIso,
     riesgo,
-    // Sin cifra no hay confianza que dar. Y con cifra puede seguir sin haberla:
-    // el challenger logístico publica probabilidad y ningún intervalo, y es el
-    // track preferido cuando estima. `null` en los dos casos.
-    confianza: riesgo === null ? null : confianzaDelIntervalo(prediccion?.interval),
+    // La comprobación de la cohorte, entera. Cuál de sus tramos toca hoy lo
+    // decide la cifra, y eso se resuelve donde se pinta.
+    calibracion,
     recomendacion: leerRecomendacion(estadoRecomendacion),
     factores: factores(plan),
     formularios: formularios(fechaIso, conEnvio),

@@ -55,13 +55,12 @@ describe("cargarResumenSalud", () => {
     const resumen = await cargarHoy();
 
     expect(resumen.riesgo).toBe(18);
-    // Intervalo de 0.15 de ancho: 85% de confianza.
-    expect(resumen.confianza).toBe(85);
   });
 
-  it("con cifra y sin intervalo la confianza es nula, no un cero", async () => {
+  it("con cifra y sin intervalo del modelo la pantalla sigue en pie", async () => {
     // Es el caso del challenger logístico: publica probabilidad y, por
-    // invariante del dominio, ningún intervalo.
+    // invariante del dominio, ningún intervalo. Lo que se enseña debajo de la
+    // cifra ya no sale de ahí, sino de la calibración de la cohorte.
     instalarServidorFalso({
       [`${CHILD}/history`]: historialFalso([
         diaFalso({ fecha: HOY, probabilidad: 0.4, intervalo: null }),
@@ -73,7 +72,6 @@ describe("cargarResumenSalud", () => {
     const resumen = await cargarHoy();
 
     expect(resumen.riesgo).toBe(40);
-    expect(resumen.confianza).toBeNull();
   });
 
   it("la abstención del modelo no se convierte en un cero", async () => {
@@ -86,7 +84,6 @@ describe("cargarResumenSalud", () => {
     const resumen = await cargarHoy();
 
     expect(resumen.riesgo).toBeNull();
-    expect(resumen.confianza).toBeNull();
   });
 
   it("cada estado de la recomendación dice lo que pasa, y la abstención dice por qué", async () => {

@@ -11,6 +11,7 @@
  */
 
 import type {
+  CalibrationResponse,
   ChildHistoryResponse,
   ChildListResponse,
   ChildView,
@@ -161,6 +162,19 @@ export function reportarResultado(
  * diferenciar: sin formulario, redactándose, lista o abstenida. La abstención
  * llega como 200 con `abstention_reason`, nunca como error.
  */
+/**
+ * La comprobación de la cohorte: de los días que se anunciaron en cada tramo,
+ * en cuántos hubo episodio.
+ *
+ * Sin `child_id` a propósito. Comprobar una frecuencia con ±10 puntos pide del
+ * orden de cien días **en cada tramo**, y una persona sola tarda años en
+ * repartirlos entre todos. Junta a la organización entera, y a cambio responde
+ * si el modelo acierta y no si acierta con esta persona.
+ */
+export function calibracionCohorte(signal?: AbortSignal): Promise<CalibrationResponse> {
+  return pedir("/calibration", { signal });
+}
+
 export function recomendacionDeHoy(
   idNino: string,
   signal?: AbortSignal,
