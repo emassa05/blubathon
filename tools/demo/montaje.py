@@ -37,9 +37,34 @@ from tools.seed import ids
 from tools.seed.seeder import seed
 from tools.train.run import train
 
+#: A quién se le fabrica historial, y con cuántos días de mal perfil.
+#:
+#: Los dos primeros son los de siempre y no se tocan: son los que se abren para
+#: mirar la pantalla, y sus enlaces andan escritos en cuadernos y en la cabeza de
+#: la gente.
+#:
+#: Los seis siguientes existen para que la **calibración** se pueda comprobar. Un
+#: niño tiene una tasa base y todos sus días caen en el mismo tramo de riesgo, así
+#: que con dos parecidos la medida solo cubría uno: 109 de 120 días en `medium`,
+#: y los tramos `low` y `high` sin nada con que contrastarse. Repartiendo los días
+#: difíciles de 0 a 64, las tasas base salen escalonadas desde ~16% hasta ~69% y
+#: los tres tramos se llenan.
+#:
+#: La cuenta que hay detrás, con la lotería de `demo_history` —70% de crisis en
+#: día difícil, 15% en día tranquilo— y 65 días:
+#:
+#:     tasa base ~= (1 + 9.75 + 0.55 * dificiles) / 67
+#:
+#: 0 difíciles dan ~16% (tramo bajo), 26 dan ~37% (medio), 64 dan ~69% (alto).
 NINOS: tuple[tuple[str, str, int], ...] = (
     (ids.SUBJECT_REAL, "Niña demo 4", 26),
     (ids.SUBJECT_REAL_B, "Niño demo 5", 30),
+    (ids.SUBJECT_COHORTE_C, "Niña demo 7", 0),
+    (ids.SUBJECT_COHORTE_D, "Niño demo 8", 3),
+    (ids.SUBJECT_COHORTE_E, "Niña demo 9", 14),
+    (ids.SUBJECT_COHORTE_F, "Niño demo 10", 45),
+    (ids.SUBJECT_COHORTE_G, "Niña demo 11", 55),
+    (ids.SUBJECT_COHORTE_H, "Niño demo 12", 64),
 )
 
 #: Objetivo con alcance de organización, el que exige un sujeto real.
