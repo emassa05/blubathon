@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { nextTick } from "vue";
 
+import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import SaludView from "@/views/SaludView.vue";
 
@@ -227,6 +228,38 @@ describe("SaludView", () => {
     // que nadie pidió no puede llevarse por delante lo que ya se estaba viendo.
     expect(wrapper.text()).toContain("18%");
     expect(wrapper.text()).toContain("Mantener la rutina de sueño.");
+  });
+
+  it("un aviso del canal a media carga no deja la pantalla en Cargando", async () => {
+    servidor();
+    const wrapper = await montar();
+
+    // Se cambia de día: eso es una carga visible, la que sí tapa las tarjetas.
+    await wrapper.get('[aria-label="Día anterior"]').trigger("click");
+    await nextTick();
+    expect(wrapper.text()).toContain(BLUBATHON_TEXTS_ES.loadingEs);
+
+    // Y antes de que conteste, llega el aviso del backend —justo lo que pasa al
+    // enviar el cuestionario, que el RAG termina un instante despues—. El
+    // refresco silencioso releva a la carga visible, y la relevada ya no puede
+    // apagar el aviso porque su `finally` la ve abortada: si el que releva
+    // tampoco lo apaga, la pantalla se queda en "Cargando" para siempre.
+    emitirEvento({
+      type: "recommendation.ready",
+      child_id: ID_NINO_FALSO,
+      prediction_episode_id: "22222222-2222-4222-8222-222222222222",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      status: "matched",
+      abstention_reason: null,
+      at: new Date().toISOString(),
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain(BLUBATHON_TEXTS_ES.loadingEs);
+    // Y no es que se haya quitado el aviso dejando el hueco: las tarjetas del
+    // dia al que se cambio estan puestas.
+    expect(wrapper.text()).toContain("Últimos formularios");
+    expect(wrapper.get(".fecha__etiqueta").text()).toContain("28");
   });
 
   it("cada fila de formulario abre el cuestionario de su día", async () => {

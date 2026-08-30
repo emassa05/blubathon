@@ -3,15 +3,29 @@ import { describe, expect, it } from "vitest";
 
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
 
-const PROPS = { riesgo: 18, confianza: 85 };
+const COMPROBACION = {
+  banda: "low" as const,
+  dias: 76,
+  observado: 13,
+  intervalo: [7, 23] as readonly [number, number],
+  concuerda: true,
+};
+
+const PROPS = { riesgo: 18, comprobacion: COMPROBACION };
 
 describe("CabeceraRiesgo", () => {
-  it("pinta el sobretítulo, la cifra y el nivel de confianza", () => {
+  it("pinta el sobretítulo, la cifra y lo que ocurrió en días así", () => {
     const wrapper = mount(CabeceraRiesgo, { props: PROPS });
 
     expect(wrapper.get(".riesgo__sobretitulo").text()).toBe("Riesgo de desregulación");
     expect(wrapper.get(".riesgo__cifra").text()).toBe("18%");
-    expect(wrapper.get(".riesgo__confianza").text()).toBe("Nivel de confianza 85%");
+    // El margen y los días van con la cifra: un porcentaje sin saber sobre
+    // cuántos días se midió no se puede leer.
+    const comprobacion = wrapper.get(".riesgo__confianza").text();
+    expect(comprobacion).toContain("En días así ocurrió el");
+    expect(comprobacion).toContain("13%");
+    expect(comprobacion).toContain("7–23%");
+    expect(comprobacion).toContain("76");
   });
 
   it("lee el riesgo como una sola etiqueta bajo un encabezado de nivel 1", () => {
@@ -40,8 +54,8 @@ describe("CabeceraRiesgo", () => {
     expect(wrapper.find(".ayuda__globo").exists()).toBe(false);
   });
 
-  it("sin estimación no escribe un cero ni deja la pastilla de confianza", () => {
-    const wrapper = mount(CabeceraRiesgo, { props: { riesgo: null, confianza: null } });
+  it("sin estimación no escribe un cero ni deja la pastilla", () => {
+    const wrapper = mount(CabeceraRiesgo, { props: { riesgo: null, comprobacion: null } });
 
     expect(wrapper.get(".riesgo__cifra").text()).toBe("—");
     expect(wrapper.find(".riesgo__porciento").exists()).toBe(false);

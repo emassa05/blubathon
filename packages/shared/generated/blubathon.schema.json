@@ -621,6 +621,119 @@
       "title": "AuthoringReviewObjectType",
       "type": "string"
     },
+    "CalibrationBand": {
+      "additionalProperties": false,
+      "description": "Un tramo de riesgo: lo que anunció y lo que ocurrió de verdad.\n\n`announced` contra `observed` es la lectura entera. Si el intervalo de\n`observed` cubre a `announced`, los días no desmienten al modelo; si no lo\ncubre, el modelo se equivoca sistemáticamente en ese tramo y `days` dice si\nhay bastantes días como para creérselo.",
+      "properties": {
+        "announced": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Announced",
+          "type": "number"
+        },
+        "band": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Band",
+          "type": "string"
+        },
+        "days": {
+          "minimum": 0,
+          "title": "Days",
+          "type": "integer"
+        },
+        "episodes": {
+          "minimum": 0,
+          "title": "Episodes",
+          "type": "integer"
+        },
+        "interval": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            }
+          ],
+          "title": "Interval",
+          "type": "array"
+        },
+        "observed": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Observed",
+          "type": "number"
+        }
+      },
+      "required": [
+        "band",
+        "days",
+        "episodes",
+        "announced",
+        "observed",
+        "interval"
+      ],
+      "title": "CalibrationBand",
+      "type": "object"
+    },
+    "CalibrationResponse": {
+      "additionalProperties": false,
+      "description": "La calibración de la cohorte de una organización.\n\nDe la cohorte y no de una persona: verificar una frecuencia con ±10 puntos\npide del orden de cien días **en cada tramo**, y una sola persona tarda años\nen repartirlos. Juntando a todas se cumple en semanas, al precio de que esto\nresponde \"el modelo acierta\" y no \"el modelo acierta contigo\".",
+      "properties": {
+        "bands": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CalibrationBand"
+          },
+          "title": "Bands",
+          "type": "array"
+        },
+        "brier": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Brier"
+        },
+        "caveat_es": {
+          "minLength": 1,
+          "title": "Caveat Es",
+          "type": "string"
+        },
+        "days": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Days",
+          "type": "integer"
+        },
+        "episodes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Episodes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "caveat_es"
+      ],
+      "title": "CalibrationResponse",
+      "type": "object"
+    },
     "ChallengerTrainingProtocolVersion": {
       "additionalProperties": false,
       "description": "Optimiser settings fixed before a run, not per-run flags.",
@@ -5792,6 +5905,8 @@
     "AuthoringRequest",
     "AuthoringRequestIntent",
     "AuthoringReview",
+    "CalibrationBand",
+    "CalibrationResponse",
     "ChallengerTrainingProtocolVersion",
     "ChildHistoryDay",
     "ChildHistoryResponse",

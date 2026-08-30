@@ -33,6 +33,16 @@ export function useResumenSalud(fechaIso: Ref<string>) {
    * de día y lo que hay debajo es de otra fecha; cuando lo que ha pasado es que
    * el backend avisó de que la recomendación ya está, la pantalla tiene que
    * seguir donde estaba y cambiar solo lo que cambió.
+   *
+   * Encender el aviso y apagarlo son decisiones distintas, y esa es la parte que
+   * faltaba. Lo enciende solo quien no es silencioso, pero **lo apaga quien
+   * termina el último**, sea silencioso o no.
+   *
+   * Sin eso, un refresco silencioso que relevaba a una carga visible dejaba el
+   * aviso puesto para siempre: la relevada no lo apaga porque su `finally` la ve
+   * abortada, y la que releva tampoco lo hacía porque no era suya. Es justo lo
+   * que pasa al enviar el cuestionario —se recarga el día, y el aviso de que el
+   * RAG terminó llega un instante después, encima de esa recarga.
    */
   async function cargar(silencioso = false): Promise<void> {
     enCurso?.abort();
@@ -66,7 +76,12 @@ export function useResumenSalud(fechaIso: Ref<string>) {
       resumen.value = null;
       error.value = fallo instanceof ErrorBlubathon ? fallo : ErrorBlubathon.red(fallo);
     } finally {
-      if (!propio.signal.aborted && !silencioso) cargando.value = false;
+      // Solo la última manda: una carga relevada no toca nada, porque lo que se
+      // vea lo decide la que la relevó.
+      if (enCurso === propio) {
+        enCurso = null;
+        cargando.value = false;
+      }
     }
   }
 

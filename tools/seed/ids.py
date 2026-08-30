@@ -29,6 +29,17 @@ SUBJECT_SIN_GRANT = _uuid(103)
 SUBJECT_REAL = _uuid(104)
 SUBJECT_REAL_B = _uuid(105)
 SUBJECT_SUENO = _uuid(106)
+#: La cohorte que hace medible la calibración. Seis personas más, sembradas con
+#: proporciones de días difíciles muy distintas: sus tasas base caen repartidas
+#: por los tres tramos de riesgo, y sin ese reparto la calibración solo puede
+#: medir el tramo donde se amontonan todos —con dos personas parecidas, 109 de
+#: 120 días caían en `medium` y los otros dos tramos no se podían comprobar.
+SUBJECT_COHORTE_C = _uuid(107)
+SUBJECT_COHORTE_D = _uuid(108)
+SUBJECT_COHORTE_E = _uuid(109)
+SUBJECT_COHORTE_F = _uuid(110)
+SUBJECT_COHORTE_G = _uuid(111)
+SUBJECT_COHORTE_H = _uuid(112)
 SUBJECT_TENANT_B = _uuid(201)
 
 TOKENS: dict[str, str] = {

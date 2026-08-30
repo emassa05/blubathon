@@ -31,6 +31,8 @@ _PUBLISHED: tuple[type[BaseModel], ...] = (
     api.ChildHistoryResponse,
     api.ChildHistoryDay,
     api.TodayRecommendationResponse,
+    api.CalibrationBand,
+    api.CalibrationResponse,
     api.PredictionOutputView,
     api.PredictionEpisodeResponse,
     api.OutcomeRequestView,

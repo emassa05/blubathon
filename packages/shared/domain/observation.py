@@ -55,6 +55,13 @@ VALUE_ASSIGNING_MODES: frozenset[EntryMode] = frozenset(
         EntryMode.DEFAULT_EDITED,
     }
 )
+# Lo que entrena al estimador de sugerencias. `DEFAULT_ACCEPTED` se queda fuera y
+# es INV-02: la sugerencia la propone el propio estimador, asi que aceptarla y
+# devolversela le haria aprender de su propia salida. Cada aceptacion volveria la
+# siguiente sugerencia mas segura, y el estimador acabaria convencido de un valor
+# que nadie llego a reportar nunca. `DEFAULT_EDITED` tampoco entra, por lo mismo
+# visto del otro lado: lo que se edita nace de lo que se presento, y el estimador
+# no puede medir su propio efecto de presentacion.
 DEFAULT_ESTIMATOR_MODES: frozenset[EntryMode] = frozenset(
     {
         EntryMode.MANUAL_NO_DEFAULT,
@@ -63,6 +70,23 @@ DEFAULT_ESTIMATOR_MODES: frozenset[EntryMode] = frozenset(
         EntryMode.IMPORTED_OBSERVED,
     }
 )
+# Lo que ve el modelo de riesgo. Aqui `DEFAULT_ACCEPTED` **si** entra, y es la
+# otra mitad de INV-02, que antes tambien lo excluia.
+#
+# El bucle que INV-02 evita es el del estimador aprendiendo de si mismo, y ese
+# sigue cerrado arriba. El modelo de riesgo no es quien propone la sugerencia:
+# para el, un dia aceptado es un dia que alguien miro y dio por bueno, y tirarlo
+# no era neutral. Era perder el dia entero, porque a un campo sin observacion el
+# challenger no le puede calcular desviacion y se abstiene: un solo campo
+# aceptado dejaba la estimacion del dia en la tasa base. Se perdia justo la
+# informacion que el formulario se ahorro pedir por conocerla.
+#
+# Lo que un dia aceptado no es, y por eso no vale igual en todas partes: no es
+# una observacion independiente. Su valor lo propuso el estimador desde el
+# historial de esa misma persona, asi que confirma la costumbre mas de lo que la
+# mide. Quien lea estos datos para medir cuanto ayudan las sugerencias tiene que
+# seguir separandolos por `entry_mode`, que para eso se guarda; `ml/form/quality`
+# ya lo pesa aparte con `DQI_ACCEPTED_DEFAULT_WEIGHT`.
 PRIMARY_REAL_MODEL_MODES: frozenset[EntryMode] = frozenset(
     {
         EntryMode.MANUAL_NO_DEFAULT,
@@ -70,6 +94,7 @@ PRIMARY_REAL_MODEL_MODES: frozenset[EntryMode] = frozenset(
         EntryMode.PROFESSIONAL_OBSERVED,
         EntryMode.IMPORTED_OBSERVED,
         EntryMode.DEFAULT_EDITED,
+        EntryMode.DEFAULT_ACCEPTED,
     }
 )
 

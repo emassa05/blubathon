@@ -8,6 +8,7 @@ import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
 import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
+import { comprobacionDe } from "@/dominio/comprobacion";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
@@ -27,6 +28,17 @@ const emitir = defineEmits<{
 const { fechaIso, esHoy, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } =
   useDiaSeleccionado();
 const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
+
+/*
+ * Qué ocurrió de verdad en los días que se anunciaron como el de hoy.
+ *
+ * Se resuelve aquí y no en el adaptador porque hace falta la cifra para saber
+ * qué tramo toca, y la cifra es de la pantalla: el mismo día visto con otra
+ * estimación caería en otro tramo. La calibración entera viaja en el resumen.
+ */
+const comprobacion = computed(() =>
+  comprobacionDe(resumen.value?.calibracion ?? null, resumen.value?.riesgo ?? null),
+);
 
 /*
  * Las preguntas de cierre —¿hubo un evento de desregulación?— no dependen del
@@ -132,7 +144,7 @@ defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
             ref="cabecera"
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
-            :confianza="resumen?.confianza ?? null"
+            :comprobacion="comprobacion"
           />
 
           <!-- La racha acompaña a la cifra dentro del panel: las dos hablan de

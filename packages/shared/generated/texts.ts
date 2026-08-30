@@ -12,6 +12,7 @@ export const BLUBATHON_TEXTS_ES = {
   "unknownAnswerEs": "No sé",
   "unknownAnswerHintEs": "Se guarda como \"no sé\", que no es lo mismo que un cero ni que un no.",
   "awaitingProfessionalReviewEs": "Hay sugerencias esperando revisión profesional. Todavía no se muestran.",
+  "calibrationCaveatEs": "Medido sobre los días ya confirmados de toda la organización. Quien confirma vio antes la estimación de ese día, así que esta comprobación sale algo mejor de lo que es.",
   "loadingEs": "Cargando…",
   "emptyEs": "Todavía no hay nada que mostrar.",
   "genericErrorEs": "No fue posible completar la solicitud.",

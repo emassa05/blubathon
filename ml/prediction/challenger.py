@@ -150,6 +150,35 @@ CHALLENGER_PREDICTOR_FIELDS: tuple[FieldCode, ...] = (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class PredictorDeviations:
+    """Las desviaciones del día, y cuáles de ellas se observaron de verdad.
+
+    Las dos cosas hacen falta porque `0.0` significa dos cosas distintas: que el
+    día vino exactamente en la costumbre del sujeto, o que ese campo no se
+    contestó y por eso se le pone su desviación esperada. Para el modelo dan lo
+    mismo —el término se anula igual—, pero para decidir si hay algo que estimar
+    no: un día sin ningún predictor observado no dice nada de ese día.
+    """
+
+    valores: dict[FieldCode, float | None]
+    observados: frozenset[FieldCode]
+
+    @property
+    def costumbre_desconocida(self) -> bool:
+        """Falta la costumbre de algún predictor: no hay desviación que definir."""
+
+        return any(valor is None for valor in self.valores.values())
+
+    @property
+    def alguno_observado(self) -> bool:
+        return bool(self.observados)
+
+    @property
+    def todos_observados(self) -> bool:
+        return len(self.observados) == len(CHALLENGER_PREDICTOR_FIELDS)
+
+
 def predictor_deviations(
     observations: Iterable[FieldObservation],
     *,
@@ -157,7 +186,7 @@ def predictor_deviations(
     subject_id: UUID,
     source: object,
     as_of_at: datetime,
-) -> dict[FieldCode, float | None]:
+) -> PredictorDeviations:
     """El valor del día menos la costumbre del sujeto, por predictor.
 
     Vive aquí y no en el entrenamiento porque **la misma definición tiene que
@@ -169,11 +198,25 @@ def predictor_deviations(
     no la fecha UTC: el episodio de las 20:00 de Santiago es medianoche UTC del
     día siguiente, y tomar la fecha UTC metería en el predictor la observación
     del día que se está prediciendo.
+
+    Faltar la costumbre y faltar el día no son lo mismo, y antes se devolvían
+    los dos como `None`:
+
+    - **Sin costumbre** —menos de `PERSONAL_MIN_OBSERVATIONS` días utilizables, o
+      un conflicto— no hay desviación que definir, porque no hay de qué desviarse.
+      Sigue siendo `None`.
+    - **Sin el día** —ese campo no se contestó, o vino en un valor que el
+      predictor no codifica, como `other`— la desviación es `0.0`, que no es
+      inventarse el día: la desviación es "valor de hoy menos su costumbre", y su
+      valor esperado es exactamente cero por construcción. El término se anula y
+      el otro predictor sigue mandando. Antes esto tumbaba la estimación entera,
+      y un cuestionario al que le faltaba un campo devolvía el día a la tasa base.
     """
 
     day = local_date(as_of_at)
     rows = list(observations)
-    result: dict[FieldCode, float | None] = {}
+    valores: dict[FieldCode, float | None] = {}
+    observados: set[FieldCode] = set()
     for field_code in CHALLENGER_PREDICTOR_FIELDS:
         rate = personal_predictor_rate(
             rows,
@@ -188,8 +231,14 @@ def predictor_deviations(
             None,
         )
         encoded = None if del_dia is None else encode_predictor(field_code, del_dia.value)
-        result[field_code] = None if rate.rate is None or encoded is None else encoded - rate.rate
-    return result
+        if rate.rate is None:
+            valores[field_code] = None
+        elif encoded is None:
+            valores[field_code] = 0.0
+        else:
+            valores[field_code] = encoded - rate.rate
+            observados.add(field_code)
+    return PredictorDeviations(valores=valores, observados=frozenset(observados))
 
 
 @dataclass(frozen=True, slots=True)
