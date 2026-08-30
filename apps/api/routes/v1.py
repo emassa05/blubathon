@@ -10,6 +10,7 @@ from apps.api.canonical import parse_timestamp
 from apps.api.contracts.constants import API_PREFIX
 from apps.api.contracts.models import (
     AnswerItem,
+    CalibrationResponse,
     ChildHistoryResponse,
     ChildListResponse,
     ChildView,
@@ -51,6 +52,19 @@ def read_child(child_id: str, context: Context, services: Registry) -> ChildView
         return services.children.get(
             connection, tenant_id=context.tenant_id, child_id=child_id, now=now
         )
+
+
+@router.get("/calibration", response_model=CalibrationResponse)
+def cohort_calibration(context: Context, services: Registry) -> CalibrationResponse:
+    """Si lo que se anuncia acaba pasando, medido sobre toda la organización.
+
+    Sin `child_id` y a propósito: comprobar una frecuencia con ±10 puntos pide
+    del orden de cien días **en cada tramo**, y una sola persona tarda años en
+    repartirlos. Esto responde si el modelo acierta, no si acierta con alguien.
+    """
+
+    with services.core.database.read() as connection:
+        return services.calibration.cohort(connection, tenant_id=context.tenant_id)
 
 
 @router.get("/children/{child_id}/history", response_model=ChildHistoryResponse)

@@ -7,6 +7,7 @@ from importlib import import_module
 from typing import Any
 
 from apps.api.services.base import Services
+from apps.api.services.calibration import CalibrationService
 from apps.api.services.children import ChildService
 from apps.api.services.episodes import EpisodeService
 from apps.api.services.outcomes import OutcomeService
@@ -17,6 +18,7 @@ from apps.api.services.submissions import SubmissionService
 class ServiceRegistry:
     core: Services
     children: ChildService
+    calibration: CalibrationService
     submissions: SubmissionService
     episodes: EpisodeService
     outcomes: OutcomeService
@@ -30,6 +32,7 @@ def build_registry(core: Services) -> ServiceRegistry:
     return ServiceRegistry(
         core=core,
         children=ChildService(core),
+        calibration=CalibrationService(core),
         submissions=SubmissionService(core),
         episodes=EpisodeService(core),
         outcomes=OutcomeService(core),
@@ -38,6 +41,7 @@ def build_registry(core: Services) -> ServiceRegistry:
 
 
 __all__ = [
+    "CalibrationService",
     "ChildService",
     "EpisodeService",
     "OutcomeService",

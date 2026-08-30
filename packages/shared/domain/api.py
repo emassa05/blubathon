@@ -484,6 +484,44 @@ class ChildHistoryResponse(BlubathonModel):
     days: tuple[ChildHistoryDay, ...] = ()
 
 
+class CalibrationBand(BlubathonModel):
+    """Un tramo de riesgo: lo que anunció y lo que ocurrió de verdad.
+
+    `announced` contra `observed` es la lectura entera. Si el intervalo de
+    `observed` cubre a `announced`, los días no desmienten al modelo; si no lo
+    cubre, el modelo se equivoca sistemáticamente en ese tramo y `days` dice si
+    hay bastantes días como para creérselo.
+    """
+
+    band: Literal["low", "medium", "high"]
+    days: int = Field(ge=0)
+    episodes: int = Field(ge=0)
+    announced: Probability
+    observed: Probability
+    #: Wilson al 95% sobre `observed`. Sin días es `[0, 1]`: no se sabe nada.
+    interval: tuple[Probability, Probability]
+
+
+class CalibrationResponse(BlubathonModel):
+    """La calibración de la cohorte de una organización.
+
+    De la cohorte y no de una persona: verificar una frecuencia con ±10 puntos
+    pide del orden de cien días **en cada tramo**, y una sola persona tarda años
+    en repartirlos. Juntando a todas se cumple en semanas, al precio de que esto
+    responde "el modelo acierta" y no "el modelo acierta contigo".
+    """
+
+    bands: tuple[CalibrationBand, ...] = ()
+    #: Brier sobre todos los días sin trocearlos, así que dice algo mucho antes
+    #: de que los tramos se llenen. `null` cuando todavía no hay ninguno.
+    brier: float | None = None
+    days: int = Field(default=0, ge=0)
+    episodes: int = Field(default=0, ge=0)
+    #: Los desenlaces se reportan habiendo visto la cifra, así que esta medida
+    #: sale mejor de lo que es. Viaja con el dato para que no se lea sin ello.
+    caveat_es: SpanishText
+
+
 class RecommendationCitation(BlubathonModel):
     document_title_es: SpanishText
     locator: str = Field(min_length=1)

@@ -5,6 +5,8 @@ from __future__ import annotations
 from apps.api.contracts.enums import OutcomeRequestState, OutcomeResolutionStatus
 from packages.shared.domain.api import (
     AnswerItem,
+    CalibrationBand,
+    CalibrationResponse,
     ChildHistoryDay,
     ChildHistoryOutcome,
     ChildHistoryPrediction,
@@ -55,6 +57,8 @@ class OutcomeReportResponseView(OutcomeReportResponse):
 
 __all__ = [
     "AnswerItem",
+    "CalibrationBand",
+    "CalibrationResponse",
     "ChildHistoryDay",
     "ChildHistoryOutcome",
     "ChildHistoryPrediction",

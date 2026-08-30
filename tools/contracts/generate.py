@@ -441,6 +441,7 @@ def render_texts() -> str:
         "unknownAnswerEs": texts.UNKNOWN_ANSWER_ES,
         "unknownAnswerHintEs": texts.UNKNOWN_ANSWER_HINT_ES,
         "awaitingProfessionalReviewEs": texts.AWAITING_PROFESSIONAL_REVIEW_ES,
+        "calibrationCaveatEs": texts.CALIBRATION_CAVEAT_ES,
         "loadingEs": texts.LOADING_ES,
         "emptyEs": texts.EMPTY_ES,
         "genericErrorEs": texts.GENERIC_ERROR_ES,
