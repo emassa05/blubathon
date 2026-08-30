@@ -173,6 +173,7 @@ def build_history(
     days: int,
     dificiles: int,
     perfil: str = "mixto",
+    ayer_dificil: bool = False,
     settings: Settings | None = None,
     adapters: str | None = None,
 ) -> DemoHistoryResult:
@@ -182,6 +183,11 @@ def build_history(
     decide el sorteo de `_hubo_crisis`. Un día difícil que acaba bien y uno
     tranquilo que acaba mal son exactamente los casos que el modelo tiene que
     aprender a pesar.
+
+    `ayer_dificil` fuerza el mal perfil en el último día sembrado. El reparto de
+    abajo esparce los difíciles por todo el rango sin mirar dónde caen los
+    extremos, y ayer es el día que se abre al entrar en la pantalla: quién lo
+    enseña necesita poder decidir qué se ve ahí, no heredarlo del redondeo.
 
     El día de hoy no se toca: su ventana de 24 h sigue abierta y su resultado
     todavía no se puede reportar. Se empieza en ayer y se va hacia atrás.
@@ -253,6 +259,8 @@ def build_history(
             # cada mitad y la desviación del día, cero.
             indice = days - offset
             dificil = (indice * dificiles) // days != ((indice - 1) * dificiles) // days
+            if ayer_dificil and offset == 1:
+                dificil = True
             with core.database.write() as connection:
                 envio = registry.submissions.submit(
                     connection,

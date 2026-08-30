@@ -42,6 +42,15 @@ def main() -> int:
             "bien, para que la recomendacion salga sobre sueno"
         ),
     )
+    parser.add_argument(
+        "--ayer-dificil",
+        action="store_true",
+        help=(
+            "el último día sembrado viene con mal perfil pase lo que pase. Ayer "
+            "es el día que se abre al entrar en la pantalla, y sin esto lo elige "
+            "el reparto"
+        ),
+    )
     parser.add_argument("--db", help="ruta de la base SQLite")
     parser.add_argument(
         "--adapters",
@@ -58,6 +67,7 @@ def main() -> int:
         days=args.days,
         dificiles=args.dificiles,
         perfil=args.perfil,
+        ayer_dificil=args.ayer_dificil,
         settings=load_settings(),
         adapters=args.adapters,
     )
