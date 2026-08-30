@@ -111,7 +111,12 @@ const etiquetaBoton = computed(() => `Abrir formulario pendiente del ${props.dia
 .aviso {
   position: fixed;
   right: max(var(--blubathon-esp-16), env(safe-area-inset-right, 0px));
-  bottom: calc(var(--blubathon-esp-16) + env(safe-area-inset-bottom, 0px));
+  /* `max` y no una suma, igual que el margen derecho de aquí arriba: en un
+     teléfono con barra de gestos la suma apilaba los 34px del área segura
+     encima de los 16 propios y la pastilla acababa flotando a media altura de
+     la esquina. Lo que hace falta del área segura es no meterse debajo de la
+     barra, no apartarse de ella. */
+  bottom: max(var(--blubathon-esp-8), env(safe-area-inset-bottom, 0px));
   z-index: 5;
   display: flex;
   align-items: center;
