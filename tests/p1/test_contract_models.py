@@ -105,10 +105,12 @@ def test_explicit_unknown_records_no_value() -> None:
     assert not row.feeds_primary_real_model
 
 
-def test_accepted_defaults_never_train_the_estimator_or_the_real_model() -> None:
+def test_accepted_defaults_feed_the_real_model_but_never_the_estimator() -> None:
     accepted = observation("accepted", entry_mode=EntryMode.DEFAULT_ACCEPTED)
+    # El estimador no puede aprender de lo que el mismo propuso: es INV-02.
     assert not accepted.trains_defaults
-    assert not accepted.feeds_primary_real_model
+    # El modelo de riesgo si: para el es un dia que alguien miro y dio por bueno.
+    assert accepted.feeds_primary_real_model
 
 
 def test_an_edited_default_describes_the_day_but_never_trains_the_estimator() -> None:

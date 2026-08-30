@@ -67,9 +67,17 @@ def _history(rows, *, field_code=FieldCode.FOOD_CHANGES):
 # --- Defaults and the form -------------------------------------------------
 
 
-def test_inv_02_an_accepted_default_feeds_neither_estimator_nor_real_model() -> None:
+def test_inv_02_an_accepted_default_never_trains_the_estimator() -> None:
+    """Lo que INV-02 protege: el estimador no aprende de su propia sugerencia.
+
+    Aceptar es quedarse con el valor que propuso el estimador. Devolverselo le
+    haria contar como observacion lo que el mismo dijo, y cada aceptacion
+    estrecharia su posterior sobre un valor que nadie llego a reportar. El modelo
+    de riesgo es otra cosa y va en el test siguiente: ahi la aceptacion si cuenta,
+    porque quien propuso el valor no es quien lo consume.
+    """
+
     assert EntryMode.DEFAULT_ACCEPTED not in DEFAULT_ESTIMATOR_MODES
-    assert EntryMode.DEFAULT_ACCEPTED not in PRIMARY_REAL_MODEL_MODES
 
     accepted = [
         f.observation(
@@ -80,6 +88,17 @@ def test_inv_02_an_accepted_default_feeds_neither_estimator_nor_real_model() -> 
         for index in range(40)
     ]
     assert _history(accepted).observations == ()
+
+
+def test_inv_02b_an_accepted_default_does_describe_the_day_for_the_real_model() -> None:
+    """Un dia aceptado es un dia mirado y dado por bueno, y el modelo lo ve.
+
+    Excluirlo no era neutral: sin observacion no hay desviacion que calcular, el
+    challenger se abstiene y el dia entero cae a la tasa base. Se perdia justo lo
+    que el formulario se ahorro preguntar por conocerlo.
+    """
+
+    assert EntryMode.DEFAULT_ACCEPTED in PRIMARY_REAL_MODEL_MODES
 
 
 def test_inv_03_an_edited_default_feeds_the_real_model_but_not_the_estimator() -> None:
