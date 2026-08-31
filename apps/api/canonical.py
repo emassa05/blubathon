@@ -1,4 +1,4 @@
-"""Re-export de los bytes canónicos y los hashes de `SPEC 5.9`.
+"""Re-export de los bytes canónicos y los hashes.
 
 La implementación vive en `packages/shared/canonical.py`, que H1 publicó. P2 no
 mantiene una segunda: dos implementaciones de la misma regla de hashing terminan
@@ -46,7 +46,7 @@ def canonical_json(value: object) -> str:
 
 
 def keyed_scenario_hash(secret: bytes, schema_version: str, value: object) -> str:
-    """HMAC del escenario clínico (`SPEC 5.9`), con su separador de dominio."""
+    """HMAC del escenario clínico, con su separador de dominio."""
     return keyed_hash(secret, SCENARIO_HASH_ARTIFACT, schema_version, value)
 
 

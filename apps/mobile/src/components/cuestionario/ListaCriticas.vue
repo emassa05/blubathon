@@ -58,74 +58,74 @@ const ICONOS: Record<IconoFactor, Component> = {
  * bloque entero en naranja se lee como una alarma, y esto no es una alarma.
  */
 .criticas {
-  padding: var(--faro-esp-16);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+  padding: var(--blubathon-esp-16);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .criticas__cabecera {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .criticas__insignia {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-insignia);
-  height: var(--faro-insignia);
-  color: var(--faro-critica-media-texto);
-  background: var(--faro-critica-media-fondo);
+  width: var(--blubathon-insignia);
+  height: var(--blubathon-insignia);
+  color: var(--blubathon-critica-media-texto);
+  background: var(--blubathon-critica-media-fondo);
   border-radius: 50%;
 }
 
 .criticas__glifo {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .criticas__titulo {
-  font-size: var(--faro-fs-15);
+  font-size: var(--blubathon-fs-15);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .criticas__cuenta {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .criticas__lista {
-  margin-top: var(--faro-esp-6);
+  margin-top: var(--blubathon-esp-6);
 }
 
 .critica {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-12);
-  padding-block: var(--faro-esp-10);
+  gap: var(--blubathon-esp-12);
+  padding-block: var(--blubathon-esp-10);
 }
 
 .critica + .critica {
-  border-top: 1px solid var(--faro-linea);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 .critica__caja {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-caja-icono);
-  height: var(--faro-caja-icono);
-  color: var(--faro-marca-icono);
-  background: var(--faro-marca-icono-fondo);
-  border-radius: var(--faro-radio-10);
+  width: var(--blubathon-caja-icono);
+  height: var(--blubathon-caja-icono);
+  color: var(--blubathon-marca-icono);
+  background: var(--blubathon-marca-icono-fondo);
+  border-radius: var(--blubathon-radio-10);
 }
 
 .critica__icono {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .critica__texto {
@@ -136,38 +136,38 @@ const ICONOS: Record<IconoFactor, Component> = {
 }
 
 .critica__campo {
-  font-size: var(--faro-fs-135);
+  font-size: var(--blubathon-fs-135);
   font-weight: 700;
-  color: var(--faro-marca-titulo);
+  color: var(--blubathon-marca-titulo);
 }
 
 .critica__detalle {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 .critica__pastilla {
   flex: none;
-  padding: var(--faro-esp-4) var(--faro-esp-9);
-  font-size: var(--faro-fs-11);
+  padding: var(--blubathon-esp-4) var(--blubathon-esp-9);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  border-radius: var(--faro-radio-pastilla);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .critica__pastilla--alta {
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
 }
 
 .critica__pastilla--media {
-  color: var(--faro-critica-media-texto);
-  background: var(--faro-critica-media-fondo);
+  color: var(--blubathon-critica-media-texto);
+  background: var(--blubathon-critica-media-fondo);
 }
 
 .criticas__pie {
-  margin-top: var(--faro-esp-10);
-  font-size: var(--faro-fs-11);
+  margin-top: var(--blubathon-esp-10);
+  font-size: var(--blubathon-fs-11);
   line-height: 1.45;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 </style>

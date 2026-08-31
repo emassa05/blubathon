@@ -1,4 +1,4 @@
-/* Tokens de Faro.
+/* Tokens de Blubathon.
  *
  * En `:root` va todo lo que no depende del riesgo: la paleta de las tarjetas
  * blancas, la elevación, la escala tipográfica en rem, el espaciado, los radios
@@ -7,11 +7,11 @@
  * Lo que sí depende del riesgo —el gradiente del panel, sus ondas, la tinta de
  * los textos y el acento de la recomendación— vive al final, en una clase por
  * banda. `SaludView` pone una de las tres en la columna y el resto se hereda.
- * Ningún componente conoce las bandas: todos consumen los mismos `var(--faro-*)`.
+ * Ningún componente conoce las bandas: todos consumen los mismos `var(--blubathon-*)`.
  */
 
 :root {
-  --faro-fuente: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --blubathon-fuente: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Paleta de las tarjetas blancas.
    *
@@ -25,25 +25,25 @@
    * cambian: cada valor se comprobó contra blanco, `icono-fondo` y
    * `fila-activa`, y todo lo que es texto pasa AA (4.5:1).
    */
-  --faro-marca-profundo: oklch(0.32 0.05 245); /* 12.6:1 */
-  --faro-marca-titulo: oklch(0.34 0.042 245); /* 11.7:1 */
-  --faro-marca-texto: oklch(0.4 0.038 245); /* 9.2:1 */
+  --blubathon-marca-profundo: oklch(0.32 0.05 245); /* 12.6:1 */
+  --blubathon-marca-titulo: oklch(0.34 0.042 245); /* 11.7:1 */
+  --blubathon-marca-texto: oklch(0.4 0.038 245); /* 9.2:1 */
   /* 4.8:1 sobre blanco. El 0.58 de antes se quedaba en 4.26:1 y era el único
      par de la pantalla que no llegaba a AA. */
-  --faro-gris-texto: oklch(0.55 0.022 245); /* 4.8:1 */
-  --faro-marca-accion: oklch(0.52 0.13 250); /* 5.5:1 */
-  --faro-marca-icono: oklch(0.48 0.13 250); /* 6.5:1 */
-  --faro-marca-icono-fondo: oklch(0.94 0.042 245);
+  --blubathon-gris-texto: oklch(0.55 0.022 245); /* 4.8:1 */
+  --blubathon-marca-accion: oklch(0.52 0.13 250); /* 5.5:1 */
+  --blubathon-marca-icono: oklch(0.48 0.13 250); /* 6.5:1 */
+  --blubathon-marca-icono-fondo: oklch(0.94 0.042 245);
   /* Decorativo, nunca texto: le basta el 3:1 de no-texto y da 3.1:1. */
-  --faro-punto-activo: oklch(0.66 0.13 245);
-  --faro-punto-inactivo: oklch(0.86 0.022 245);
-  --faro-alerta-fondo: oklch(0.945 0.04 40);
-  --faro-alerta-texto: oklch(0.47 0.12 34);
-  --faro-superficie: #fff;
+  --blubathon-punto-activo: oklch(0.66 0.13 245);
+  --blubathon-punto-inactivo: oklch(0.86 0.022 245);
+  --blubathon-alerta-fondo: oklch(0.945 0.04 40);
+  --blubathon-alerta-texto: oklch(0.47 0.12 34);
+  --blubathon-superficie: #fff;
 
   /* Filete entre filas. Separa sin dibujar una caja dentro de otra caja. */
-  --faro-linea: oklch(0.92 0.01 245);
-  --faro-fila-activa: oklch(0.955 0.01 245);
+  --blubathon-linea: oklch(0.92 0.01 245);
+  --blubathon-fila-activa: oklch(0.955 0.01 245);
 
   /*
    * El aviso del formulario pendiente. No entra en las bandas a propósito: es
@@ -51,14 +51,28 @@
    * de algo que le falta por hacer al usuario. Si cambiara con la banda,
    * parecería parte del estado.
    */
-  --faro-aviso-fondo: oklch(0.965 0.03 62);
-  --faro-aviso-etiqueta: oklch(0.52 0.135 46);
-  --faro-aviso-titulo: oklch(0.38 0.1 46);
-  --faro-aviso-insignia: oklch(0.62 0.16 48);
-  --faro-aviso-chevron: oklch(0.55 0.09 48);
+  --blubathon-aviso-fondo: oklch(0.965 0.03 62);
+  --blubathon-aviso-etiqueta: oklch(0.52 0.135 46);
+  --blubathon-aviso-titulo: oklch(0.38 0.1 46);
+  --blubathon-aviso-insignia: oklch(0.62 0.16 48);
 
   /* Color de la página, por debajo y alrededor del panel. */
-  --faro-fondo-final: oklch(0.985 0.006 245);
+  --blubathon-fondo-final: oklch(0.985 0.006 245);
+
+  /*
+   * Lo que hay **fuera** del lienzo: la franja que asoma cuando el
+   * desplazamiento rebota más allá del final de la página, y el instante en que
+   * un navegador móvil esconde su barra y la ventana crece antes de que
+   * `100dvh` se entere.
+   *
+   * El valor de verdad lo escribe `theme/fondo.ts` al arrancar, y es el azul en
+   * el que muere **la variante que haya salido**: cada una acaba en uno
+   * distinto, y un plano único para las cinco se ve más oscuro que unas y más
+   * claro que otras justo en el borde, que es donde se compara. Esto es lo que
+   * queda si ese script no llegó a correr, y entonces la página tampoco tiene
+   * burbujas: el mismo plano que ella.
+   */
+  --blubathon-fondo-rebote: var(--blubathon-fondo-final);
 
   /*
    * El fondo con burbujas. `theme/fondo.ts` sortea una variante y la escribe
@@ -66,12 +80,12 @@
    * correr, así que es el color plano y no una de las variantes: un fondo
    * decorativo no puede ser lo que impida que la página se vea.
    */
-  --faro-fondo-pagina: var(--faro-fondo-final);
+  --blubathon-fondo-pagina: var(--blubathon-fondo-final);
 
   /* Superficie translúcida: la pastilla de confianza y la insignia de la
      recomendación. Es el mismo recurso en los dos sitios a propósito. */
-  --faro-vidrio: rgb(255 255 255 / 0.72);
-  --faro-vidrio-borde: rgb(255 255 255 / 0.9);
+  --blubathon-vidrio: rgb(255 255 255 / 0.72);
+  --blubathon-vidrio-borde: rgb(255 255 255 / 0.9);
 
   /* Elevación.
    *
@@ -88,87 +102,137 @@
    * pendiente: es la única acción de la pantalla y está un peldaño por encima
    * del contenido que se limita a informar.
    */
-  --faro-elev-1: 0 1px 2px oklch(0.35 0.02 250 / 0.05), 0 8px 18px -10px oklch(0.35 0.02 250 / 0.2);
-  --faro-elev-2:
+  --blubathon-elev-1:
+    0 1px 2px oklch(0.35 0.02 250 / 0.05), 0 8px 18px -10px oklch(0.35 0.02 250 / 0.2);
+  --blubathon-elev-2:
     0 2px 4px oklch(0.35 0.02 250 / 0.07), 0 16px 28px -12px oklch(0.35 0.02 250 / 0.24);
 
   /* Nombre que ya usaban los componentes, apuntando a la escala. */
-  --faro-sombra-tarjeta: var(--faro-elev-1);
+  --blubathon-sombra-tarjeta: var(--blubathon-elev-1);
 
   /* Foco visible. Valor interpretado: el diseño no define el anillo. */
-  --faro-foco-grosor: 2px;
-  --faro-foco-offset: 2px;
-  --faro-foco-panel: var(--faro-tinta);
-  --faro-foco-oscuro: var(--faro-marca-accion);
+  --blubathon-foco-grosor: 2px;
+  --blubathon-foco-offset: 2px;
+  --blubathon-foco-panel: var(--blubathon-tinta);
+  --blubathon-foco-oscuro: var(--blubathon-marca-accion);
 
   /* Escala tipográfica en rem sobre una raíz de 16px, para que el zoom de
      texto del navegador siga funcionando. El nombre conserva el valor en px
      del diseño. */
-  --faro-fs-11: 0.6875rem;
-  --faro-fs-12: 0.75rem;
-  --faro-fs-125: 0.78125rem;
-  --faro-fs-13: 0.8125rem;
-  --faro-fs-135: 0.84375rem;
-  --faro-fs-15: 0.9375rem;
-  --faro-fs-155: 0.96875rem;
-  --faro-fs-17: 1.0625rem;
-  --faro-fs-20: 1.25rem;
-  --faro-fs-26: 1.625rem;
-  --faro-fs-104: 6.5rem;
+  --blubathon-fs-11: 0.6875rem;
+  --blubathon-fs-12: 0.75rem;
+  --blubathon-fs-125: 0.78125rem;
+  --blubathon-fs-13: 0.8125rem;
+  --blubathon-fs-135: 0.84375rem;
+  --blubathon-fs-15: 0.9375rem;
+  --blubathon-fs-155: 0.96875rem;
+  --blubathon-fs-17: 1.0625rem;
+  --blubathon-fs-20: 1.25rem;
+  --blubathon-fs-26: 1.625rem;
+  --blubathon-fs-104: 6.5rem;
 
   /* Interletrado */
-  --faro-track-cifra: -0.03em;
-  --faro-track-012: 0.12em;
-  --faro-track-014: 0.14em;
+  --blubathon-track-cifra: -0.03em;
+  --blubathon-track-012: 0.12em;
+  --blubathon-track-014: 0.14em;
 
   /* Espaciado fijo en px: los paddings del diseño no escalan con el zoom. */
-  --faro-esp-4: 4px;
-  --faro-esp-6: 6px;
-  --faro-esp-8: 8px;
-  --faro-esp-9: 9px;
-  --faro-esp-10: 10px;
-  --faro-esp-12: 12px;
-  --faro-esp-14: 14px;
-  --faro-esp-16: 16px;
-  --faro-esp-18: 18px;
-  --faro-esp-20: 20px;
-  --faro-esp-22: 22px;
-  --faro-esp-24: 24px;
-  --faro-esp-26: 26px;
+  --blubathon-esp-4: 4px;
+  --blubathon-esp-6: 6px;
+  --blubathon-esp-8: 8px;
+  --blubathon-esp-9: 9px;
+  --blubathon-esp-10: 10px;
+  --blubathon-esp-12: 12px;
+  --blubathon-esp-14: 14px;
+  --blubathon-esp-16: 16px;
+  --blubathon-esp-18: 18px;
+  --blubathon-esp-20: 20px;
+  --blubathon-esp-22: 22px;
+  --blubathon-esp-24: 24px;
+  --blubathon-esp-26: 26px;
 
-  --faro-radio-10: 10px;
-  --faro-radio-18: 18px;
-  --faro-radio-24: 24px;
-  --faro-radio-26: 26px;
-  --faro-radio-pastilla: 999px;
+  --blubathon-radio-10: 10px;
+  --blubathon-radio-18: 18px;
+  --blubathon-radio-24: 24px;
+  --blubathon-radio-26: 26px;
+  --blubathon-radio-pastilla: 999px;
 
   /* Área táctil mínima (WCAG 2.5.5 / 2.5.8). */
-  --faro-toque: 44px;
+  --blubathon-toque: 44px;
 
   /* Medidas de la página y de las piezas del diseño. */
-  --faro-ancho-max: 480px;
-  --faro-alto-referencia: 844px;
+  --blubathon-ancho-max: 480px;
   /*
    * El alto tiene que contar con la cúpula: el contenido sube 44px sobre el
    * panel y le tapa el centro. Con 272 la pastilla de confianza quedaba
    * pegada a la curva y parecía que se salía de la tarjeta.
    */
-  --faro-panel-alto: 296px;
+  --blubathon-panel-alto: 296px;
   /* Flecha de la cúpula con la que el contenido entra en el panel. */
-  --faro-cupula: 44px;
-  --faro-ondas-alto: 168px;
-  --faro-recomendacion-alto: 118px;
-  --faro-caja-icono: 30px;
-  --faro-insignia: 34px;
-  --faro-icono-12: 12px;
-  --faro-icono-14: 14px;
-  --faro-icono-16: 16px;
-  --faro-icono-26: 26px;
-  --faro-punto: 9px;
+  --blubathon-cupula: 44px;
+  --blubathon-ondas-alto: 168px;
+  --blubathon-recomendacion-alto: 118px;
+  --blubathon-caja-icono: 30px;
+  --blubathon-insignia: 34px;
+  --blubathon-icono-12: 12px;
+  --blubathon-icono-14: 14px;
+  --blubathon-icono-16: 16px;
+  --blubathon-icono-26: 26px;
+  --blubathon-punto: 9px;
+  /* Disco de la inicial. Quien lo use puede bajarlo en su propio ámbito. */
+  --blubathon-avatar: 34px;
+
+  /* Panel del terapeuta.
+   *
+   * Es la única pantalla que no es una columna de lectura: compara varios niños
+   * a la vez, así que su ancho no lo decide el texto sino cuántas fichas caben
+   * sin que la lista se vuelva un desplazamiento infinito.
+   *
+   * La columna de la cartera es fija y no proporcional: los nombres y las
+   * cifras que lleva miden lo mismo tenga la ventana el ancho que tenga, y una
+   * columna elástica solo añadiría aire entre el nombre y su porcentaje.
+   */
+  --blubathon-panel-ancho: 1240px;
+  /* Lo bastante ancha para que quepa entero el nombre más largo de la cartera
+     sin recortarlo con puntos suspensivos. El panel creció lo mismo que ella,
+     para que la columna de la derecha no pierda sitio al ensancharse esta.
+
+     La medida se tomó con nombres más largos, cuando la semilla les colgaba un
+     paréntesis —"(cohorte)", "(solo sueño)"—; le sobra sitio y no se ha
+     reajustado, porque estrecharla movería también el ancho del panel. */
+  --blubathon-columna-cartera: 400px;
+
+  /* Lo que el aviso flotante tapa de la esquina de abajo. El contenido de Salud
+     se lo suma a su acolchado cuando hay aviso, para que la última tarjeta se
+     pueda leer entera al final del desplazamiento. */
+  --blubathon-aviso-hueco: 104px;
+
+  /*
+   * El disco del aviso, que va a caballo del extremo derecho de su pastilla:
+   * la tapa entera por ese lado y sobresale por arriba, por abajo y por fuera.
+   * Es casi el doble de alto que la pastilla —esa desproporción es lo que hace
+   * que se lea como una chapa pegada encima y no como un botón más de la fila—,
+   * y de paso es él quien pone el área táctil: la pastilla sola se queda corta.
+   *
+   * `saliente` es lo que asoma por la derecha, media anchura. Lo usan tanto la
+   * pastilla, para reservarle el hueco en su acolchado, como el propio disco,
+   * para meterse en él.
+   */
+  --blubathon-aviso-disco: 64px;
+  --blubathon-aviso-saliente: calc(var(--blubathon-aviso-disco) / 2);
+
+  /* La cara de la pregunta de cierre, que va a caballo del borde de arriba de su
+     tarjeta. Lo que sobresale no es solo asunto de la tarjeta: la pantalla es
+     quien sabe si encima hay algo que esquivar o si es espacio vacío. */
+  --blubathon-cierre-cara: 64px;
+  --blubathon-cierre-collar: 5px;
+  --blubathon-cierre-saliente: calc(
+    var(--blubathon-cierre-cara) / 2 + var(--blubathon-cierre-collar)
+  );
 
   /* Duración por defecto de la animación del aviso. `AvisoPendiente` la
      sobrescribe en línea con la prop `duracion`. */
-  --faro-dur: 5s;
+  --blubathon-dur: 5s;
 }
 
 /* Las bandas.
@@ -192,72 +256,72 @@
  * El croma no es cero del todo: un gris absolutamente neutro junto a los otros
  * tres se ve apagado, no calmo. Un resto de azul lo deja en la misma familia.
  */
-.faro-banda--desconocido {
-  --faro-panel-cima: oklch(0.975 0.003 250);
-  --faro-panel: oklch(0.905 0.008 250);
-  --faro-brillo: oklch(1 0 0 / 0.55);
-  --faro-onda-1: oklch(0.87 0.01 250);
-  --faro-onda-2: oklch(0.825 0.012 250);
-  --faro-onda-3: oklch(0.78 0.014 250);
+.blubathon-banda--desconocido {
+  --blubathon-panel-cima: oklch(0.975 0.003 250);
+  --blubathon-panel: oklch(0.905 0.008 250);
+  --blubathon-brillo: oklch(1 0 0 / 0.55);
+  --blubathon-onda-1: oklch(0.87 0.01 250);
+  --blubathon-onda-2: oklch(0.825 0.012 250);
+  --blubathon-onda-3: oklch(0.78 0.014 250);
 
-  --faro-tinta: oklch(0.33 0.012 250);
-  --faro-texto-fuerte: oklch(0.33 0.012 250);
-  --faro-texto-suave: oklch(0.44 0.012 250);
+  --blubathon-tinta: oklch(0.33 0.012 250);
+  --blubathon-texto-fuerte: oklch(0.33 0.012 250);
+  --blubathon-texto-suave: oklch(0.44 0.012 250);
 
-  --faro-rec-tinte: oklch(0.915 0.01 250 / 0.9);
-  --faro-rec-insignia: oklch(0.89 0.01 250);
-  --faro-rec-sobretitulo: oklch(0.44 0.012 250);
+  --blubathon-rec-tinte: oklch(0.915 0.01 250 / 0.9);
+  --blubathon-rec-insignia: oklch(0.89 0.01 250);
+  --blubathon-rec-sobretitulo: oklch(0.44 0.012 250);
 }
 
-.faro-banda--bajo {
-  --faro-panel-cima: oklch(0.972 0.012 235);
-  --faro-panel: oklch(0.895 0.05 235);
-  --faro-brillo: oklch(1 0 0 / 0.55);
-  --faro-onda-1: oklch(0.855 0.065 235);
-  --faro-onda-2: oklch(0.805 0.08 235);
-  --faro-onda-3: oklch(0.755 0.095 235);
+.blubathon-banda--bajo {
+  --blubathon-panel-cima: oklch(0.972 0.012 235);
+  --blubathon-panel: oklch(0.895 0.05 235);
+  --blubathon-brillo: oklch(1 0 0 / 0.55);
+  --blubathon-onda-1: oklch(0.855 0.065 235);
+  --blubathon-onda-2: oklch(0.805 0.08 235);
+  --blubathon-onda-3: oklch(0.755 0.095 235);
 
-  --faro-tinta: oklch(0.31 0.06 235);
-  --faro-texto-fuerte: oklch(0.31 0.06 235);
-  --faro-texto-suave: oklch(0.42 0.055 235);
+  --blubathon-tinta: oklch(0.31 0.06 235);
+  --blubathon-texto-fuerte: oklch(0.31 0.06 235);
+  --blubathon-texto-suave: oklch(0.42 0.055 235);
 
-  --faro-rec-tinte: oklch(0.905 0.06 235 / 0.9);
-  --faro-rec-insignia: oklch(0.88 0.06 235);
-  --faro-rec-sobretitulo: oklch(0.42 0.06 235);
+  --blubathon-rec-tinte: oklch(0.905 0.06 235 / 0.9);
+  --blubathon-rec-insignia: oklch(0.88 0.06 235);
+  --blubathon-rec-sobretitulo: oklch(0.42 0.06 235);
 }
 
-.faro-banda--medio {
-  --faro-panel-cima: oklch(0.975 0.018 92);
-  --faro-panel: oklch(0.92 0.07 92);
-  --faro-brillo: oklch(1 0 0 / 0.55);
-  --faro-onda-1: oklch(0.88 0.095 92);
-  --faro-onda-2: oklch(0.835 0.11 90);
-  --faro-onda-3: oklch(0.79 0.125 88);
+.blubathon-banda--medio {
+  --blubathon-panel-cima: oklch(0.975 0.018 92);
+  --blubathon-panel: oklch(0.92 0.07 92);
+  --blubathon-brillo: oklch(1 0 0 / 0.55);
+  --blubathon-onda-1: oklch(0.88 0.095 92);
+  --blubathon-onda-2: oklch(0.835 0.11 90);
+  --blubathon-onda-3: oklch(0.79 0.125 88);
 
-  --faro-tinta: oklch(0.335 0.075 70);
-  --faro-texto-fuerte: oklch(0.335 0.075 70);
-  --faro-texto-suave: oklch(0.44 0.075 70);
+  --blubathon-tinta: oklch(0.335 0.075 70);
+  --blubathon-texto-fuerte: oklch(0.335 0.075 70);
+  --blubathon-texto-suave: oklch(0.44 0.075 70);
 
-  --faro-rec-tinte: oklch(0.925 0.085 92 / 0.9);
-  --faro-rec-insignia: oklch(0.9 0.08 92);
-  --faro-rec-sobretitulo: oklch(0.44 0.075 70);
+  --blubathon-rec-tinte: oklch(0.925 0.085 92 / 0.9);
+  --blubathon-rec-insignia: oklch(0.9 0.08 92);
+  --blubathon-rec-sobretitulo: oklch(0.44 0.075 70);
 }
 
-.faro-banda--alto {
-  --faro-panel-cima: oklch(0.968 0.015 25);
-  --faro-panel: oklch(0.88 0.06 22);
-  --faro-brillo: oklch(1 0 0 / 0.55);
-  --faro-onda-1: oklch(0.84 0.085 22);
-  --faro-onda-2: oklch(0.795 0.105 22);
-  --faro-onda-3: oklch(0.745 0.125 22);
+.blubathon-banda--alto {
+  --blubathon-panel-cima: oklch(0.968 0.015 25);
+  --blubathon-panel: oklch(0.88 0.06 22);
+  --blubathon-brillo: oklch(1 0 0 / 0.55);
+  --blubathon-onda-1: oklch(0.84 0.085 22);
+  --blubathon-onda-2: oklch(0.795 0.105 22);
+  --blubathon-onda-3: oklch(0.745 0.125 22);
 
-  --faro-tinta: oklch(0.3 0.1 25);
-  --faro-texto-fuerte: oklch(0.3 0.1 25);
-  --faro-texto-suave: oklch(0.41 0.1 25);
+  --blubathon-tinta: oklch(0.3 0.1 25);
+  --blubathon-texto-fuerte: oklch(0.3 0.1 25);
+  --blubathon-texto-suave: oklch(0.41 0.1 25);
 
-  --faro-rec-tinte: oklch(0.905 0.065 25 / 0.9);
-  --faro-rec-insignia: oklch(0.89 0.06 25);
-  --faro-rec-sobretitulo: oklch(0.41 0.1 25);
+  --blubathon-rec-tinte: oklch(0.905 0.065 25 / 0.9);
+  --blubathon-rec-insignia: oklch(0.89 0.06 25);
+  --blubathon-rec-sobretitulo: oklch(0.41 0.1 25);
 }
 
 /* Piezas que llegaron después: el historial de cuestionarios y el diálogo.
@@ -274,12 +338,12 @@
 
 :root {
   /* Medidas de las pantallas anchas. La columna de 480 sigue mandando en móvil. */
-  --faro-ancho-amplio: 1040px;
+  --blubathon-ancho-amplio: 1040px;
   /* El brazo de contenido, que es lo que queda del ancho amplio al descontar el
      rail y el hueco entre los dos. */
-  --faro-ancho-principal: 648px;
+  --blubathon-ancho-principal: 648px;
   /* El paso intermedio: tableta, o una ventana de escritorio a media pantalla. */
-  --faro-ancho-medio: 660px;
+  --blubathon-ancho-medio: 660px;
 
   /*
    * El ancho de lectura de la franja en la que estemos. Vale 480 —la columna de
@@ -287,43 +351,59 @@
    * cambia de un punto de corte al siguiente: el acolchado lateral de las
    * pantallas se calcula contra este valor, así que crecer es cambiarlo aquí.
    */
-  --faro-ancho-lectura: var(--faro-ancho-max);
+  --blubathon-ancho-lectura: var(--blubathon-ancho-max);
   /* La cabecera del riesgo no crece con la columna: ver `SaludView`. */
-  --faro-ancho-cabecera: 480px;
-  --faro-ancho-dialogo: 560px;
-  --faro-rail-ancho: 372px;
+  --blubathon-ancho-cabecera: 480px;
+  --blubathon-ancho-dialogo: 560px;
+  --blubathon-rail-ancho: 372px;
 
-  --faro-esp-32: 32px;
-  --faro-esp-40: 40px;
+  --blubathon-esp-32: 32px;
+  --blubathon-esp-40: 40px;
 
-  --faro-radio-14: 14px;
-  --faro-radio-32: 32px;
+  --blubathon-radio-14: 14px;
+  --blubathon-radio-32: 32px;
 
   /* Calendario semanal: la celda del día en las dos densidades. */
-  --faro-celda-alto: 62px;
-  --faro-celda-alto-amplio: 96px;
+  --blubathon-celda-alto: 62px;
+  --blubathon-celda-alto-amplio: 96px;
 
   /*
    * El velo del diálogo. Frío y bastante transparente: el contexto de debajo
    * tiene que seguir reconociéndose, que es justo lo que distingue un diálogo
    * de un cambio de pantalla.
    */
-  --faro-velo: oklch(0.32 0.03 235 / 0.44);
+  --blubathon-velo: oklch(0.32 0.03 235 / 0.44);
 
   /*
    * La sombra del diálogo no es un tercer nivel de la página: la página tiene
    * dos y siguen siendo dos. Un diálogo no flota sobre el contenido, flota
    * sobre el velo, fuera de esa pila.
    */
-  --faro-elev-dialogo:
+  --blubathon-elev-dialogo:
     0 4px 10px oklch(0.35 0.02 250 / 0.1), 0 32px 60px -20px oklch(0.35 0.02 250 / 0.4);
 
   /* Severidad de una variable crítica. Los mismos dos pares que ya usaban la
      pastilla de prioridad y el aviso pendiente. */
-  --faro-critica-alta-fondo: var(--faro-alerta-fondo);
-  --faro-critica-alta-texto: var(--faro-alerta-texto);
-  --faro-critica-media-fondo: var(--faro-aviso-fondo);
-  --faro-critica-media-texto: var(--faro-aviso-etiqueta);
+  --blubathon-critica-alta-fondo: var(--blubathon-alerta-fondo);
+  --blubathon-critica-alta-texto: var(--blubathon-alerta-texto);
+  --blubathon-critica-media-fondo: var(--blubathon-aviso-fondo);
+  --blubathon-critica-media-texto: var(--blubathon-aviso-etiqueta);
+
+  /*
+   * Confirmación. El único verde de la aplicación, y entra por un sitio muy
+   * concreto: el par de botones con los que el profesional dice si una
+   * recomendación estuvo bien o no.
+   *
+   * No puede reutilizar el azul de marca: ahí el azul ya es "la acción" y los
+   * dos botones son acciones, así que pintar el afirmativo de marca lo
+   * convertiría en el botón por defecto. Y no puede ser una banda de riesgo:
+   * "estuvo bien" no habla del riesgo del niño sino de la calidad del texto.
+   *
+   * Mismas claridades que el par de alerta, así que los contrastes son los
+   * mismos: 6.7:1 del texto sobre su fondo.
+   */
+  --blubathon-exito-fondo: oklch(0.955 0.035 152);
+  --blubathon-exito-texto: oklch(0.45 0.1 152);
 }
 
 /* Lo que llegó con el aviso obligatorio y la versión de escritorio de la
@@ -342,7 +422,7 @@
    * contestar no hay pantalla debajo con la que se pueda hacer nada, y el velo
    * lo dice antes de que se lea el título.
    */
-  --faro-velo-obligatorio: oklch(0.28 0.03 235 / 0.72);
+  --blubathon-velo-obligatorio: oklch(0.28 0.03 235 / 0.72);
 
   /*
    * El movimiento de los diálogos.
@@ -357,9 +437,9 @@
    * tienen que ser la misma. Estos son el suelo por si el diálogo se usara sin
    * ellas.
    */
-  --faro-curva-hoja: cubic-bezier(0.32, 0.72, 0, 1);
-  --faro-dur-entrada: 340ms;
-  --faro-dur-salida: 240ms;
+  --blubathon-curva-hoja: cubic-bezier(0.32, 0.72, 0, 1);
+  --blubathon-dur-entrada: 300ms;
+  --blubathon-dur-salida: 210ms;
 
   /*
    * Salud en pantalla ancha. La columna de 480 sigue siendo la de móvil; a
@@ -367,14 +447,129 @@
    * usaba el historial, para que las dos pantallas de escritorio tengan la
    * misma retícula y no dos anchos parecidos pero distintos.
    */
-  --faro-cupula-amplia: 64px;
+  /*
+   * El cuestionario: la portada, las opciones y el botón de confirmar.
+   *
+   * Es la única parte de la aplicación con acento verde, y no es un capricho de
+   * paleta: el azul de marca ya significa "esto es Blubathon" en toda la
+   * pantalla de Salud, así que dentro del formulario hacía falta un segundo tono
+   * para decir otra cosa. Aquí el azul es **lo que has elegido tú** y el verde
+   * es **lo que se va a guardar**: el repaso final y el botón que cierra el
+   * formulario. Por eso la cara de la portada también es verde.
+   *
+   * El verde de acción es un peldaño más oscuro que el del diseño: con el del
+   * mockup, el texto blanco encima se quedaba en 3.7:1 y no llegaba a AA. Este
+   * da 4.7:1 y es el mismo tono.
+   */
+  /*
+   * La portada y las opciones marcadas usan el **mismo degradado que el panel
+   * de la pantalla de Salud**: casi blanco arriba, color abajo, y un brillo
+   * radial muy abierto en la cima.
+   *
+   * Se escribe la receta otra vez en vez de ponerle a la portada la clase
+   * `blubathon-banda--bajo`, que daría exactamente estos valores: una banda
+   * significa un nivel de riesgo, y este formulario es justo lo que todavía no
+   * se ha contestado. Lo que se toma prestado es la forma del fondo, no lo que
+   * la banda dice.
+   */
+  --blubathon-portada-fondo:
+    radial-gradient(130% 62% at 50% 0%, oklch(1 0 0 / 0.55), transparent 62%),
+    linear-gradient(180deg, oklch(0.972 0.012 235) 0%, oklch(0.895 0.05 235) 100%);
+  --blubathon-portada-titulo: oklch(0.31 0.06 235);
+  --blubathon-portada-sobretitulo: oklch(0.42 0.055 235);
+  /* Los puntos son el mismo celeste del fondo, un par de peldaños más oscuro
+     para que se lean sobre él; el paso en el que estás es el verde de guardar,
+     que es el único acento del formulario. */
+  --blubathon-portada-punto: oklch(0.74 0.075 235);
+  --blubathon-portada-paso: var(--blubathon-verde-accion);
+
+  /*
+   * Una respuesta sin elegir es gris; elegida, el verde lleno de guardar, con el
+   * texto en blanco encima.
+   *
+   * Antes la elegida era un verde claro, y entre ese verde y el gris había 1.1:1
+   * —muy por debajo del 3:1 que pide WCAG 1.4.11 para distinguir el estado de un
+   * componente—, así que lo elegido se leía por el peso y la sombra y casi no
+   * por el color. Con el verde lleno la diferencia se ve de lejos y es la misma
+   * que dice "esto se guarda" en el pie. El peso y la sombra siguen, que el
+   * estado no debe descansar solo en el color, y `aria-pressed` lo dice para
+   * quien navega con lector.
+   */
+  --blubathon-opcion-fondo: oklch(0.93 0.008 95);
+  --blubathon-opcion-texto: var(--blubathon-marca-texto); /* 7.5:1 */
+  --blubathon-opcion-texto-fuerte: var(--blubathon-superficie); /* 4.7:1 sobre el verde */
+
+  --blubathon-opcion-elegida-fondo: var(--blubathon-verde-accion);
+
+  /* Repasada o ya cerrada: el mismo degradado en azul. El azul es de marca y
+     aquí dice "esto es lo que se envía", no "esto lo elegiste tú". */
+  --blubathon-opcion-repaso-fondo:
+    radial-gradient(130% 62% at 50% 0%, oklch(1 0 0 / 0.45), transparent 62%),
+    linear-gradient(180deg, oklch(0.955 0.028 235) 0%, oklch(0.885 0.055 235) 100%);
+  --blubathon-opcion-repaso-texto: oklch(0.32 0.06 245); /* 9:1 */
+
+  --blubathon-verde-accion: oklch(0.55 0.09 140); /* 4.7:1 con blanco */
+  --blubathon-verde-accion-fuerte: oklch(0.5 0.09 140);
+
+  --blubathon-cupula-amplia: 64px;
   /*
    * Más bajo que en el teléfono, no más alto. La cabecera ocupa un tercio de un
    * móvil porque debajo solo cabe una tarjeta y media; en una ventana de
    * escritorio debajo caben las cinco, y gastar ahí la misma proporción dejaría
    * la mitad de la pantalla en un panel casi vacío.
    */
-  --faro-panel-alto-amplio: 264px;
+  --blubathon-panel-alto-amplio: 264px;
+}
+
+/*
+ * La superficie de lo que escribe la IA.
+ *
+ * En la aplicación del cuidador la recomendación no necesita color propio: se
+ * reconoce por dónde está —la primera tarjeta debajo del panel del riesgo— y
+ * por el azul que ya tiene toda la pantalla detrás. En el panel del terapeuta
+ * no hay nada de eso: son tres widgets blancos sobre un fondo casi blanco, y la
+ * cola de recomendaciones se distinguía de la cartera y del resumen del
+ * conjunto solo por su rótulo.
+ *
+ * El azul es el mismo de la pantalla de Salud, burbujas incluidas, y eso es lo
+ * que se está pidiendo prestado: no es un color nuevo que haya que aprenderse
+ * como "el de la IA", es la superficie sobre la que el cuidador lee exactamente
+ * estos textos al otro lado del producto.
+ *
+ * Si el sorteo del fondo no llegó a correr, esto cae en el color plano de la
+ * página y el widget se ve blanco: un fondo decorativo no puede ser lo que
+ * impida revisar una recomendación.
+ */
+:root {
+  --blubathon-ia-superficie: var(--blubathon-fondo-pagina);
+
+  /*
+   * El disco del destello. Azul, como el de la recomendación en Salud: allí lo
+   * pone la banda del día y aquí no hay banda, así que es el mismo azul de la
+   * marca un punto más cerrado, lo justo para separarse del fondo del widget
+   * (1.3:1, la misma presencia que tiene aquel sobre su tarjeta blanca).
+   */
+  --blubathon-ia-insignia: oklch(0.86 0.06 240);
+
+  /*
+   * Los textos que van directamente sobre ella, sin tarjeta blanca debajo.
+   *
+   * `gris-texto` está calculado contra blanco, donde da 4.8:1, y sobre la
+   * burbuja más oscura de las variantes se queda en 4.1:1: por debajo de AA
+   * justo en las piezas más pequeñas del widget —la regla del muestreo y los
+   * rótulos, de 11px. Este es el mismo gris azulado un escalón más oscuro,
+   * 5.1:1 en ese peor caso, y sigue estando lo bastante por debajo de
+   * `marca-texto` para que el rótulo mande sobre lo que lo acompaña.
+   */
+  --blubathon-ia-texto-suave: oklch(0.5 0.025 245);
+
+  /*
+   * El filete, que separa los dos desplazamientos de la cola. `linea` está
+   * dibujada para el blanco y sobre el azul desaparece —1.08:1—, así que aquí
+   * es un azul más cerrado, con la misma presencia que tiene aquella sobre una
+   * tarjeta.
+   */
+  --blubathon-ia-linea: oklch(0.84 0.03 240);
 }
 
 /*
@@ -402,13 +597,36 @@
  */
 @media (min-width: 600px) and (min-height: 500px), (min-width: 1100px) {
   :root {
-    --faro-ancho-max: var(--faro-ancho-medio);
+    --blubathon-ancho-max: var(--blubathon-ancho-medio);
   }
 }
 
 /* Y a partir de 900, el ancho amplio: el de la rejilla de dos brazos. */
 @media (min-width: 900px) {
   :root {
-    --faro-ancho-lectura: var(--faro-ancho-amplio);
+    --blubathon-ancho-lectura: var(--blubathon-ancho-amplio);
+  }
+}
+
+/*
+ * Ventanas bajas: el teléfono en horizontal, y poco más.
+ *
+ * Era el hueco que quedaba. Los dos puntos de corte de arriba miran el ancho, y
+ * un teléfono girado es ancho —844 o 932— y bajísimo: 390 o 430 px de alto. Con
+ * las medidas de siempre, el panel del riesgo se lleva 296 de esos 390 y la
+ * página entera es la cabecera, con las tarjetas empezando fuera de la pantalla.
+ * Y el segundo corte lo excluye a propósito con su `min-height: 500px`, así que
+ * hasta aquí nadie se ocupaba de él.
+ *
+ * Lo que cambia son tres medidas y ninguna regla de disposición: el panel es
+ * más bajo, la cúpula menos profunda y las ondas más cortas. La retícula, el orden de las tarjetas y el
+ * diseño de móvil en vertical no se tocan —a 390 px de ancho esta consulta no
+ * casa nunca.
+ */
+@media (max-height: 520px) and (min-width: 600px) {
+  :root {
+    --blubathon-panel-alto: 168px;
+    --blubathon-cupula: 28px;
+    --blubathon-ondas-alto: 104px;
   }
 }

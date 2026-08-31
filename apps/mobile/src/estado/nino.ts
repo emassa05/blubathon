@@ -16,7 +16,7 @@ import { computed, ref } from "vue";
 import { ID_NINO } from "@/api/config";
 import type { ChildListItem } from "@/api/contrato";
 import { mensajeDeError } from "@/api/cliente";
-import { listarNinos } from "@/api/faro";
+import { listarNinos } from "@/api/blubathon";
 
 const nino = ref<ChildListItem | null>(null);
 const cargando = ref(false);

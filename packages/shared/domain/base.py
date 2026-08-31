@@ -1,6 +1,6 @@
-"""Shared base model, scalar types and validators for every Faro contract.
+"""Shared base model, scalar types and validators for every Blubathon contract.
 
-CONVENTIONS 6: `extra="forbid"` at API boundaries, UUID v4 identifiers,
+`extra="forbid"` at API boundaries, UUID v4 identifiers,
 timezone-aware UTC timestamps, closed enums, and an explicit model for every
 response. Models are frozen because the history they describe is append-only: a
 correction is a new row, never a mutated one.
@@ -57,7 +57,7 @@ NotesText = Annotated[
 ]
 
 
-class FaroModel(BaseModel):
+class BlubathonModel(BaseModel):
     """Frozen, closed contract model."""
 
     model_config = ConfigDict(
@@ -70,7 +70,7 @@ class FaroModel(BaseModel):
     )
 
     def canonical_payload(self) -> dict[str, Any]:
-        """JSON-mode dump used as the input to every content hash (SPEC 5.9)."""
+        """JSON-mode dump used as the input to every content hash."""
 
         return self.model_dump(mode="json", exclude_none=False)
 
@@ -80,7 +80,7 @@ class FaroModel(BaseModel):
         return content_hash(artifact, schema_version, self.canonical_payload())
 
 
-class AppendOnlyModel(FaroModel):
+class AppendOnlyModel(BlubathonModel):
     """A row that is only ever added, and corrected by appending another row.
 
     Concrete models set `record_id` and `record_kind`, and `effective_instant`
@@ -105,8 +105,8 @@ class AppendOnlyModel(FaroModel):
         return None
 
 
-class Interval(FaroModel):
-    """A closed probability interval. Both bounds or neither (CONVENTIONS 6)."""
+class Interval(BlubathonModel):
+    """A closed probability interval. Both bounds or neither."""
 
     lower: Probability
     upper: Probability
@@ -124,7 +124,7 @@ def derive_local_date(instant: datetime) -> date:
 
 __all__ = [
     "AppendOnlyModel",
-    "FaroModel",
+    "BlubathonModel",
     "Interval",
     "LocalDate",
     "NamespacedTag",

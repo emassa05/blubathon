@@ -1,4 +1,4 @@
-"""Lectura y escritura de columnas JSON validadas (CONVENTIONS 13)."""
+"""Lectura y escritura de columnas JSON validadas."""
 
 from __future__ import annotations
 

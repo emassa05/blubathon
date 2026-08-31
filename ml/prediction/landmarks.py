@@ -3,7 +3,7 @@
 A landmark is the moment a prediction was due. Everything the challenger sees at
 that moment -- the baseline offset and the two personal deviations -- is derived
 from history that was already resolved and ingested at `as_of_at`, and from
-nothing else (SPEC 14.4).
+nothing else.
 
 That is the point of the reveal schedule: it records when each outcome became
 known, so an evaluation can prove that a label used to build a feature was
@@ -100,7 +100,7 @@ def reveal_schedule(
 
 
 def reveal_schedule_sha256(events: Sequence[RevealEvent]) -> str:
-    """The hash an `EvaluationProtocolVersion` persists (SPEC 14.4)."""
+    """The hash an `EvaluationProtocolVersion` persists."""
 
     payload = [
         {

@@ -1,12 +1,12 @@
 """Recommendation instances, professional review, human plans and execution.
 
-Three different facts, three different rows (SPEC 10.4). A professional's
+Three different facts, three different rows. A professional's
 preference is a `RecommendationReview`, exposure to a strategy is a
 `StrategyExecution`, and what happened afterwards is an `OutcomeReport`.
 Approved plus no event is not evidence of efficacy.
 
 `review_status` is never stored on the instance: the absence of an active review
-means pending, and storing it would create a second source of truth (SPEC 10.1).
+means pending, and storing it would create a second source of truth.
 """
 
 from __future__ import annotations
@@ -17,10 +17,11 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from packages.shared.constants import MAX_RUNTIME_STRATEGIES
+from packages.shared.canonical import content_hash
+from packages.shared.constants import MAX_RUNTIME_STRATEGIES, REVIEW_SAMPLE_DENOMINATOR
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     Sha256Hex,
     SpanishText,
     UtcDatetime,
@@ -35,8 +36,43 @@ from packages.shared.enums import (
     RuntimeStatus,
 )
 
+REVIEW_SAMPLE_ARTIFACT = "review_sample"
+REVIEW_SAMPLE_POLICY_VERSION = "review-sample-0.4.0"
+"""Version of the draw. Changing it reshuffles the queue on purpose, and the
+old selection stays reproducible from the reviews already stored."""
 
-class RecommendationInstance(FaroModel):
+
+def is_in_review_sample(recommendation_instance_id: UUID) -> bool:
+    """Whether this recommendation is the one in `REVIEW_SAMPLE_DENOMINATOR`
+    that a professional is asked to look at.
+
+    Not every recommendation goes to review. A professional who has to sign off
+    on all of them signs off on none of them with attention, so the queue is a
+    sample: one in five, drawn across the whole tenant and not per child, so the
+    sample says something about the corpus and the drafting rather than about
+    one subject.
+
+    The draw is a hash of the instance id, not `random()`. A random queue would
+    be a different queue on every request: a reload would drop the item being
+    read, and two professionals looking at the same screen would see different
+    work. Hashing the id makes membership a property of the recommendation, so
+    it is stable across reloads, processes and machines, and reproducible when
+    someone asks months later why this one was reviewed and that one was not.
+
+    The id is a UUID v4, so an unkeyed digest is safe here: what `keyed_hash`
+    protects is a low entropy clinical payload, and 122 random bits are not
+    enumerable. No clinical content enters the hash.
+    """
+
+    digest = content_hash(
+        REVIEW_SAMPLE_ARTIFACT,
+        REVIEW_SAMPLE_POLICY_VERSION,
+        str(recommendation_instance_id),
+    )
+    return int(digest[:8], 16) % REVIEW_SAMPLE_DENOMINATOR == 0
+
+
+class RecommendationInstance(BlubathonModel):
     """Written once, when the episode is created. Later GETs only read it."""
 
     recommendation_instance_id: UUID
@@ -103,7 +139,7 @@ class HumanPlanVersion(AppendOnlyModel):
         return self
 
     def roles_are_subset_of(self, strategy_roles: frozenset[Role]) -> bool:
-        """A substitution may only narrow who is allowed to apply it (SPEC 10.2)."""
+        """A substitution may only narrow who is allowed to apply it."""
 
         return self.allowed_executor_roles <= strategy_roles
 
@@ -200,7 +236,7 @@ def exposure_is_eligible(
     target_end_at: datetime,
     outcome_occurred_at: datetime | None,
 ) -> bool:
-    """The SPEC 10.3 chronology for attributing an exposure to a window.
+    """The chronology for attributing an exposure to a window.
 
     A late or retrospectively reported application is kept as history but is not
     attributed to the outcome of that window.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 
-import { FARO_TEXTS_ES } from "@/api/contrato";
+import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
 import CalendarioSemanal from "@/components/historial/CalendarioSemanal.vue";
 import DetalleDia from "@/components/historial/DetalleDia.vue";
 import NavegadorSemana from "@/components/historial/NavegadorSemana.vue";
@@ -18,7 +18,7 @@ const emitir = defineEmits<{
   abrirCuestionario: [fecha: string];
 }>();
 
-const { ninoId, etiqueta: nombreDelNino, cargar: cargarNino } = useNino();
+const { ninoId, cargar: cargarNino } = useNino();
 const { porFecha, cargando, cargado, error, cargar: cargarHistorial } = useHistorial();
 
 const hoy = ref(hoyIso());
@@ -83,8 +83,6 @@ function irASemana(cantidad: number): void {
         <p class="historial__sobretitulo">Historial</p>
         <h1 class="historial__titulo">Cuestionarios</h1>
       </div>
-
-      <p v-if="nombreDelNino" class="historial__nino">{{ nombreDelNino }}</p>
     </header>
 
     <div class="historial__cuerpo">
@@ -106,7 +104,9 @@ function irASemana(cantidad: number): void {
 
         <ResumenSemana :celdas="celdas" />
 
-        <p v-if="cargando && !cargado" class="historial__estado">{{ FARO_TEXTS_ES.loadingEs }}</p>
+        <p v-if="cargando && !cargado" class="historial__estado">
+          {{ BLUBATHON_TEXTS_ES.loadingEs }}
+        </p>
 
         <!-- Sin API el calendario sigue en pie: lo que se ve son los envíos que
              guardó este dispositivo, y eso se dice, no se disimula. -->
@@ -134,48 +134,48 @@ function irASemana(cantidad: number): void {
 .historial {
   display: flex;
   flex-direction: column;
-  gap: var(--faro-esp-14);
+  gap: var(--blubathon-esp-14);
   width: 100%;
   min-height: 100dvh;
   /* El acolchado lateral es el de siempre mientras la ventana no pase del ancho
      de lectura, y a partir de ahí es lo que sobra repartido a los dos lados.
      En un teléfono la resta es negativa y gana el 24 de siempre. */
-  padding: calc(var(--faro-esp-18) + env(safe-area-inset-top, 0px))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2)
-    calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
+  padding: calc(var(--blubathon-esp-18) + env(safe-area-inset-top, 0px))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
   /* Las burbujas se dimensionan contra esta caja, igual que en Salud. */
-  background: var(--faro-fondo-pagina);
+  background: var(--blubathon-fondo-pagina);
 }
 
 .historial__cabecera {
   display: flex;
   align-items: center;
-  gap: var(--faro-esp-12);
+  gap: var(--blubathon-esp-12);
 }
 
 .historial__volver {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--faro-toque);
-  height: var(--faro-toque);
-  margin-left: calc(var(--faro-esp-10) * -1);
-  color: var(--faro-marca-accion);
+  width: var(--blubathon-toque);
+  height: var(--blubathon-toque);
+  margin-left: calc(var(--blubathon-esp-10) * -1);
+  color: var(--blubathon-marca-accion);
   border-radius: 50%;
 }
 
 .historial__volver:hover {
-  background: var(--faro-fila-activa);
+  background: var(--blubathon-fila-activa);
 }
 
 .historial__volver:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .historial__flecha {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .historial__rotulos {
@@ -184,39 +184,29 @@ function irASemana(cantidad: number): void {
 }
 
 .historial__sobretitulo {
-  font-size: var(--faro-fs-11);
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-014);
+  letter-spacing: var(--blubathon-track-014);
   text-transform: uppercase;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .historial__titulo {
-  font-size: var(--faro-fs-20);
+  font-size: var(--blubathon-fs-20);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
-}
-
-.historial__nino {
-  flex: none;
-  padding: var(--faro-esp-6) var(--faro-esp-12);
-  font-size: var(--faro-fs-125);
-  font-weight: 700;
-  color: var(--faro-marca-accion);
-  background: var(--faro-marca-icono-fondo);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-marca-profundo);
 }
 
 .historial__cuerpo {
   display: flex;
   flex-direction: column;
-  gap: var(--faro-esp-14);
+  gap: var(--blubathon-esp-14);
 }
 
 .historial__columna {
   display: flex;
   flex-direction: column;
-  gap: var(--faro-esp-14);
+  gap: var(--blubathon-esp-14);
   min-width: 0;
 }
 
@@ -226,27 +216,27 @@ function irASemana(cantidad: number): void {
  * siendo pulsable en un teléfono estrecho.
  */
 .historial__panel {
-  padding: var(--faro-esp-14) var(--faro-esp-6);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+  padding: var(--blubathon-esp-14) var(--blubathon-esp-6);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-elev-1);
 }
 
 .historial__calendario {
-  margin-top: var(--faro-esp-14);
+  margin-top: var(--blubathon-esp-14);
 }
 
 .historial__estado {
-  padding: var(--faro-esp-12) var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-14);
+  padding: var(--blubathon-esp-12) var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .historial__estado--fallo {
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
 }
 
 .historial__rail {
@@ -257,25 +247,25 @@ function irASemana(cantidad: number): void {
   .historial {
     /* El 32 sustituye al 24 como suelo del acolchado; el ancho de lectura ya
        vale 1040 y el resto de la cuenta no cambia. */
-    padding-inline: max(var(--faro-esp-32), (100% - var(--faro-ancho-lectura)) / 2);
-    gap: var(--faro-esp-20);
+    padding-inline: max(var(--blubathon-esp-32), (100% - var(--blubathon-ancho-lectura)) / 2);
+    gap: var(--blubathon-esp-20);
   }
 
   .historial__cuerpo {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--faro-rail-ancho);
-    gap: var(--faro-esp-20);
+    grid-template-columns: minmax(0, 1fr) var(--blubathon-rail-ancho);
+    gap: var(--blubathon-esp-20);
     align-items: start;
   }
 
   .historial__panel {
-    padding: var(--faro-esp-20) var(--faro-esp-16);
+    padding: var(--blubathon-esp-20) var(--blubathon-esp-16);
   }
 
   /* El detalle acompaña al calendario mientras se recorre la semana. */
   .historial__rail {
     position: sticky;
-    top: var(--faro-esp-20);
+    top: var(--blubathon-esp-20);
   }
 }
 </style>

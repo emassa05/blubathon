@@ -1,4 +1,4 @@
-"""Stable audit-day assignment (SPEC 6.8).
+"""Stable audit-day assignment.
 
 Ten percent of sessions show no suggestions, so the team can compare answers
 given with and without help. The assignment has to be stable across reloads,
@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
-from ml.spec_constants import AUDIT_BUCKET_MODULUS, AUDIT_BUCKET_THRESHOLD
+from ml.formula_constants import AUDIT_BUCKET_MODULUS, AUDIT_BUCKET_THRESHOLD
 from packages.shared.canonical import canonical_date, stable_bucket
 
 

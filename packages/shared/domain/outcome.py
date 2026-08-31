@@ -1,4 +1,4 @@
-"""Outcome requests, reports, resolutions and adjudications (SPEC 4.4, 4.5).
+"""Outcome requests, reports, resolutions and adjudications.
 
 A report and a resolution are different types on purpose. A person answers
 `yes`, `no` or `unknown`; the system resolves to `pending`, `yes`, `no`,
@@ -21,7 +21,7 @@ from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     SpanishText,
     UtcDatetime,
     VersionLabel,
@@ -37,7 +37,7 @@ from packages.shared.enums import (
 )
 
 
-class OutcomeRequest(FaroModel):
+class OutcomeRequest(BlubathonModel):
     """Immutable scheduling record. Its state is derived, never mutated."""
 
     outcome_request_id: UUID
@@ -186,7 +186,7 @@ class OutcomeWindow(NamedTuple):
 
 
 def classify_timing(reported_at: datetime, window: OutcomeWindow) -> TimingStatus:
-    """SPEC 4.5 boundaries, exactly: early is strict, on_time is inclusive both ways."""
+    """Boundaries, exactly: early is strict, on_time is inclusive both ways."""
 
     if reported_at < window.target_end_at:
         return TimingStatus.EARLY
@@ -196,21 +196,31 @@ def classify_timing(reported_at: datetime, window: OutcomeWindow) -> TimingStatu
 
 
 def report_is_eligible(report: OutcomeReport, window: OutcomeWindow) -> bool:
-    """Eligibility rules 1 and 2 of the SPEC 4.4 resolution algorithm.
+    """Eligibility rules 1 and 2 of the resolution algorithm.
 
     A `yes` may resolve early once the event has actually happened inside the
-    window. A `no` may only resolve on time, because an early `no` cannot know
-    about the rest of the window.
+    window.
+
+    A `no` may resolve early too. It did not use to: the argument was that an
+    early `no` cannot know about the rest of the window, so it was recorded and
+    left provisional until the window closed. That is true of the reading, but
+    it was the wrong place to enforce it. The caregiver is the only source of
+    this answer, and the interface has a button that asks for it; a report that
+    is accepted, stored and then ignored gives back no signal at all — the
+    request stays open, the card stays up and nothing says why. Between refusing
+    the answer and taking it, taking it is the honest one, and `timing_status`
+    still records that it came in early for anyone measuring later.
+
+    A late report is still not eligible, either way: past the capture deadline
+    the episode has already resolved and reopening it is a different decision.
     """
 
+    if report.timing_status not in {TimingStatus.EARLY, TimingStatus.ON_TIME}:
+        return False
     if report.value is OutcomeReportValue.YES:
-        if report.timing_status not in {TimingStatus.EARLY, TimingStatus.ON_TIME}:
-            return False
         occurred = report.occurred_at
         return occurred is not None and window.target_start_at < occurred <= window.target_end_at
-    if report.value is OutcomeReportValue.NO:
-        return report.timing_status is TimingStatus.ON_TIME
-    return False
+    return report.value is OutcomeReportValue.NO
 
 
 class ResolutionOutcome(NamedTuple):
@@ -233,7 +243,7 @@ def derive_resolution(
     *,
     previously_conflicted: bool = False,
 ) -> ResolutionOutcome:
-    """Run the SPEC 4.4 algorithm over the reports projected at the cutoff.
+    """Run the algorithm over the reports projected at the cutoff.
 
     `ever_conflicted` is monotonic: once two incompatible eligible reports have
     existed, no later correction makes the episode clean again.
@@ -288,7 +298,7 @@ def derive_resolution(
 def derive_request_state(
     resolution: OutcomeResolution, now: datetime, window: OutcomeWindow
 ) -> OutcomeRequestState:
-    """Request state is a view of the active resolution and the clock (SPEC 4.4).
+    """Request state is a view of the active resolution and the clock.
 
     A pending resolution past the deadline is not `missing` yet: an `unknown`
     resolution is materialised first, and `missing` is derived from that.
@@ -308,7 +318,7 @@ def derive_request_state(
 
 
 def qualifies_for_primary_dataset(resolution: OutcomeResolution) -> bool:
-    """SPEC 14.2 membership test, applied to the active resolution."""
+    """Membership test, applied to the active resolution."""
 
     return (
         resolution.status in {OutcomeResolutionStatus.YES, OutcomeResolutionStatus.NO}

@@ -1,4 +1,4 @@
-"""Corpus, strategies, catalogues and the minimal matching scenario (SPEC 9).
+"""Corpus, strategies, catalogues and the minimal matching scenario.
 
 The RAG works at authoring time, not per clinical query. Everything the runtime
 serves has already been retrieved, cited, verified and reviewed twice, and the
@@ -20,7 +20,7 @@ from pydantic import AnyUrl, Field, model_validator
 from packages.shared.constants import SCENARIO_SCHEMA_VERSION
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     NamespacedTag,
     Sha256Hex,
     SpanishText,
@@ -54,8 +54,8 @@ def _sorted_unique(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(sorted(set(values)))
 
 
-class DocumentVersion(FaroModel):
-    """Without version, rights and hashes a document is not indexed (SPEC 9.2)."""
+class DocumentVersion(BlubathonModel):
+    """Without version, rights and hashes a document is not indexed."""
 
     document_version_id: UUID
     source_id: UUID
@@ -79,8 +79,8 @@ class DocumentVersion(FaroModel):
         return self
 
 
-class DocumentChunk(FaroModel):
-    """A citation without a verifiable locator cannot be published (SPEC 9.3)."""
+class DocumentChunk(BlubathonModel):
+    """A citation without a verifiable locator cannot be published."""
 
     document_chunk_id: UUID
     document_version_id: UUID
@@ -90,11 +90,11 @@ class DocumentChunk(FaroModel):
     chunker_version: VersionLabel
 
 
-class AuthoringBuildManifest(FaroModel):
+class AuthoringBuildManifest(BlubathonModel):
     """Everything that could change a retrieval result, fixed and hashed.
 
     `lexical_only` is a declared mode, not a silent degradation: no model is ever
-    downloaded to make a hybrid build succeed (SPEC 9.4).
+    downloaded to make a hybrid build succeed.
     """
 
     authoring_build_manifest_id: UUID
@@ -132,7 +132,7 @@ class AuthoringBuildManifest(FaroModel):
         return self
 
 
-class CorpusVersion(FaroModel):
+class CorpusVersion(BlubathonModel):
     """The exact set of document versions a catalogue was built from."""
 
     corpus_version: VersionLabel
@@ -143,7 +143,7 @@ class CorpusVersion(FaroModel):
 
 
 class AuthoringReview(AppendOnlyModel):
-    """Authoring review is a different entity from a case review (SPEC 9.5)."""
+    """Authoring review is a different entity from a case review."""
 
     authoring_review_id: UUID
     object_type: AuthoringReviewObjectType
@@ -168,7 +168,7 @@ class AuthoringReview(AppendOnlyModel):
         return self.reviewed_at
 
 
-class StrategyCitation(FaroModel):
+class StrategyCitation(BlubathonModel):
     """Links one claim to one literal fragment of one hashed chunk."""
 
     citation_id: UUID
@@ -180,7 +180,7 @@ class StrategyCitation(FaroModel):
     canonical_url: AnyUrl
 
 
-class StrategyClaim(FaroModel):
+class StrategyClaim(BlubathonModel):
     """A claim is a span of the reviewed action text, with its own citations."""
 
     claim_id: UUID
@@ -196,7 +196,7 @@ class StrategyClaim(FaroModel):
         return self
 
 
-class StrategyVersion(FaroModel):
+class StrategyVersion(BlubathonModel):
     """Runtime serves `action_text_es` verbatim; it never recomposes text."""
 
     strategy_id: UUID
@@ -245,11 +245,11 @@ class StrategyVersion(FaroModel):
         return self
 
 
-class ScenarioV1(FaroModel):
+class ScenarioV1(BlubathonModel):
     """The minimal matching payload. No identity, notes, external IDs or history.
 
     Treated as potentially pseudonymised while a combination of attributes could
-    be linkable; it is never presumed anonymous (SPEC 9.7).
+    be linkable; it is never presumed anonymous.
     """
 
     schema_version: str = SCENARIO_SCHEMA_VERSION
@@ -274,7 +274,7 @@ class ScenarioV1(FaroModel):
         return self
 
     def canonical_payload(self) -> dict[str, Any]:
-        """Deduplicated, sorted and key-ordered before JCS (SPEC 9.7)."""
+        """Deduplicated, sorted and key-ordered before JCS."""
 
         return {
             "schema_version": self.schema_version,
@@ -287,7 +287,7 @@ class ScenarioV1(FaroModel):
         }
 
 
-class ScenarioPredicate(FaroModel):
+class ScenarioPredicate(BlubathonModel):
     """Fail-closed applicability. Used unchanged by sets and strategies."""
 
     required_field_values: dict[FieldCode, tuple[str, ...]] = Field(default_factory=dict)
@@ -345,7 +345,7 @@ class ScenarioPredicate(FaroModel):
         return not set(self.contraindication_tags) & contraindications
 
     def implies(self, other: ScenarioPredicate) -> bool:
-        """Conservative implication check used when activating a set (SPEC 9.6).
+        """Conservative implication check used when activating a set.
 
         Sound but not complete: it may refuse an implication that in fact holds,
         which fails closed. It never accepts one that does not.
@@ -371,7 +371,7 @@ class ScenarioPredicate(FaroModel):
         return set(other.contraindication_tags) <= set(self.contraindication_tags)
 
 
-class RecommendationSetVersion(FaroModel):
+class RecommendationSetVersion(BlubathonModel):
     """An ordered, reviewed set of strategies with its own predicate."""
 
     recommendation_set_id: UUID
@@ -394,7 +394,7 @@ class RecommendationSetVersion(FaroModel):
         return self
 
 
-class CatalogVersion(FaroModel):
+class CatalogVersion(BlubathonModel):
     """At most one active, effective catalogue per tenant at any instant."""
 
     catalog_version: VersionLabel
@@ -414,7 +414,7 @@ class CatalogVersion(FaroModel):
         return self
 
 
-class AuthoringRequestIntent(FaroModel):
+class AuthoringRequestIntent(BlubathonModel):
     """What the pure runtime returns for an uncovered scenario. It writes nothing."""
 
     scenario_hash: str = Field(min_length=1)
@@ -451,8 +451,8 @@ class AuthoringRequest(AppendOnlyModel):
         return self.created_at
 
 
-class ScenarioBuildResult(FaroModel):
-    """Outcome of the pure P1 `build_scenario` facade (SPEC 9.7).
+class ScenarioBuildResult(BlubathonModel):
+    """Outcome of the pure P1 `build_scenario` facade.
 
     P2 persists this or the abstention; it never re-derives the precedence.
     """
@@ -480,7 +480,7 @@ class ScenarioBuildResult(FaroModel):
         return self
 
 
-class RuntimeStrategyMatch(FaroModel):
+class RuntimeStrategyMatch(BlubathonModel):
     """One matched strategy in runtime order, with the citations of its version."""
 
     strategy_version_id: UUID
@@ -492,7 +492,7 @@ class RuntimeStrategyMatch(FaroModel):
     citations: tuple[StrategyCitation, ...] = Field(min_length=1)
 
 
-class RuntimeDecision(FaroModel):
+class RuntimeDecision(BlubathonModel):
     """The pure runtime answer: at most three strategies, or an abstention."""
 
     status: RuntimeStatus
@@ -533,7 +533,7 @@ def resolve_catalog_readiness(
     dependency_suspended: bool,
     active_catalog_count: int,
 ) -> RecommendationAbstentionReason | None:
-    """SPEC 9.6 precedence, in order. `None` means ready.
+    """Precedence, in order. `None` means ready.
 
     `clinical_review_unavailable` never collapses into `catalog_not_ready`, and
     ambiguity or suspension fails closed.

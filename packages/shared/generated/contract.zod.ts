@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-// contract_version: faro-contract-0.4.0
+// contract_version: blubathon-contract-0.4.0
 
 export const AbstentionBreakdownSchema = z.object({
   "reason": z.string(),
@@ -21,6 +21,23 @@ export const AuthoringReviewDecisionSchema = z.enum(["approved", "changes_reques
 export const AuthoringReviewKindSchema = z.enum(["evidence", "clinical", "privacy", "catalog_activation"]);
 
 export const AuthoringReviewObjectTypeSchema = z.enum(["target_definition", "document", "strategy", "recommendation_set", "catalog"]);
+
+export const CalibrationBandSchema = z.object({
+  "band": z.enum(["low", "medium", "high"]),
+  "days": z.number().int().gte(0),
+  "episodes": z.number().int().gte(0),
+  "announced": z.number().gte(0.0).lte(1.0),
+  "observed": z.number().gte(0.0).lte(1.0),
+  "interval": z.array(z.unknown()).min(2).max(2),
+}).strict();
+
+export const CalibrationResponseSchema = z.object({
+  "bands": z.array(z.lazy(() => CalibrationBandSchema)).optional(),
+  "brier": z.union([z.number(), z.null()]).optional(),
+  "days": z.number().int().gte(0).optional(),
+  "episodes": z.number().int().gte(0).optional(),
+  "caveat_es": z.string().min(1),
+}).strict();
 
 export const ChallengerTrainingProtocolVersionSchema = z.object({
   "protocol_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
@@ -234,7 +251,7 @@ export const ModelStateSchema = z.enum(["candidate", "validated_offline", "shado
 export const NotTrainableReasonSchema = z.enum(["not_trainable_single_class", "not_trainable_insufficient_sample_plan", "not_trainable_convergence_failure", "not_trainable_consent_not_reauthorized"]);
 
 export const NotificationEventSchema = z.object({
-  "type": z.enum(["recommendation.ready", "recommendation.redrafted", "feedback.recorded"]),
+  "type": z.enum(["recommendation.ready", "recommendation.redrafted", "feedback.recorded", "review.recorded"]),
   "child_id": z.union([z.string().uuid(), z.null()]).optional(),
   "prediction_episode_id": z.union([z.string().uuid(), z.null()]).optional(),
   "recommendation_instance_id": z.string().uuid(),
@@ -242,6 +259,7 @@ export const NotificationEventSchema = z.object({
   "status": z.union([z.enum(["matched", "abstained"]), z.null()]).optional(),
   "abstention_reason": z.union([z.enum(["no_indexed_match", "draft_unavailable", "draft_not_grounded"]), z.null()]).optional(),
   "rating": z.union([z.enum(["good", "bad"]), z.null()]).optional(),
+  "decision": z.union([z.enum(["approved", "rejected"]), z.null()]).optional(),
   "at": z.string().datetime({ offset: true }),
 }).strict();
 
@@ -286,6 +304,18 @@ export const RecommendationCitationSchema = z.object({
   "quote_es": z.string().min(1),
 }).strict();
 
+export const RecommendationDecisionRequestSchema = z.object({
+  "decision": z.enum(["approved", "rejected"]),
+  "note_es": z.union([z.string().min(1), z.null()]).optional(),
+}).strict();
+
+export const RecommendationDecisionResponseSchema = z.object({
+  "decision_id": z.string().uuid(),
+  "recommendation_instance_id": z.string().uuid(),
+  "decision": z.enum(["approved", "rejected"]),
+  "reviewed_at": z.string().datetime({ offset: true }),
+}).strict();
+
 export const RecommendationInstanceViewSchema = z.object({
   "recommendation_instance_id": z.string().uuid(),
   "child_id": z.string().uuid(),
@@ -302,6 +332,9 @@ export const RecommendationInstanceViewSchema = z.object({
   "abstention_reason": z.union([z.enum(["no_indexed_match", "draft_unavailable", "draft_not_grounded"]), z.null()]).optional(),
   "attempt": z.number().int().gte(1),
   "rating": z.union([z.enum(["good", "bad"]), z.null()]).optional(),
+  "in_review_sample": z.boolean().optional(),
+  "review_decision": z.union([z.enum(["approved", "rejected"]), z.null()]).optional(),
+  "reviewed_at": z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
 }).strict();
 
 export const RecommendationListResponseSchema = z.object({
@@ -309,7 +342,7 @@ export const RecommendationListResponseSchema = z.object({
 }).strict();
 
 export const ReleaseManifestSchema = z.object({
-  "spec_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
+  "domain_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
   "contract_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
   "implementation_status": z.string(),
   "corpus_status": z.string(),
@@ -320,6 +353,13 @@ export const ReleaseManifestSchema = z.object({
 }).strict();
 
 export const RetrievalModeSchema = z.enum(["hybrid", "lexical_only"]);
+
+export const ReviewQueueResponseSchema = z.object({
+  "items": z.array(z.lazy(() => RecommendationInstanceViewSchema)).optional(),
+  "sample_denominator": z.number().int().gte(1),
+  "sample_policy_version": z.string().regex(new RegExp("^[a-z0-9][a-z0-9._-]{0,63}$")),
+  "candidates": z.number().int().gte(0),
+}).strict();
 
 export const RoleSchema = z.enum(["caregiver", "professional", "clinical_reviewer", "evidence_reviewer", "privacy_reviewer", "model_evaluator", "tenant_admin", "auditor"]);
 

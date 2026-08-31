@@ -1,4 +1,4 @@
-"""Value of information: which question could change the estimate most (SPEC 7.2).
+"""Value of information: which question could change the estimate most.
 
 The default estimator answers "what is the usual value". VoI answers a different
 question: "which answer would tell us most about the outcome". A variable can
@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Protocol
 
 from ml.defaults.window import EligibleHistory
-from ml.spec_constants import DEFAULT_PRIOR_PER_CATEGORY
+from ml.formula_constants import DEFAULT_PRIOR_PER_CATEGORY
 from packages.shared.constants import DEFAULTS_ESTIMATOR_VERSION
 from packages.shared.domain.prediction import VoiEstimate
 from packages.shared.enums import FieldCode, VoiStatus
@@ -30,7 +30,7 @@ class ConditionalOutcomeModel(Protocol):
     """A model that can answer `P(Y=1 | X=x, rest of the snapshot unchanged)`.
 
     This is a conditional query, not an intervention: fixing an answer and
-    reading the estimate is not the same as changing the world (SPEC 7.2).
+    reading the estimate is not the same as changing the world.
     """
 
     @property
@@ -123,7 +123,7 @@ def estimate_voi(
     model: ConditionalOutcomeModel | None,
     cutoff: datetime,
 ) -> VoiEstimate:
-    """VoI for one field, or the explicit reason it is unavailable (SPEC 7.3)."""
+    """VoI for one field, or the explicit reason it is unavailable."""
 
     field_code = history.stratum.field_code
 

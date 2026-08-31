@@ -1,4 +1,4 @@
-"""Consultas de identidad, sujetos y perfiles (SPEC 5.7, 13)."""
+"""Consultas de identidad, sujetos y perfiles."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def active_profile(
     subject_id: str,
     cutoff: str,
 ) -> dict[str, Any] | None:
-    """Hoja vigente del perfil al cutoff. Sin perfil no hay escenario (SPEC 9.7)."""
+    """Hoja vigente del perfil al cutoff. Sin perfil no hay escenario."""
     rows = connection.execute(
         "SELECT * FROM subject_profiles WHERE tenant_id = ? AND subject_id = ?"
         " AND effective_from <= ?",
@@ -73,7 +73,7 @@ def select_target_definition(
     tenant_id: str | None,
     cutoff: str,
 ) -> tuple[sqlite3.Row | None, str]:
-    """SPEC 4.3: exactamente una activa efectiva, o fail-closed.
+    """Exactamente una activa efectiva, o fail-closed.
 
     Devuelve ``(fila, razón)`` donde la razón es ``available``,
     ``target_definition_unavailable`` o ``target_definition_ambiguous``.

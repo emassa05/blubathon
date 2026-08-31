@@ -14,7 +14,7 @@ from tools.seed.seeder import seed, summary
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Siembra la demo local de Faro")
+    parser = argparse.ArgumentParser(description="Siembra la demo local de Blubathon")
     parser.add_argument(
         "--catalog",
         choices=("blocked", "fixture-active"),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, useId } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from "vue";
 
 import IconoCerrar from "@/components/icons/IconoCerrar.vue";
 import { useDialogo } from "@/composables/useDialogo";
@@ -48,32 +48,58 @@ const idTitulo = useId();
  * el diálogo desaparecería a medio irse, o se quedaría un rato invisible
  * tapando la pantalla. El CSS las recibe por variable, de aquí.
  */
-const MS_ENTRADA = 340;
-const MS_SALIDA = 240;
+const MS_ENTRADA = 300;
+const MS_SALIDA = 210;
 
 /*
- * El diálogo se pinta abierto —de ahí el `appear` de la transición— y al
- * cerrarse no desaparece: primero se va, y solo cuando ha terminado avisa al
- * padre, que es quien lo desmonta. Sin ese paso intermedio el `v-if` de fuera
- * lo arrancaría del DOM antes de que la animación de salida tuviera nada que
- * animar.
+ * El movimiento lo lleva el componente, no `<Transition>`.
+ *
+ * `<Transition>` decide cuánto dura una transición leyendo las propiedades
+ * `transition` del **elemento raíz** que aparece y desaparece —aquí el velo—, y
+ * lo que se mueve no es el velo: es la hoja, que cuelga de él. Con el velo sin
+ * transición propia, Vue daba la salida por terminada en el mismo fotograma en
+ * que empezaba y desmontaba el diálogo antes de que la hoja se hubiera movido:
+ * el cierre no se veía. `:duration` lo tapa, pero deja el movimiento atado a un
+ * ciclo de clases que no se puede observar ni probar sin cronómetro.
+ *
+ * Así que la hoja no depende de eso. `dentro` es un booleano de este
+ * componente: falso mientras está fuera de la pantalla, verdadero cuando ocupa
+ * su sitio. El CSS anima la diferencia entre los dos estados y el mismo valor
+ * sirve para entrar y para salir.
  */
-const visible = ref(true);
+const dentro = ref(false);
 let temporizador: ReturnType<typeof setTimeout> | null = null;
 
-const transicion = computed(() => (props.variante === "hoja" ? "hoja" : "centro"));
+onMounted(async () => {
+  await nextTick();
+  /*
+   * Un reflujo forzado antes de pedir el sitio.
+   *
+   * La hoja se acaba de pintar fuera de la pantalla, y sin obligar al navegador
+   * a calcular ese estado de partida, el cambio a `dentro` se agrupa con el
+   * primer pintado y no queda nada entre medias que animar: la hoja aparecería
+   * ya puesta. Leer `offsetHeight` es lo que fija el punto de salida.
+   */
+  void contenedor.value?.offsetHeight;
+  dentro.value = true;
+});
 
 const duraciones = computed(() => ({
-  "--faro-dur-entrada": `${MS_ENTRADA}ms`,
-  "--faro-dur-salida": `${MS_SALIDA}ms`,
+  "--blubathon-dur-entrada": `${MS_ENTRADA}ms`,
+  "--blubathon-dur-salida": `${MS_SALIDA}ms`,
 }));
 
 useDialogo(contenedor, pedirCierre, { cerrarConEsc: () => props.cerrable });
 
+/*
+ * Cerrar no desmonta: primero la hoja se va, y solo cuando ha terminado se
+ * avisa al padre, que es quien la quita del DOM. Sin ese paso intermedio el
+ * `v-if` de fuera la arrancaría antes de que la salida tuviera nada que animar.
+ */
 function pedirCierre(): void {
   // Ya se está yendo: una segunda pulsación no arranca un segundo cierre.
   if (!props.cerrable || temporizador !== null) return;
-  visible.value = false;
+  dentro.value = false;
   temporizador = setTimeout(() => emitir("cerrar"), MS_SALIDA);
 }
 
@@ -88,14 +114,12 @@ onBeforeUnmount(() => {
     `contain` que rompa un `position: fixed`, así que el diálogo funciona donde
     se declara y las pruebas pueden montarlo sin buscarlo por `document.body`.
   -->
-  <Transition :name="transicion" appear>
-    <div
-      v-if="visible"
-      class="velo"
-      :class="[`velo--${variante}`, { 'velo--obligatorio': !cerrable }]"
-      :style="{ zIndex: 10 + nivel * 10, ...duraciones }"
-    >
-      <!--
+  <div
+    class="velo"
+    :class="[`velo--${variante}`, { 'velo--obligatorio': !cerrable, 'velo--dentro': dentro }]"
+    :style="{ zIndex: 10 + nivel * 10, ...duraciones }"
+  >
+    <!--
         El velo también cierra al pulsarlo, y para eso es un botón de verdad: con
         nombre accesible y fuera del orden de tabulación, porque el control que se
         recorre con el teclado es la aspa de la cabecera, y `Esc` hace lo mismo.
@@ -104,25 +128,42 @@ onBeforeUnmount(() => {
         es que pulsar fuera no es una salida, y un control que no lleva a ningún
         sitio no debería anunciarse.
       -->
-      <button
-        v-if="cerrable"
-        type="button"
-        class="velo__fondo"
-        tabindex="-1"
-        :aria-label="etiquetaCerrar"
-        @click="pedirCierre"
-      ></button>
-      <div v-else class="velo__fondo" aria-hidden="true"></div>
+    <button
+      v-if="cerrable"
+      type="button"
+      class="velo__fondo"
+      tabindex="-1"
+      :aria-label="etiquetaCerrar"
+      @click="pedirCierre"
+    ></button>
+    <div v-else class="velo__fondo" aria-hidden="true"></div>
 
-      <div
-        ref="contenedor"
-        class="dialogo"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="idTitulo"
-        tabindex="-1"
-      >
-        <header class="dialogo__cabecera">
+    <div
+      ref="contenedor"
+      class="dialogo"
+      :class="{ 'dialogo--portada': !!$slots.portada }"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="idTitulo"
+      tabindex="-1"
+    >
+      <header class="dialogo__cabecera" :class="{ 'dialogo__cabecera--portada': !!$slots.portada }">
+        <!--
+          Con portada, la cabecera **es** la portada: los rótulos se dibujan
+          dentro de ella, que es donde el diseño los pone. Por eso recibe el id
+          del título —el `role="dialog"` sigue tomando su nombre de ese `h2`, lo
+          pinte quien lo pinte— y por eso no se dibujan también aquí: se leerían
+          dos veces. El aspa se queda flotando encima, en el sitio de siempre.
+        -->
+        <div v-if="$slots.portada" class="dialogo__portada">
+          <slot name="portada" :id-titulo="idTitulo" />
+        </div>
+
+        <!-- El filo del arco: lo que se desplaza no se parte en seco contra la
+             curva, se deshace en el último milímetro antes de llegar. -->
+        <span v-if="$slots.portada" class="dialogo__filo" aria-hidden="true"></span>
+
+        <template v-else>
           <span
             v-if="variante === 'hoja' && cerrable"
             class="dialogo__asa"
@@ -130,31 +171,39 @@ onBeforeUnmount(() => {
           ></span>
 
           <div class="dialogo__rotulos">
-            <p v-if="sobretitulo" class="dialogo__sobretitulo">{{ sobretitulo }}</p>
+            <!-- El "(?)" va con el sobretítulo, que es el que nombra de qué es
+                 el diálogo, y no con el título, que aquí es la fecha. La ayuda
+                 explica el cuestionario, no el martes. -->
+            <p v-if="sobretitulo" class="dialogo__sobretitulo">
+              {{ sobretitulo }}
+              <slot name="ayuda" />
+            </p>
             <h2 :id="idTitulo" class="dialogo__titulo">{{ titulo }}</h2>
           </div>
+        </template>
 
-          <button
-            v-if="cerrable"
-            type="button"
-            class="dialogo__cerrar"
-            :aria-label="etiquetaCerrar"
-            @click="pedirCierre"
-          >
-            <IconoCerrar class="dialogo__aspa" />
-          </button>
-        </header>
+        <button
+          v-if="cerrable"
+          type="button"
+          class="dialogo__cerrar"
+          :aria-label="etiquetaCerrar"
+          @click="pedirCierre"
+        >
+          <IconoCerrar class="dialogo__aspa" />
+        </button>
+      </header>
 
-        <div class="dialogo__cuerpo">
-          <slot />
-        </div>
-
-        <footer v-if="$slots.pie" class="dialogo__pie">
-          <slot name="pie" />
-        </footer>
+      <!-- Colapsa si no hay contenido, igual que el pie: un diálogo que solo
+             es una pregunta y dos botones no lleva una franja vacía en medio. -->
+      <div v-if="$slots.default" class="dialogo__cuerpo">
+        <slot />
       </div>
+
+      <footer v-if="$slots.pie" class="dialogo__pie">
+        <slot name="pie" />
+      </footer>
     </div>
-  </Transition>
+  </div>
 </template>
 
 <style scoped>
@@ -176,7 +225,7 @@ onBeforeUnmount(() => {
 .velo__fondo {
   position: absolute;
   inset: 0;
-  background: var(--faro-velo);
+  background: var(--blubathon-velo);
   cursor: default;
 }
 
@@ -187,11 +236,11 @@ onBeforeUnmount(() => {
   width: 100%;
   /* La misma columna que el resto de la aplicación: en un teléfono ocupa todo
      el ancho y en una ventana intermedia no se estira más que la pantalla. */
-  max-width: var(--faro-ancho-max);
+  max-width: var(--blubathon-ancho-max);
   max-height: 92dvh;
-  background: var(--faro-fondo-final);
-  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
-  box-shadow: var(--faro-elev-dialogo);
+  background: var(--blubathon-fondo-final);
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+  box-shadow: var(--blubathon-elev-dialogo);
 }
 
 .dialogo:focus-visible {
@@ -205,88 +254,218 @@ onBeforeUnmount(() => {
  */
 .dialogo__cabecera {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--faro-esp-12);
-  padding: var(--faro-esp-18) var(--faro-esp-16) var(--faro-esp-14);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
-  border-bottom: 1px solid var(--faro-linea);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16) var(--blubathon-esp-14);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+  border-bottom: 1px solid var(--blubathon-linea);
+}
+
+/* Con portada la cabecera es la portada y nada más: el acolchado, los rótulos y
+   el fondo son suyos. */
+.dialogo__cabecera--portada {
+  padding: 0;
+  border-bottom: 0;
+}
+
+/* Las esquinas de arriba son las de la hoja, y la portada va a sangre: sin
+   recortarla aquí, su fondo asomaría por fuera del radio. */
+.dialogo__portada {
+  overflow: hidden;
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+}
+
+/*
+ * Y la hoja llega más arriba. La portada se come lo que antes era una cabecera
+ * de dos líneas, y el formulario es lo que tiene que quedarse con el alto: sin
+ * esto, añadir la cara y la fecha se pagaba en preguntas que hay que desplazar.
+ */
+.dialogo--portada {
+  max-height: 96dvh;
+  /*
+   * Y una sola superficie. Sin portada el cuerpo es el color de la página y el
+   * contenido va en tarjetas, que es lo que hace un diálogo con secciones. Con
+   * portada no hay secciones: hay una cabecera de color y debajo un formulario,
+   * así que el cuerpo es del mismo blanco que ese formulario y no se ve un
+   * segundo plano por detrás.
+   */
+  background: var(--blubathon-superficie);
+}
+
+/*
+ * Y el cuerpo emerge de la portada, no empieza donde ella acaba.
+ *
+ * Sube sobre ella con un margen negativo y se recorta con una cúpula, que es lo
+ * mismo que hace el contenido de la pantalla de Salud sobre el panel de riesgo
+ * —ver `SaludView`, `.pantalla__contenido`—. La curva son los dos radios de
+ * arriba con el eje horizontal al 50%: las dos elipses se encuentran en el
+ * centro y forman un arco continuo, sin la esquina que deja un `border-radius`
+ * normal.
+ *
+ * Lo que cambia respecto de la portada es de quién es el arco. Antes lo pintaba
+ * ella, encima de sí misma, y el cuerpo se cortaba en una recta 44px más abajo:
+ * entre la curva y el primer renglón quedaba una banda blanca vacía y el texto
+ * que se desplazaba se partía en línea recta. Ahora el arco **es el borde del
+ * cuerpo**, y como este es el contenedor que se desplaza, su radio recorta
+ * también lo que pasa por dentro: lo que sube se corta siguiendo la curva y
+ * pasa por detrás de la cara, que sube un plano para eso.
+ *
+ * El acolchado de arriba devuelve exactamente lo que se comió el margen, así
+ * que en reposo el formulario empieza donde empezaba. Y `scroll-padding` lo
+ * repite para el desplazamiento: al cambiar de bloque se llama a
+ * `scrollIntoView` —ver `DialogoCuestionario`—, y sin esto la primera pregunta
+ * se pararía debajo del arco.
+ *
+ * El `z-index` es lo que hace que se vea. La cabecera está posicionada —lleva el
+ * aspa y el asa colgadas de ella—, así que se pinta después que el cuerpo, que
+ * no lo está: sin subirlo un plano, el celeste de la portada tapaba la cúpula y
+ * el borde volvía a leerse recto. Encima del cuerpo solo queda la cara, que pide
+ * el plano siguiente.
+ */
+.dialogo--portada .dialogo__cuerpo {
+  position: relative;
+  z-index: 1;
+  padding-top: calc(var(--cuerpo-arriba) + var(--blubathon-cupula));
+  margin-top: calc(var(--blubathon-cupula) * -1);
+  background: var(--blubathon-superficie);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  scroll-padding-top: calc(var(--cuerpo-arriba) + var(--blubathon-cupula));
+}
+
+/*
+ * Y sin filete sobre el pie: el cuerpo y el pie son la misma superficie blanca,
+ * así que una raya entre los dos solo dibujaba un borde donde no hay ninguno.
+ */
+.dialogo--portada .dialogo__pie {
+  border-top: 0;
+}
+
+/*
+ * El filo del arco.
+ *
+ * Es el único corte que se difumina: el de arriba. Abajo el cuerpo termina
+ * contra el pie, que es una superficie con su propio canto, y ahí un renglón a
+ * medias se lee como lo que es —queda más—; contra una curva, en cambio, se lee
+ * como un fallo de pintado.
+ *
+ * Va pegado al canto y nada más. Ocupa la banda de la cúpula y se recorta con su
+ * mismo radio —así no asoma por los hombros ni toca el celeste—, pero lo que
+ * decide dónde actúa es la máscara: la misma elipse que dibuja el arco, opaca en
+ * el filo y transparente en cuanto se entra. Es una uña que sigue la curva, no
+ * una franja sobre la banda entera: lo que está dentro de la cúpula se ve nítido
+ * y solo se deshace lo que toca el corte.
+ *
+ * Y llega hasta el borde mismo. Dejar limpios los últimos píxeles —para que el
+ * desenfoque no arrastrase celeste hacia dentro— salía peor de lo que curaba: la
+ * letra volvía a recortarse nítida justo en el canto y el difuminado se leía
+ * como una franja mal puesta un poco más adentro, que es lo contrario de lo que
+ * hace falta aquí.
+ */
+.dialogo__filo {
+  position: absolute;
+  inset: auto 0 0;
+  /* Entre el cuerpo, que va en el 1, y la cara de la portada, que va en el 3:
+     difumina lo que se desplaza sin tocar lo que se apoya en la cúpula. */
+  z-index: 2;
+  height: var(--blubathon-cupula);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  mask-image: radial-gradient(50% 100% at 50% 100%, transparent 74%, #000 100%);
+  pointer-events: none;
 }
 
 /* El asa no se arrastra: dice que esto sube y baja, no que sea una página. */
 .dialogo__asa {
   position: absolute;
-  top: var(--faro-esp-8);
+  top: var(--blubathon-esp-8);
   left: 50%;
   width: 38px;
   height: 4px;
-  background: var(--faro-punto-inactivo);
-  border-radius: var(--faro-radio-pastilla);
+  background: var(--blubathon-punto-inactivo);
+  border-radius: var(--blubathon-radio-pastilla);
   transform: translateX(-50%);
 }
 
+/* El hueco de la derecha es el del aspa, que ya no es un hermano de fila sino
+   una pieza flotante: sin él, un título largo se metería por debajo. */
 .dialogo__rotulos {
-  flex: 1;
   min-width: 0;
+  padding-right: var(--blubathon-toque);
 }
 
 .dialogo__sobretitulo {
-  font-size: var(--faro-fs-11);
+  display: flex;
+  align-items: center;
+  font-size: var(--blubathon-fs-11);
   font-weight: 700;
-  letter-spacing: var(--faro-track-012);
+  letter-spacing: var(--blubathon-track-012);
   text-transform: uppercase;
-  color: var(--faro-gris-texto);
+  color: var(--blubathon-gris-texto);
 }
 
 .dialogo__titulo {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-17);
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .dialogo__cerrar {
+  position: absolute;
+  top: var(--blubathon-esp-8);
+  right: var(--blubathon-esp-10);
   display: grid;
-  flex: none;
   place-items: center;
-  width: var(--faro-toque);
-  height: var(--faro-toque);
-  margin: calc(var(--faro-esp-10) * -1) calc(var(--faro-esp-6) * -1) 0 0;
-  color: var(--faro-marca-texto);
+  width: var(--blubathon-toque);
+  height: var(--blubathon-toque);
+  color: var(--blubathon-marca-texto);
   border-radius: 50%;
 }
 
+/* Sobre la portada el aspa va encima de un color, no de blanco: sin el vidrio
+   detrás se pierde en cuanto la cara que salga sea clara. */
+.dialogo__cabecera--portada .dialogo__cerrar {
+  top: var(--blubathon-esp-10);
+  right: var(--blubathon-esp-10);
+  color: var(--blubathon-marca-profundo);
+  background: var(--blubathon-vidrio);
+}
+
 .dialogo__cerrar:hover {
-  background: var(--faro-fila-activa);
+  background: var(--blubathon-fila-activa);
 }
 
 .dialogo__cerrar:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
+  outline: var(--blubathon-foco-grosor) solid var(--blubathon-foco-oscuro);
+  outline-offset: var(--blubathon-foco-offset);
 }
 
 .dialogo__aspa {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
+  width: var(--blubathon-icono-16);
+  height: var(--blubathon-icono-16);
 }
 
 .dialogo__cuerpo {
+  /* Lo que separa el contenido del borde de arriba, en una variable porque con
+     portada hay que sumarle la cúpula: así la suma se escribe una vez y sigue
+     valiendo en los puntos de corte que cambian el acolchado. */
+  --cuerpo-arriba: var(--blubathon-esp-16);
+
   flex: 1;
   /* Sin esto, un hijo de flex no baja de su alto de contenido y el diálogo
      entero crecería en vez de desplazarse por dentro. */
   min-height: 0;
-  padding: var(--faro-esp-16);
+  padding: var(--cuerpo-arriba) var(--blubathon-esp-16) var(--blubathon-esp-16);
   overflow-y: auto;
   /* Al llegar al final, la página de debajo no se lleva el desplazamiento. */
   overscroll-behavior: contain;
 }
 
 .dialogo__pie {
-  padding: var(--faro-esp-12) var(--faro-esp-16)
-    calc(var(--faro-esp-16) + env(safe-area-inset-bottom, 0px));
-  background: var(--faro-superficie);
-  border-top: 1px solid var(--faro-linea);
+  padding: var(--blubathon-esp-12) var(--blubathon-esp-16)
+    calc(var(--blubathon-esp-16) + env(safe-area-inset-bottom, 0px));
+  background: var(--blubathon-superficie);
+  border-top: 1px solid var(--blubathon-linea);
 }
 
 /*
@@ -296,22 +475,22 @@ onBeforeUnmount(() => {
  */
 .velo--centrado {
   align-items: center;
-  padding: var(--faro-esp-20);
+  padding: var(--blubathon-esp-20);
 }
 
 .velo--centrado .dialogo {
-  max-width: var(--faro-ancho-dialogo);
+  max-width: var(--blubathon-ancho-dialogo);
   max-height: min(88dvh, 720px);
-  border-radius: var(--faro-radio-32);
+  border-radius: var(--blubathon-radio-32);
 }
 
 .velo--centrado .dialogo__cabecera {
-  border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
+  border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
 }
 
 .velo--centrado .dialogo__pie {
-  padding-bottom: var(--faro-esp-16);
-  border-radius: 0 0 var(--faro-radio-32) var(--faro-radio-32);
+  padding-bottom: var(--blubathon-esp-16);
+  border-radius: 0 0 var(--blubathon-radio-32) var(--blubathon-radio-32);
 }
 
 /*
@@ -321,93 +500,137 @@ onBeforeUnmount(() => {
  * deja de reconocerse, que en cualquier otro diálogo sería un error.
  */
 .velo--obligatorio .velo__fondo {
-  background: var(--faro-velo-obligatorio);
+  background: var(--blubathon-velo-obligatorio);
 }
 
 /*
  * El movimiento.
  *
- * La hoja sube y baja; el diálogo centrado crece y se apaga en el sitio. En los
- * dos casos el velo solo cambia de opacidad: mover el velo lo convertiría en
- * una pieza más y es un fondo.
+ * Dos estados y nada más: la hoja está fuera, o está dentro. `velo--dentro` lo
+ * dice, lo pone este componente y el CSS anima la diferencia. No hay clases de
+ * `<Transition>` de por medio, así que el estado se puede leer, afirmar en una
+ * prueba y depurar mirando el DOM.
  *
- * La curva no es simétrica a propósito: entra frenando largo, que es lo que
+ * La hoja **solo sube y baja**. No se desvanece: lo que se apaga es el fondo,
+ * que es un hermano suyo. Antes la opacidad iba en el velo, que los envuelve a
+ * los dos, y la hoja se apagaba a la vez que se movía —el recorrido no llegaba
+ * a leerse y parecía un fundido.
+ *
+ * El diálogo centrado sí crece y se apaga en el sitio: no se apoya en ningún
+ * borde, así que no hay ninguna dirección desde la que entrar.
+ *
+ * Las curvas no son simétricas a propósito: entra frenando largo, que es lo que
  * hace que parezca que algo pesado se posa, y sale más corta y más recta,
  * porque una salida lenta se lee como que la aplicación va lenta.
  */
-.hoja-enter-active,
-.centro-enter-active {
-  transition: opacity var(--faro-dur-entrada) var(--faro-curva-hoja);
-}
-
-.hoja-leave-active,
-.centro-leave-active {
-  transition: opacity var(--faro-dur-salida) ease-in;
-}
-
-.hoja-enter-active .dialogo,
-.centro-enter-active .dialogo {
-  transition: transform var(--faro-dur-entrada) var(--faro-curva-hoja);
-}
-
-.hoja-leave-active .dialogo,
-.centro-leave-active .dialogo {
-  transition: transform var(--faro-dur-salida) ease-in;
-}
-
-.hoja-enter-from,
-.hoja-leave-to,
-.centro-enter-from,
-.centro-leave-to {
+.velo__fondo {
   opacity: 0;
+  transition: opacity var(--blubathon-dur-salida) ease-in;
 }
 
-.hoja-enter-from .dialogo,
-.hoja-leave-to .dialogo {
-  transform: translateY(100%);
+.velo--dentro .velo__fondo {
+  opacity: 1;
+  transition-duration: var(--blubathon-dur-entrada);
+  transition-timing-function: var(--blubathon-curva-hoja);
 }
 
-.centro-enter-from .dialogo,
-.centro-leave-to .dialogo {
+/* Sale por debajo del borde de la ventana, no solo por el suyo: sin el `calc`
+   se quedaba a la vista un canto de la hoja con el fondo ya apagado. */
+.dialogo {
+  transform: translateY(calc(100% + var(--blubathon-esp-32)));
+  transition: transform var(--blubathon-dur-salida) ease-in;
+}
+
+.velo--dentro .dialogo {
+  transform: none;
+  transition-duration: var(--blubathon-dur-entrada);
+  transition-timing-function: var(--blubathon-curva-hoja);
+}
+
+/* El centrado no tiene borde del que salir: crece y se apaga donde está. */
+.velo--centrado .dialogo {
+  opacity: 0;
   transform: scale(0.94);
+  transition-property: transform, opacity;
+}
+
+.velo--centrado.velo--dentro .dialogo {
+  opacity: 1;
+  transform: none;
 }
 
 /*
  * Quien pide menos movimiento no pide menos diálogo: sigue apareciendo y
  * desapareciendo con una opacidad corta, que orienta igual, y lo que se quita
  * es el desplazamiento.
+ *
+ * Aquí la hoja **sí** se desvanece, y es el único sitio donde lo hace: sin
+ * recorrido y sin fundido no quedaría transición ninguna, y la hoja aparecería
+ * de golpe encima de la pantalla.
  */
 @media (prefers-reduced-motion: reduce) {
-  .hoja-enter-active .dialogo,
-  .hoja-leave-active .dialogo,
-  .centro-enter-active .dialogo,
-  .centro-leave-active .dialogo {
-    transition: none;
+  .dialogo,
+  .velo--centrado .dialogo {
+    opacity: 0;
+    transform: none;
+    transition-property: opacity;
   }
 
-  .hoja-enter-from .dialogo,
-  .hoja-leave-to .dialogo,
-  .centro-enter-from .dialogo,
-  .centro-leave-to .dialogo {
-    transform: none;
+  .velo--dentro .dialogo,
+  .velo--centrado.velo--dentro .dialogo {
+    opacity: 1;
+  }
+}
+
+/*
+ * Ventana baja: la hoja llega casi arriba del todo y el acolchado se aprieta.
+ * Con 92dvh de 390 px quedaban 359 para cabecera, cuerpo y pie, y el cuerpo
+ * —que es el formulario— se quedaba en una tira de cien píxeles.
+ */
+@media (max-height: 520px) {
+  .dialogo {
+    max-height: 98dvh;
+  }
+
+  .dialogo__cabecera {
+    padding-block: var(--blubathon-esp-10) var(--blubathon-esp-8);
+  }
+
+  .dialogo__cuerpo {
+    --cuerpo-arriba: var(--blubathon-esp-10);
+
+    padding-bottom: var(--blubathon-esp-10);
+  }
+
+  .velo--centrado {
+    padding: var(--blubathon-esp-10);
   }
 }
 
 @media (min-width: 900px) {
   .velo {
     align-items: center;
-    padding: var(--faro-esp-32);
+    padding: var(--blubathon-esp-32);
   }
 
   .dialogo {
-    max-width: var(--faro-ancho-dialogo);
+    max-width: var(--blubathon-ancho-dialogo);
     max-height: min(88dvh, 760px);
-    border-radius: var(--faro-radio-32);
+    border-radius: var(--blubathon-radio-32);
   }
 
   .dialogo__cabecera {
-    padding: var(--faro-esp-20) var(--faro-esp-24) var(--faro-esp-16);
-    border-radius: var(--faro-radio-32) var(--faro-radio-32) 0 0;
+    padding: var(--blubathon-esp-20) var(--blubathon-esp-24) var(--blubathon-esp-16);
+    border-radius: var(--blubathon-radio-32) var(--blubathon-radio-32) 0 0;
+  }
+
+  .dialogo__cerrar {
+    top: var(--blubathon-esp-10);
+    right: var(--blubathon-esp-18);
+  }
+
+  .dialogo__cabecera--portada .dialogo__cerrar {
+    right: var(--blubathon-esp-10);
   }
 
   /* El asa es un gesto de móvil: en escritorio no dice nada. */
@@ -416,12 +639,14 @@ onBeforeUnmount(() => {
   }
 
   .dialogo__cuerpo {
-    padding: var(--faro-esp-20) var(--faro-esp-24);
+    --cuerpo-arriba: var(--blubathon-esp-20);
+
+    padding: var(--cuerpo-arriba) var(--blubathon-esp-24);
   }
 
   .dialogo__pie {
-    padding: var(--faro-esp-16) var(--faro-esp-24);
-    border-radius: 0 0 var(--faro-radio-32) var(--faro-radio-32);
+    padding: var(--blubathon-esp-16) var(--blubathon-esp-24);
+    border-radius: 0 0 var(--blubathon-radio-32) var(--blubathon-radio-32);
   }
 
   /* Ya centrada por el punto de corte: lo que sube desde abajo en un teléfono

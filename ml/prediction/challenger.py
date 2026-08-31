@@ -1,4 +1,4 @@
-"""The preregistered logistic challenger (SPEC 8.4).
+"""The preregistered logistic challenger.
 
 Two predictors, chosen before looking at the data, on top of the personal
 baseline as a fixed offset:
@@ -25,7 +25,7 @@ from uuid import UUID
 import numpy as np
 from scipy.optimize import minimize
 
-from ml.spec_constants import (
+from ml.formula_constants import (
     CHALLENGER_L2_GRID,
     CHALLENGER_TIE_TOLERANCE,
     PERSONAL_DEVIATION_WINDOW_DAYS,
@@ -44,16 +44,12 @@ from packages.shared.projection import project_as_of, unique_active
 CHALLENGER_MODEL_VERSION = "real-logit-challenger-0.3.0"
 CHALLENGER_PROTOCOL_VERSION = "challenger-protocol-0.3.0"
 
-# SPEC 8.4: fixed before the run and hashed into the training protocol, not
-# per-run flags.
 OPTIMIZER = "L-BFGS-B"
 TOLERANCE = 1e-10
 MAX_ITERATIONS = 500
 
 _PROBABILITY_FLOOR = 1e-12
 
-# SPEC 8.4. `other`, unknown, missing and conflicted all map to null: an
-# unusable answer is not a zero.
 SLEEP_DISRUPTED = {
     SleepQuality.INTERRUPTED.value: 1.0,
     SleepQuality.SLEEP_ONSET_DIFFICULTY.value: 1.0,
@@ -83,7 +79,7 @@ def sigmoid(value: float) -> float:
 
 
 def encode_predictor(field_code: FieldCode, value: object) -> float | None:
-    """1, 0 or `None`. `other`, unknown and missing are all null (SPEC 8.4)."""
+    """1, 0 or `None`. `other`, unknown and missing are all null."""
 
     encoding = PREDICTOR_ENCODINGS.get(field_code)
     if encoding is None:
@@ -116,7 +112,7 @@ def personal_predictor_rate(
 ) -> PersonalRate:
     """The previous rate over `[D-30, D)` for one subject, source and field.
 
-    Sources are never combined and a conflict never becomes a zero (SPEC 8.4).
+    Sources are never combined and a conflict never becomes a zero.
     """
 
     projection = project_as_of(observations, as_of_at)
@@ -148,11 +144,39 @@ def personal_predictor_rate(
     return PersonalRate(field_code=field_code, rate=sum(usable) / len(usable), n_days=len(usable))
 
 
-#: Los dos predictores preregistrados de SPEC 8.4, en su orden fijo.
 CHALLENGER_PREDICTOR_FIELDS: tuple[FieldCode, ...] = (
     FieldCode.SLEEP_QUALITY,
     FieldCode.DAILY_REGULATION_STATE,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class PredictorDeviations:
+    """Las desviaciones del día, y cuáles de ellas se observaron de verdad.
+
+    Las dos cosas hacen falta porque `0.0` significa dos cosas distintas: que el
+    día vino exactamente en la costumbre del sujeto, o que ese campo no se
+    contestó y por eso se le pone su desviación esperada. Para el modelo dan lo
+    mismo —el término se anula igual—, pero para decidir si hay algo que estimar
+    no: un día sin ningún predictor observado no dice nada de ese día.
+    """
+
+    valores: dict[FieldCode, float | None]
+    observados: frozenset[FieldCode]
+
+    @property
+    def costumbre_desconocida(self) -> bool:
+        """Falta la costumbre de algún predictor: no hay desviación que definir."""
+
+        return any(valor is None for valor in self.valores.values())
+
+    @property
+    def alguno_observado(self) -> bool:
+        return bool(self.observados)
+
+    @property
+    def todos_observados(self) -> bool:
+        return len(self.observados) == len(CHALLENGER_PREDICTOR_FIELDS)
 
 
 def predictor_deviations(
@@ -162,7 +186,7 @@ def predictor_deviations(
     subject_id: UUID,
     source: object,
     as_of_at: datetime,
-) -> dict[FieldCode, float | None]:
+) -> PredictorDeviations:
     """El valor del día menos la costumbre del sujeto, por predictor.
 
     Vive aquí y no en el entrenamiento porque **la misma definición tiene que
@@ -174,11 +198,25 @@ def predictor_deviations(
     no la fecha UTC: el episodio de las 20:00 de Santiago es medianoche UTC del
     día siguiente, y tomar la fecha UTC metería en el predictor la observación
     del día que se está prediciendo.
+
+    Faltar la costumbre y faltar el día no son lo mismo, y antes se devolvían
+    los dos como `None`:
+
+    - **Sin costumbre** —menos de `PERSONAL_MIN_OBSERVATIONS` días utilizables, o
+      un conflicto— no hay desviación que definir, porque no hay de qué desviarse.
+      Sigue siendo `None`.
+    - **Sin el día** —ese campo no se contestó, o vino en un valor que el
+      predictor no codifica, como `other`— la desviación es `0.0`, que no es
+      inventarse el día: la desviación es "valor de hoy menos su costumbre", y su
+      valor esperado es exactamente cero por construcción. El término se anula y
+      el otro predictor sigue mandando. Antes esto tumbaba la estimación entera,
+      y un cuestionario al que le faltaba un campo devolvía el día a la tasa base.
     """
 
     day = local_date(as_of_at)
     rows = list(observations)
-    result: dict[FieldCode, float | None] = {}
+    valores: dict[FieldCode, float | None] = {}
+    observados: set[FieldCode] = set()
     for field_code in CHALLENGER_PREDICTOR_FIELDS:
         rate = personal_predictor_rate(
             rows,
@@ -193,8 +231,14 @@ def predictor_deviations(
             None,
         )
         encoded = None if del_dia is None else encode_predictor(field_code, del_dia.value)
-        result[field_code] = None if rate.rate is None or encoded is None else encoded - rate.rate
-    return result
+        if rate.rate is None:
+            valores[field_code] = None
+        elif encoded is None:
+            valores[field_code] = 0.0
+        else:
+            valores[field_code] = encoded - rate.rate
+            observados.add(field_code)
+    return PredictorDeviations(valores=valores, observados=frozenset(observados))
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,7 +255,7 @@ class ChallengerRow:
 def negative_log_likelihood(
     coefficients: Sequence[float], rows: Sequence[ChallengerRow], penalty: float
 ) -> float:
-    """The SPEC 8.4 objective, written literally.
+    """The objective, written literally.
 
     Mean binary cross-entropy with the baseline logit as a fixed offset, plus
     `lambda/2 * (b1^2 + b2^2)`. The intercept is not penalised, there are no
@@ -300,7 +344,7 @@ class TrainabilityReport:
 
 
 def assess_trainability(rows: Sequence[ChallengerRow]) -> TrainabilityReport:
-    """Both classes overall and in every training partition (SPEC 8.4, INV-19).
+    """Both classes overall and in every training partition (INV-19).
 
     A validation fold of a single subject may hold one class, because the
     per-row Brier is still defined; the aggregate out-of-fold set may not.

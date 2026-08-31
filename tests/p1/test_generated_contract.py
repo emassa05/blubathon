@@ -14,7 +14,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
-from packages.shared.constants import CONTRACT_VERSION, SPEC_VERSION
+from packages.shared.constants import CONTRACT_VERSION, DOMAIN_VERSION
 from packages.shared.schema.registry import PUBLISHED_MODELS
 from tools.contracts import examples as example_tool
 from tools.contracts import generate as generator
@@ -40,7 +40,7 @@ REQUIRED_EXAMPLES = (
 
 @pytest.fixture(scope="module")
 def schema() -> dict[str, Any]:
-    return json.loads((GENERATED / "faro.schema.json").read_text(encoding="utf-8"))
+    return json.loads((GENERATED / "blubathon.schema.json").read_text(encoding="utf-8"))
 
 
 def _validator(schema: dict[str, Any], model_name: str) -> Draft202012Validator:
@@ -67,7 +67,7 @@ def test_committed_artifacts_match_a_fresh_generation() -> None:
 def test_the_lock_publishes_the_contract_version_and_schema_hash() -> None:
     lock = json.loads((GENERATED / "contract.lock.json").read_text(encoding="utf-8"))
     assert lock["contract_version"] == CONTRACT_VERSION
-    assert lock["spec_version"] == SPEC_VERSION
+    assert lock["domain_version"] == DOMAIN_VERSION
     assert len(lock["schema_hash"]) == 64
     assert lock["schema_hash"] == generator.schema_hash(generator.build_schema())
     assert sorted(lock["published_models"]) == sorted(PUBLISHED_MODELS)
@@ -80,7 +80,7 @@ def test_the_schema_bundle_is_valid_json_schema(schema: dict[str, Any]) -> None:
 
 
 def test_api_boundary_models_forbid_unknown_fields(schema: dict[str, Any]) -> None:
-    """CONVENTIONS 6: `extra="forbid"` at every API boundary."""
+    """`extra="forbid"` at every API boundary."""
 
     for name, definition in schema["$defs"].items():
         if definition.get("type") == "object" and "properties" in definition:
@@ -113,7 +113,7 @@ def test_the_frontend_gets_the_constants_and_the_source_matrix() -> None:
 
 
 def test_the_emergency_limit_reaches_the_frontend() -> None:
-    """SPEC 13.2: the limit is shown permanently, so it cannot live only in Python."""
+    """The limit is shown permanently, so it cannot live only in Python."""
 
     texts_ts = (GENERATED / "texts.ts").read_text(encoding="utf-8")
     assert "emergencyLimitEs" in texts_ts
@@ -182,7 +182,7 @@ def test_an_invalid_example_is_rejected_for_the_reason_it_documents(
 
 
 def test_no_example_carries_a_real_person_or_source() -> None:
-    """CONVENTIONS 15: versioned tests and examples use fictional data only."""
+    """Versioned tests and examples use fictional data only."""
 
     forbidden = ("PAC-00", "REG-00", "SES-00", "EVT-00", "OBJ-00")
     for path in EXAMPLES.rglob("*.json"):

@@ -1,4 +1,4 @@
-"""`project_as_of` keeps history and refuses to guess (SPEC 5.8)."""
+"""`project_as_of` keeps history and refuses to guess."""
 
 from __future__ import annotations
 

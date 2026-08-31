@@ -1,4 +1,4 @@
-"""Rutas HTTP de Faro."""
+"""Rutas HTTP de Blubathon."""
 
 from __future__ import annotations
 

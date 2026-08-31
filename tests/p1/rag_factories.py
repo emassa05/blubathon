@@ -2,8 +2,8 @@
 
 Nothing here is a real guideline, a real licence or a real clinical claim. The
 text is invented for the tests, the publisher name is a placeholder, and the
-rights basis says so. That is deliberate: SPEC 20 and TAREAS M0 forbid inventing
-a citation or an approval to make a test pass, so these fixtures exist to prove
+rights basis says so. That is deliberate: inventing a citation or an
+approval to make a test pass is forbidden, so these fixtures exist to prove
 the machinery, never to stand in for evidence.
 """
 

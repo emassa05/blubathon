@@ -11,7 +11,8 @@
 
 import { onScopeDispose, ref, shallowRef, watch, type Ref } from "vue";
 
-import { ErrorFaro } from "@/api/errores";
+import { conectarEventos } from "@/api/eventos";
+import { ErrorBlubathon } from "@/api/errores";
 import { cargarResumenSalud } from "@/adaptadores/resumenSalud";
 import { useNino } from "@/estado/nino";
 import type { ResumenSalud } from "@/types/salud";
@@ -20,16 +21,35 @@ export function useResumenSalud(fechaIso: Ref<string>) {
   const { ninoId, cargar: cargarNino, error: errorNino } = useNino();
   const resumen = shallowRef<ResumenSalud | null>(null);
   const cargando = ref(true);
-  const error = shallowRef<ErrorFaro | null>(null);
+  const error = shallowRef<ErrorBlubathon | null>(null);
 
   let enCurso: AbortController | null = null;
 
-  async function cargar(): Promise<void> {
+  /**
+   * @param silencioso Vuelve a pedir sin encender el estado de carga.
+   *
+   * Un refresco que nadie pidió no puede vaciar la pantalla. `cargando` tapa las
+   * tarjetas con un aviso, y eso es lo correcto cuando alguien acaba de cambiar
+   * de día y lo que hay debajo es de otra fecha; cuando lo que ha pasado es que
+   * el backend avisó de que la recomendación ya está, la pantalla tiene que
+   * seguir donde estaba y cambiar solo lo que cambió.
+   *
+   * Encender el aviso y apagarlo son decisiones distintas, y esa es la parte que
+   * faltaba. Lo enciende solo quien no es silencioso, pero **lo apaga quien
+   * termina el último**, sea silencioso o no.
+   *
+   * Sin eso, un refresco silencioso que relevaba a una carga visible dejaba el
+   * aviso puesto para siempre: la relevada no lo apaga porque su `finally` la ve
+   * abortada, y la que releva tampoco lo hacía porque no era suya. Es justo lo
+   * que pasa al enviar el cuestionario —se recarga el día, y el aviso de que el
+   * RAG terminó llega un instante después, encima de esa recarga.
+   */
+  async function cargar(silencioso = false): Promise<void> {
     enCurso?.abort();
     const propio = new AbortController();
     enCurso = propio;
 
-    cargando.value = true;
+    if (!silencioso) cargando.value = true;
     error.value = null;
 
     try {
@@ -38,7 +58,7 @@ export function useResumenSalud(fechaIso: Ref<string>) {
 
       const idNino = ninoId.value;
       if (idNino === null) {
-        throw new ErrorFaro({
+        throw new ErrorBlubathon({
           codigo: "not_found",
           mensajeEs: errorNino.value ?? "No hay ningún niño registrado en esta cuenta.",
         });
@@ -54,14 +74,52 @@ export function useResumenSalud(fechaIso: Ref<string>) {
     } catch (fallo) {
       if (propio.signal.aborted) return;
       resumen.value = null;
-      error.value = fallo instanceof ErrorFaro ? fallo : ErrorFaro.red(fallo);
+      error.value = fallo instanceof ErrorBlubathon ? fallo : ErrorBlubathon.red(fallo);
     } finally {
-      if (!propio.signal.aborted) cargando.value = false;
+      // Solo la última manda: una carga relevada no toca nada, porque lo que se
+      // vea lo decide la que la relevó.
+      if (enCurso === propio) {
+        enCurso = null;
+        cargando.value = false;
+      }
     }
   }
 
-  watch(fechaIso, cargar, { immediate: true });
-  onScopeDispose(() => enCurso?.abort());
+  /*
+   * La recomendación no llega con el resto del día.
+   *
+   * El RAG corre después de guardar el formulario —recupera fragmentos y redacta
+   * encima, y eso tarda lo que tarde el modelo—, así que el `POST` contesta con
+   * la recomendación todavía en `pending` y el texto aparece más tarde. Sin
+   * esto, "más tarde" significaba "cuando alguien recargue la página": la
+   * tarjeta se quedaba con los renglones de espera puestos delante de una
+   * recomendación que ya estaba escrita en la base.
+   *
+   * El backend ya lo avisa por el canal de eventos y nadie escuchaba. Aquí se
+   * escucha, y lo que se hace con el aviso es volver a preguntar: el evento dice
+   * que algo cambió, no qué dice ahora, y esa sigue siendo la respuesta de la
+   * API y no algo que la pantalla pueda armar por su cuenta.
+   */
+  const cortarEventos = conectarEventos((evento) => {
+    if (evento.type === "feedback.recorded") return;
+    // `recommendation.redrafted` no dice de quién es, así que solo se filtra lo
+    // que se puede filtrar. Preguntar de más cuesta una petición; no preguntar
+    // deja la tarjeta mintiendo.
+    if (
+      evento.type === "recommendation.ready" &&
+      ninoId.value !== null &&
+      evento.child_id !== ninoId.value
+    ) {
+      return;
+    }
+    void cargar(true);
+  });
 
-  return { resumen, cargando, error, recargar: cargar };
+  watch(fechaIso, () => cargar(), { immediate: true });
+  onScopeDispose(() => {
+    cortarEventos();
+    enCurso?.abort();
+  });
+
+  return { resumen, cargando, error, recargar: () => cargar() };
 }

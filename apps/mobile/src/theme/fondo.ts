@@ -26,6 +26,21 @@ export interface VarianteFondo {
   readonly id: string;
   /** El valor completo de `background`, capas de burbuja sobre el degradado. */
   readonly capas: string;
+  /**
+   * El azul en el que muere, plano.
+   *
+   * Es lo que se pinta **fuera** del lienzo: la franja que asoma al rebotar el
+   * desplazamiento contra el final de la página, y el instante en que un
+   * navegador móvil esconde su barra y la ventana crece antes de que `100dvh`
+   * se entere.
+   *
+   * Cada variante trae el suyo y no hay uno solo para todas: cada una acaba en
+   * un azul distinto —de 0.965 a 0.973 de luminancia y de 221 a 239 de tono—, y
+   * un único plano para las cinco se ve más oscuro que unas y más claro que
+   * otras justo en el borde, que es donde se compara. El valor es la media del
+   * borde de abajo de esa variante, burbujas incluidas.
+   */
+  readonly plano: string;
 }
 
 /**
@@ -37,6 +52,7 @@ export interface VarianteFondo {
 export const VARIANTES: readonly VarianteFondo[] = [
   {
     id: "alba",
+    plano: "oklch(0.965 0.019 239)",
     capas: [
       "radial-gradient(62% 44% at 14% 6%, oklch(0.945 0.054 245 / 0.87), transparent 70%)",
       "radial-gradient(46% 34% at 92% 30%, oklch(0.955 0.050 205 / 0.82), transparent 72%)",
@@ -46,6 +62,7 @@ export const VARIANTES: readonly VarianteFondo[] = [
   },
   {
     id: "marea",
+    plano: "oklch(0.967 0.022 221)",
     capas: [
       "radial-gradient(54% 40% at 88% 4%, oklch(0.95 0.052 225 / 0.87), transparent 70%)",
       "radial-gradient(58% 42% at 6% 44%, oklch(0.955 0.048 260 / 0.80), transparent 72%)",
@@ -55,6 +72,7 @@ export const VARIANTES: readonly VarianteFondo[] = [
   },
   {
     id: "calma",
+    plano: "oklch(0.973 0.016 230)",
     capas: [
       "radial-gradient(70% 46% at 50% 0%, oklch(0.955 0.046 250 / 0.82), transparent 68%)",
       "radial-gradient(44% 32% at 10% 62%, oklch(0.95 0.052 215 / 0.77), transparent 72%)",
@@ -64,6 +82,7 @@ export const VARIANTES: readonly VarianteFondo[] = [
   },
   {
     id: "brisa",
+    plano: "oklch(0.967 0.018 234)",
     capas: [
       "radial-gradient(50% 36% at 22% 18%, oklch(0.95 0.056 268 / 0.82), transparent 70%)",
       "radial-gradient(62% 44% at 96% 56%, oklch(0.955 0.046 232 / 0.80), transparent 74%)",
@@ -73,6 +92,7 @@ export const VARIANTES: readonly VarianteFondo[] = [
   },
   {
     id: "sereno",
+    plano: "oklch(0.967 0.021 226)",
     capas: [
       "radial-gradient(58% 40% at 78% 10%, oklch(0.952 0.050 255 / 0.84), transparent 70%)",
       "radial-gradient(52% 38% at 4% 30%, oklch(0.95 0.054 220 / 0.78), transparent 72%)",
@@ -83,7 +103,10 @@ export const VARIANTES: readonly VarianteFondo[] = [
 ];
 
 /** La propiedad que leen las superficies de página. */
-export const VARIABLE_FONDO = "--faro-fondo-pagina";
+export const VARIABLE_FONDO = "--blubathon-fondo-pagina";
+
+/** Y la que lee `html`, que es lo que se ve por fuera de ellas. */
+export const VARIABLE_REBOTE = "--blubathon-fondo-rebote";
 
 /** Una variante al azar. Sin argumento usa `Math.random`. */
 export function varianteAlAzar(sorteo: number = Math.random()): VarianteFondo {
@@ -104,6 +127,9 @@ export function aplicarFondo(
   variante: VarianteFondo = varianteAlAzar(),
 ): VarianteFondo {
   raiz.style.setProperty(VARIABLE_FONDO, variante.capas);
+  // El plano va con las capas y no en la hoja de estilos: tienen que ser de la
+  // misma variante o el borde de abajo se ve como un corte.
+  raiz.style.setProperty(VARIABLE_REBOTE, variante.plano);
   // Queda a la vista en el DOM: es lo que permite reproducir una captura sin
   // adivinar cuál salió.
   raiz.dataset.fondo = variante.id;

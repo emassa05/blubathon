@@ -4,27 +4,31 @@
  * Es la mitad del ciclo que hace que la aplicación aprenda. Un cuestionario
  * abre un episodio —"¿habrá una desregulación en las próximas 24 h?"— y hasta
  * que no se contesta, el baseline personal se queda sin resultados verificados
- * y el modelo no da cifra nunca. Por eso deja de ser una tarjeta que se puede
- * pasar por alto y pasa a ser un diálogo obligatorio delante de la pantalla.
+ * y el modelo no da cifra nunca.
  *
- * Ahora bien: obligatorio no puede significar "obligatorio siempre". SPEC 4.4
- * dice que un `no` solo resuelve si se reporta con la ventana del objetivo ya
- * cerrada. Si el diálogo bloqueara la pantalla mientras la ventana sigue
- * abierta, la única respuesta ofrecible sería "sí, ocurrió", y quien solo
- * quiere ver la pantalla acabaría pulsándola. Eso no es una molestia de
- * interfaz: es un falso positivo escrito en los datos de los que sale la
- * siguiente estimación.
+ * Se ofrecen **todas las que están abiertas**, y desde que se abren.
  *
- * De ahí la regla: se bloquea cuando la pregunta se puede contestar de las dos
- * maneras y todavía está en plazo. Mientras tanto sigue estando la tarjeta de
- * siempre, que informa y no exige.
+ * Estuvo al revés: se guardaba hasta que la ventana de 24 h cerrara, con el
+ * argumento de que antes de eso un "no" no resolvía y dejaba "sí, ocurrió"
+ * como única salida real. Ese argumento ya no se sostiene —el backend resuelve
+ * un `no` en cuanto se da, aunque llegue `early`— y lo que quedaba era una
+ * tarjeta que no aparecía hasta el día siguiente de rellenar el cuestionario:
+ * quien acababa de registrar el día no veía nada, y quien se había saltado
+ * contestar la de ayer tampoco tenía dónde hacerlo mientras hubiera otra por
+ * delante.
+ *
+ * Lo que sigue mandando es el plazo. Pasado el vencimiento de captura el
+ * reporte se guarda pero **no resuelve**, así que un botón ahí produce un envío
+ * que parece funcionar y no cuenta para nada. La API ya no las devuelve, pero
+ * la lista se pide una vez y se queda en memoria: si la pantalla lleva horas
+ * abierta, el filtro es lo único que impide ofrecer una pregunta ya vencida.
  */
 
 import { computed } from "vue";
 
 import type { OutcomeRequestView } from "@/api/contrato";
 import { useNino } from "@/estado/nino";
-import { useResultados, ventanaCerrada } from "@/estado/resultados";
+import { useResultados } from "@/estado/resultados";
 
 /** ¿Sigue habiendo plazo para contestar? Fuera de él el reporte ya no resuelve. */
 export function enPlazo(solicitud: OutcomeRequestView, ahora = new Date()): boolean {
@@ -32,58 +36,48 @@ export function enPlazo(solicitud: OutcomeRequestView, ahora = new Date()): bool
 }
 
 /**
- * ¿Hay que exigir esta respuesta antes de dejar ver la pantalla?
+ * ¿Se puede contestar esta pregunta ahora mismo?
  *
  * Se exporta suelta para poder probarla sin montar nada, y porque es la única
- * línea que hay que tocar si algún día se decide bloquear también con la
- * ventana abierta.
+ * línea que hay que tocar si algún día se decide volver a esperar a que la
+ * ventana cierre.
  */
-export function exigeRespuesta(
+export function sePuedeContestar(
   solicitud: OutcomeRequestView | null,
   ahora = new Date(),
 ): solicitud is OutcomeRequestView {
   if (solicitud === null) return false;
-  return ventanaCerrada(solicitud, ahora) && enPlazo(solicitud, ahora);
+  return enPlazo(solicitud, ahora);
 }
 
 export function useDesregulacion() {
   const { ninoId } = useNino();
-  const { error, enviando, pendienteDe, reportar, cargar } = useResultados();
-
-  /** La solicitud abierta de esa persona, la exija o no. */
-  const solicitud = computed(() => pendienteDe(ninoId.value));
+  const { error, enviando, pendientesDe, errorDe, reportar, cargar } = useResultados();
 
   /**
-   * La que hay que contestar ahora. Al reportarla, la lista se vuelve a pedir,
-   * la solicitud deja de estar `open` y esto pasa a `null` solo: no hace falta
-   * recordar aparte que ya se contestó.
+   * Las preguntas que hay que contestar, de la más antigua a la más nueva.
+   *
+   * Al reportar una, la lista se vuelve a pedir, esa solicitud deja de estar
+   * `open` y desaparece de aquí sola: no hace falta recordar aparte cuáles ya
+   * se contestaron.
    */
-  const obligatoria = computed(() => (exigeRespuesta(solicitud.value) ? solicitud.value : null));
-
-  /** La que se enseña como tarjeta: existe, pero todavía no se puede exigir. */
-  const informativa = computed(() =>
-    solicitud.value !== null && obligatoria.value === null ? solicitud.value : null,
+  const pendientes = computed(() =>
+    pendientesDe(ninoId.value).filter((solicitud) => sePuedeContestar(solicitud)),
   );
 
-  const bloqueada = computed(() => obligatoria.value !== null);
+  /** La que se está enviando, para apagar los botones solo mientras dura. */
+  const enviandoId = computed(() => enviando.value);
 
-  /**
-   * Contesta la pregunta abierta, la exija el diálogo o la enseñe la tarjeta:
-   * solo hay una por persona y es la misma solicitud en los dos sitios.
-   */
-  async function responder(valor: "yes" | "no"): Promise<boolean> {
-    const pendiente = solicitud.value;
-    if (pendiente === null) return false;
-    return reportar(pendiente, valor);
+  /** Contesta una de las preguntas abiertas. */
+  async function responder(solicitud: OutcomeRequestView, valor: "yes" | "no"): Promise<boolean> {
+    return reportar(solicitud, valor);
   }
 
   return {
-    solicitud,
-    obligatoria,
-    informativa,
-    bloqueada,
+    pendientes,
+    enviandoId,
     error,
-    enviando: computed(() => enviando.value !== null),
+    errorDe,
     responder,
     cargar,
   };

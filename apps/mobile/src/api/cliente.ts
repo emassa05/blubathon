@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP de la API de Faro (v0.4).
+ * Cliente HTTP de la API de Blubathon (v0.4).
  *
  * La aplicación solo consume el contrato publicado por la API: nunca abre la
  * base ni carga artefactos. Este módulo es la única frontera de red del
@@ -16,7 +16,7 @@
  */
 
 import { BASE_API } from "@/api/config";
-import { FARO_TEXTS_ES, type ErrorResponse } from "@/api/contrato";
+import { BLUBATHON_TEXTS_ES, type ErrorResponse } from "@/api/contrato";
 
 /** Base de la API, con el prefijo `/v1` que declara la constante C02. */
 export const API_BASE = BASE_API;
@@ -36,7 +36,7 @@ export class ErrorApi extends Error {
   readonly requestId: string;
 
   constructor(estado: number, cuerpo: ErrorResponse | null) {
-    super(cuerpo?.error.message_es ?? FARO_TEXTS_ES.genericErrorEs);
+    super(cuerpo?.error.message_es ?? BLUBATHON_TEXTS_ES.genericErrorEs);
     this.name = "ErrorApi";
     this.estado = estado;
     this.codigo = cuerpo?.error.code ?? "network_error";
@@ -93,8 +93,8 @@ export async function peticion<T>(ruta: string, opciones: Opciones = {}): Promis
 export function mensajeDeError(error: unknown): string {
   if (error instanceof ErrorApi) {
     return error.sinConexion
-      ? "No hay conexión con la API de Faro. Los datos que ves son los guardados en este dispositivo."
+      ? "No hay conexión con la API de Blubathon. Los datos que ves son los guardados en este dispositivo."
       : error.message;
   }
-  return FARO_TEXTS_ES.genericErrorEs;
+  return BLUBATHON_TEXTS_ES.genericErrorEs;
 }

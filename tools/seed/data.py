@@ -1,9 +1,9 @@
-"""Contenido ficticio de la demo (SPEC 12.3, TAREAS M0 P2.5).
+"""Contenido ficticio de la demo (M0 P2.5).
 
 Nombres, textos y documentos son inventados para la demostración. Los documentos
 del catálogo fixture llevan `publisher=FIXTURE_DEMO` y
 `rights_basis=fixture_demo_only` justamente para que nadie los confunda con
-literatura real de la allowlist de `SPEC 9.2`.
+literatura real de la allowlist.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from __future__ import annotations
 from tools.seed import ids
 
 TENANTS = (
-    {"tenant_id": ids.TENANT_A, "name": "Centro Faro Demo"},
+    {"tenant_id": ids.TENANT_A, "name": "Centro Blubathon Demo"},
     {"tenant_id": ids.TENANT_B, "name": "Otra Organización Demo"},
 )
 
@@ -91,7 +91,7 @@ SUBJECTS = (
         "subject_id": ids.SUBJECT_SIN_GRANT,
         "cohort_kind": "demo_fixture",
         "tenant_id": ids.TENANT_A,
-        "display_label": "Niña demo 3 (sin grant)",
+        "display_label": "Niña demo 3",
         "care_mode": "home_only",
         "sensory_profile_tags": [],
         "communication_support_tags": [],
@@ -101,7 +101,7 @@ SUBJECTS = (
         "subject_id": ids.SUBJECT_REAL,
         "tenant_id": ids.TENANT_A,
         "cohort_kind": "real_subject",
-        "display_label": "Niña demo 4 (cohorte real)",
+        "display_label": "Niña demo 4",
         "care_mode": "home_only",
         "sensory_profile_tags": ["auditory_hypersensitive"],
         "communication_support_tags": ["visual_schedule"],
@@ -111,9 +111,86 @@ SUBJECTS = (
         "subject_id": ids.SUBJECT_REAL_B,
         "tenant_id": ids.TENANT_A,
         "cohort_kind": "real_subject",
-        "display_label": "Niño demo 5 (cohorte real)",
+        "display_label": "Niño demo 5",
         "care_mode": "home_and_therapy",
         "sensory_profile_tags": ["tactile_seeking"],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
+        # Solo el sueño viene mal; lo demás se responde bien. Sirve para ver la
+        # recomendación de sueño aislada: con el perfil mixto la consulta trae
+        # vocabulario de GI, medicación y rutina, y el fragmento que gana no es
+        # el de sueño. Se siembra con `--perfil sueno` (tools.demo_history).
+        "subject_id": ids.SUBJECT_SUENO,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niña demo 6",
+        "care_mode": "home_only",
+        "sensory_profile_tags": ["auditory_hypersensitive"],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    # La cohorte de la calibración. No se abren para mirarlas una a una: existen
+    # para que los tramos de riesgo tengan días suficientes con los que
+    # comprobarse. Ver `SUBJECT_COHORTE_C` en `ids`.
+    {
+        "subject_id": ids.SUBJECT_COHORTE_C,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niña demo 7",
+        "care_mode": "home_only",
+        "sensory_profile_tags": [],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
+        "subject_id": ids.SUBJECT_COHORTE_D,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niño demo 8",
+        "care_mode": "home_and_therapy",
+        "sensory_profile_tags": [],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
+        "subject_id": ids.SUBJECT_COHORTE_E,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niña demo 9",
+        "care_mode": "home_only",
+        "sensory_profile_tags": [],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
+        "subject_id": ids.SUBJECT_COHORTE_F,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niño demo 10",
+        "care_mode": "home_and_therapy",
+        "sensory_profile_tags": [],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
+        "subject_id": ids.SUBJECT_COHORTE_G,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niña demo 11",
+        "care_mode": "home_only",
+        "sensory_profile_tags": [],
+        "communication_support_tags": [],
+        "contraindication_tags": [],
+    },
+    {
+        "subject_id": ids.SUBJECT_COHORTE_H,
+        "tenant_id": ids.TENANT_A,
+        "cohort_kind": "real_subject",
+        "display_label": "Niño demo 12",
+        "care_mode": "home_and_therapy",
+        "sensory_profile_tags": [],
         "communication_support_tags": [],
         "contraindication_tags": [],
     },
@@ -151,17 +228,29 @@ GRANTS = (
     (ids.CAREGIVER_A, ids.SUBJECT_BETO, CAREGIVER_CAPABILITIES),
     (ids.CAREGIVER_A, ids.SUBJECT_REAL, CAREGIVER_CAPABILITIES),
     (ids.CAREGIVER_A, ids.SUBJECT_REAL_B, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_SUENO, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_COHORTE_C, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_COHORTE_D, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_COHORTE_E, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_COHORTE_F, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_COHORTE_G, CAREGIVER_CAPABILITIES),
+    (ids.CAREGIVER_A, ids.SUBJECT_COHORTE_H, CAREGIVER_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_ANA, PROFESSIONAL_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_BETO, PROFESSIONAL_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_REAL, PROFESSIONAL_CAPABILITIES),
     (ids.PROFESSIONAL_A, ids.SUBJECT_REAL_B, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_SUENO, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_COHORTE_C, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_COHORTE_D, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_COHORTE_E, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_COHORTE_F, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_COHORTE_G, PROFESSIONAL_CAPABILITIES),
+    (ids.PROFESSIONAL_A, ids.SUBJECT_COHORTE_H, PROFESSIONAL_CAPABILITIES),
     (ids.UNACCREDITED_PROFESSIONAL_A, ids.SUBJECT_ANA, PROFESSIONAL_CAPABILITIES),
     (ids.CAREGIVER_B, ids.SUBJECT_TENANT_B, CAREGIVER_CAPABILITIES),
     (ids.PROFESSIONAL_B, ids.SUBJECT_TENANT_B, PROFESSIONAL_CAPABILITIES),
 )
 
-# El objetivo demo es una definición versionada aparte, con `data_origin`
-# sintético. No se hace pasar por un label real (SPEC 4.3).
 TARGET_DEMO = {
     "target_definition_version": ids.TARGET_DEMO_FIXTURE,
     "scope": "demo_fixture",
@@ -182,11 +271,6 @@ TARGET_DEMO = {
     ),
 }
 
-# El mismo objetivo, con alcance de organización. Lo exige `select_target_definition`
-# para cualquier sujeto fuera de la cohorte de fixture: `demo_fixture` busca
-# `scope='demo_fixture'` sin tenant, y un sujeto real busca `scope='tenant'` con el
-# suyo (SPEC 4.3). Sin esta fila, un envío de cohorte real se queda en
-# `target_definition_unavailable` y nunca abre episodio.
 TARGET_TENANT_A = {
     **{key: value for key, value in TARGET_DEMO.items() if key != "scope"},
     "target_definition_version": ids.TARGET_TENANT_A,
@@ -200,7 +284,7 @@ FIXTURE_DOCUMENT = {
     "title": "Documento ficticio de demostración sobre rutinas y sueño",
     "document_version": "1.0.0",
     "publication_date": "2026-01-15",
-    "canonical_url": "https://example.invalid/faro/fixture-doc-001/v1",
+    "canonical_url": "https://example.invalid/blubathon/fixture-doc-001/v1",
     "rights_basis": "fixture_demo_only",
     "language": "es",
 }

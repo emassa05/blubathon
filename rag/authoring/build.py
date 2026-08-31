@@ -1,4 +1,4 @@
-"""One reproducible authoring build (SPEC 9.4, TAREAS P1.6).
+"""One reproducible authoring build (P1.6).
 
 A build turns a set of rights-cleared documents into hashed chunks, a lexical
 index, a corpus version and a manifest that fixes everything capable of changing
@@ -8,7 +8,7 @@ and the platform.
 
 The build is the place where the free-text veto is enforced rather than
 described: only text carrying an authorised document version reaches the
-chunker, and therefore the index and the prompt (SPEC 2.23, INV-22).
+chunker, and therefore the index and the prompt (INV-22).
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ def library_versions() -> dict[str, str]:
 
     return {
         "python": sys.version.split()[0],
-        "faro_contract": CONTRACT_VERSION,
+        "blubathon_contract": CONTRACT_VERSION,
         "bm25": BM25_VERSION,
         "tokenizer": TOKENIZER_VERSION,
     }

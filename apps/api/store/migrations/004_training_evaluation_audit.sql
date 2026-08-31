@@ -1,13 +1,11 @@
 -- 004_training_evaluation_audit
 -- Volante de datos, evaluación versionada, auditoría append-only e idempotencia.
--- SPEC 10.5, 12.1, 12.2, 13.2 y 14.
 --
 -- La API importa manifests de P1; no entrena dentro del proceso HTTP.
 
 CREATE TABLE dataset_snapshots (
     dataset_snapshot_id        TEXT PRIMARY KEY,
     tenant_id                  TEXT NOT NULL REFERENCES tenants(tenant_id),
-    -- SPEC 10.5 / INV-17: sintético y real usan snapshots separados.
     data_origin                TEXT NOT NULL CHECK (data_origin IN ('real', 'synthetic')),
     target_definition_version  TEXT
                                    REFERENCES target_definition_versions(target_definition_version),
@@ -77,7 +75,6 @@ CREATE TABLE evaluation_reports (
 
 CREATE INDEX ix_evaluation_reports_model ON evaluation_reports(model_version, status);
 
--- SPEC 13.2: la auditoría es append-only y no contiene payload clínico.
 CREATE TABLE audit_events (
     audit_event_id  TEXT PRIMARY KEY,
     tenant_id       TEXT,
@@ -95,8 +92,6 @@ CREATE TABLE audit_events (
 CREATE INDEX ix_audit_events_lookup ON audit_events(tenant_id, occurred_at);
 CREATE INDEX ix_audit_events_subject ON audit_events(subject_id, occurred_at);
 
--- SPEC 11.2 y CONVENTIONS 12.3. El scope incluye el path concreto normalizado:
--- dos IDs distintos nunca comparten replay.
 CREATE TABLE idempotency_keys (
     idempotency_key_id       TEXT PRIMARY KEY,
     tenant_id                TEXT NOT NULL REFERENCES tenants(tenant_id),

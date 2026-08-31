@@ -1,8 +1,8 @@
 """Conjunto de adaptadores fixture que sustituye a P1 hasta H1.
 
-Ninguna clase de este paquete implementa una fórmula del SPEC: no hay Beta, ni
+Ninguna clase de este paquete implementa una fórmula del dominio: no hay Beta, ni
 Dirichlet, ni DQI, ni VoI, ni BM25, ni RRF. Devuelven datos de fixture o estados
-`unavailable`, que es exactamente lo que el SPEC exige cuando un estimador no
+`unavailable`, que es exactamente lo que el contrato exige cuando un estimador no
 está disponible. Así el resto del producto -sesiones, persistencia, autorización,
 idempotencia y UI- se construye y se prueba sin inventar estadística.
 """

@@ -1,8 +1,8 @@
 """Spanish (Chile) copy shared by the API and every client.
 
 Visible text lives here or in the versioned catalogue, never inline in a
-component (CONVENTIONS 10). The language is affirmative and non-diagnostic, an
-abstention is never presented as an error, and the emergency limit of SPEC 13.2
+component. The language is affirmative and non-diagnostic, an
+abstention is never presented as an error, and the emergency limit
 is available for every screen that needs it.
 """
 
@@ -27,16 +27,13 @@ from packages.shared.enums import (
     WakeState,
 )
 
-# SPEC 13.2 and CONVENTIONS 14: shown on entry, abstention, results and
-# recommendations. Faro is not emergency monitoring and must never delay a local
-# urgent or safeguarding protocol.
 EMERGENCY_LIMIT_ES = (
-    "Faro no vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmediato "
+    "Blubathon no vigila emergencias ni envía alertas. Ante peligro inmediato, sigue de inmediato "
     "los protocolos de emergencia o resguardo de tu localidad."
 )
 
 INTENDED_USE_ES = (
-    "Faro organiza registros, calcula estadísticas personales y muestra estimaciones "
+    "Blubathon organiza registros, calcula estadísticas personales y muestra estimaciones "
     "experimentales. No diagnostica, no indica tratamientos y no reemplaza el criterio "
     "profesional."
 )
@@ -341,6 +338,15 @@ ERROR_MESSAGES_ES: MappingProxyType[ErrorCode, str] = MappingProxyType(
         ),
         ErrorCode.INTERNAL_ERROR: "Ocurrió un error interno al procesar la solicitud.",
     }
+)
+
+#: Viaja pegado a la calibración porque sin él la cifra se lee como más firme de
+#: lo que es: quien reporta si hubo episodio ya vio el porcentaje de ese día, así
+#: que el número que se está evaluando influyó en la respuesta que lo evalúa.
+CALIBRATION_CAVEAT_ES = (
+    "Medido sobre los días ya confirmados de toda la organización. Quien confirma "
+    "vio antes la estimación de ese día, así que esta comprobación sale algo mejor "
+    "de lo que es."
 )
 
 LOADING_ES = "Cargando…"

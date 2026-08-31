@@ -1,4 +1,4 @@
-"""Derivación de `entry_mode` en el servidor (SPEC 5.5, CONVENTIONS 8.3).
+"""Derivación de `entry_mode` en el servidor.
 
 El cliente envía la interacción; nunca se confía en un `entry_mode` de navegador.
 Una combinación no contemplada falla: no se elige el modo por prioridad
@@ -23,13 +23,6 @@ def derive_entry_mode(
     if intake_channel is IntakeChannel.IMPORT:
         return EntryMode.IMPORTED_OBSERVED
 
-    # 3. Interacción `unknown`: produce explicit_unknown sin valor.
-    #
-    # Se evalúa antes que la regla 2 porque `professional_observed` asigna valor
-    # y `unknown` es por definición una decisión sin valor (SPEC 8.2). La
-    # combinación "sesión profesional + unknown" no está contemplada de forma
-    # explícita en la precedencia del SPEC 5.5; P2 la resuelve de la única forma
-    # que no fabrica un valor y la reporta como pregunta de contrato a P1.
     if interaction is AnswerInteraction.UNKNOWN:
         return EntryMode.EXPLICIT_UNKNOWN
 

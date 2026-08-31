@@ -2,9 +2,13 @@
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 
 import type { FormSubmissionResponse } from "@/api/contrato";
-import { FARO_TEXTS_ES } from "@/api/contrato";
+import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
+import BotonAccion from "@/components/base/BotonAccion.vue";
 import DialogoModal from "@/components/base/DialogoModal.vue";
+import GloboAyuda from "@/components/base/GloboAyuda.vue";
 import CampoCuestionario from "@/components/cuestionario/CampoCuestionario.vue";
+import PortadaCuestionario from "@/components/cuestionario/PortadaCuestionario.vue";
+import ResumenSugerencias from "@/components/cuestionario/ResumenSugerencias.vue";
 import IconoCheck from "@/components/icons/IconoCheck.vue";
 import IconoChevron from "@/components/icons/IconoChevron.vue";
 import { useCuestionario } from "@/composables/useCuestionario";
@@ -38,7 +42,9 @@ const {
   resultado,
   borradores,
   enOrden,
+  aPreguntar,
   sugerencias,
+  sugerenciasPendientes,
   contestadas,
   respondidas,
   yaEnviado,
@@ -67,10 +73,13 @@ const MENSAJE_ENVIO: Record<FormSubmissionResponse["status"], string> = {
  *
  * No hay categorías. Un bloque no significa nada —no es "el sueño", no es "la
  * comida"—, es sencillamente dónde se cortó la lista para que quepan tres
- * preguntas sin desplazar. Por eso el corte se hace sobre `enOrden` y no sobre
- * ningún reparto temático: quien decide qué se pregunta primero sigue siendo el
- * plan del servidor, y quien decide el orden del resto sigue siendo el orden
- * canónico del catálogo.
+ * preguntas sin desplazar. Por eso el corte se hace sobre `aPreguntar` y no
+ * sobre ningún reparto temático: quien decide qué se pregunta primero sigue
+ * siendo el plan del servidor, y quien decide el orden del resto sigue siendo
+ * el orden canónico del catálogo.
+ *
+ * `aPreguntar` y no `enOrden`: lo que Blubathon ya aprendió no se pregunta, y
+ * por tanto tampoco ocupa página.
  *
  * Tres, y no cuatro ni cinco, porque tres campos con su enunciado y sus
  * controles es lo que cabe en la hoja de un teléfono sin que haya que hacer
@@ -81,10 +90,10 @@ const POR_PAGINA = 3;
 
 const pagina = ref(0);
 
-const paginas = computed(() => Math.max(1, Math.ceil(enOrden.value.length / POR_PAGINA)));
+const paginas = computed(() => Math.max(1, Math.ceil(aPreguntar.value.length / POR_PAGINA)));
 
 const visibles = computed(() =>
-  enOrden.value.slice(pagina.value * POR_PAGINA, pagina.value * POR_PAGINA + POR_PAGINA),
+  aPreguntar.value.slice(pagina.value * POR_PAGINA, pagina.value * POR_PAGINA + POR_PAGINA),
 );
 
 const enPrimera = computed(() => pagina.value === 0);
@@ -110,7 +119,81 @@ async function irA(destino: number): Promise<void> {
   bloque.value?.scrollIntoView({ block: "start" });
 }
 
+/* ---------------------------------------------------------------------------
+ * El paso de revisión.
+ *
+ * Los campos que Blubathon ya aprendió no se preguntan —ver `aPreguntar`—, así
+ * que al llegar aquí no se ha visto ninguno de sus valores. Esconderlos del
+ * todo sería enviar por ti respuestas que nadie ha leído, así que la decisión
+ * no desaparece: se toma una sola vez, al final, sobre la lista entera.
+ *
+ * Al guardar, si hay sugerencias sin decidir, en vez de enviar se enseña qué
+ * son y se pregunta. Dos salidas y las dos acaban en un envío:
+ *
+ * - **Revisarlas** vuelve al formulario con esos campos abiertos y sus
+ *   sugerencias a la vista, como estaban antes de esconderlas. Lo que no se
+ *   cambie se acepta igual al guardar.
+ * - **Enviar así** las acepta todas y guarda. Es el camino corto, y es el que
+ *   está a un dedo de distancia.
+ *
+ * Cerrar el diálogo sin elegir no envía nada, que es lo que ya hacía antes.
+ * ------------------------------------------------------------------------- */
+
+type Paso = "formulario" | "revision";
+
+const paso = ref<Paso>("formulario");
+
+/** En revisión solo se ven los campos cuya sugerencia se pidió revisar. */
+const soloSugeridas = ref(false);
+
+const preguntasVisibles = computed(() =>
+  soloSugeridas.value
+    ? enOrden.value.filter((pregunta) => cuestionario.sugerenciaVisible(pregunta.field_code))
+    : visibles.value,
+);
+
+async function guardar(): Promise<void> {
+  // Se pregunta una sola vez: al volver de la revisión se guarda sin más, con
+  // lo que se haya cambiado y lo que se haya dejado.
+  if (
+    paso.value === "formulario" &&
+    !soloSugeridas.value &&
+    sugerenciasPendientes.value.length > 0
+  ) {
+    paso.value = "revision";
+    return;
+  }
+  await enviar();
+}
+
+/** "Revisarlas": el formulario vuelve, recortado a esas preguntas. */
+async function revisar(): Promise<void> {
+  cuestionario.revelarSugerencias();
+  soloSugeridas.value = true;
+  paso.value = "formulario";
+  await nextTick();
+  bloque.value?.scrollIntoView({ block: "start" });
+}
+
+/** "Enviar así": se aceptan tal cual y se guarda. */
+async function aceptarYEnviar(): Promise<void> {
+  cuestionario.aplicarSugerencias();
+  await enviar();
+}
+
+/*
+ * Los puntos de la portada solo cuentan páginas del formulario. En el repaso y
+ * en la confirmación no se avanza por páginas, y unos puntos congelados ahí se
+ * leerían como que algo se quedó a medias.
+ */
+const conProgreso = computed(
+  () => resultado.value === null && paso.value === "formulario" && !soloSugeridas.value,
+);
+
 async function enviar(): Promise<void> {
+  // Lo que quede sin tocar se acepta: es lo que se anunció en la revisión y lo
+  // que se anuncia en el pie mientras se revisa.
+  cuestionario.aplicarSugerencias();
   const respuesta = await cuestionario.enviar();
   if (respuesta === null) return;
   // La copia local se escribe solo cuando la API ya aceptó el envío.
@@ -126,6 +209,39 @@ async function enviar(): Promise<void> {
     etiqueta-cerrar="Cerrar el cuestionario"
     @cerrar="emitir('cerrar')"
   >
+    <template #portada="{ idTitulo }">
+      <PortadaCuestionario
+        :id-titulo="idTitulo"
+        sobretitulo="Cuestionario diario"
+        :titulo="titulo"
+        :paso="pagina + 1"
+        :pasos="conProgreso ? paginas : 0"
+      >
+        <!--
+          Cómo funciona esto, en tres frases y sin jerga. No bloquea nada: se
+          abre y se cierra cuando se quiera, a diferencia del diálogo de
+          desregulación, que sí exige una respuesta antes de dejar seguir.
+        -->
+        <template #ayuda>
+          <GloboAyuda
+            etiqueta="Cómo funciona el cuestionario diario"
+            titulo="Cómo funciona"
+            lado="derecha"
+          >
+            <p>
+              Cuenta cómo fue el día. No hace falta responder todo: se guarda lo que hayas puesto, y
+              las preguntas van de tres en tres.
+            </p>
+            <p>
+              Las primeras son las que más falta hacen hoy. Las que respondes casi siempre igual
+              no se te preguntan: Blubathon las rellena por ti y te las enseña al final por si
+              quieres cambiarlas.
+            </p>
+          </GloboAyuda>
+        </template>
+      </PortadaCuestionario>
+    </template>
+
     <!-- Enviado: la confirmación ocupa el diálogo entero. -->
     <div v-if="resultado" class="hecho">
       <span class="hecho__insignia" aria-hidden="true">
@@ -135,8 +251,28 @@ async function enviar(): Promise<void> {
       <p class="hecho__detalle">{{ MENSAJE_ENVIO[resultado.status] }}</p>
     </div>
 
+    <!--
+      La revisión. Primero qué se va a enviar, después la pregunta: quien lee
+      llega a "¿quieres cambiarlas?" sabiendo ya de qué se le habla, que es lo
+      único que hace que la pregunta se pueda contestar sin abrir nada.
+    -->
+    <div v-else-if="paso === 'revision'" class="revision">
+      <h3 class="revision__titulo">Respuestas que se enviarán por ti</h3>
+      <p class="revision__detalle">
+        {{
+          sugerenciasPendientes.length === 1
+            ? "Esta no se te preguntó porque la respondes casi siempre igual"
+            : "Estas no se te preguntaron porque las respondes casi siempre igual"
+        }}. Blubathon las rellena con lo que sueles responder, a partir de tus últimos dos meses.
+      </p>
+
+      <ResumenSugerencias :sugerencias="sugerenciasPendientes" />
+
+      <p class="revision__pregunta">¿Quieres cambiar alguna antes de guardar?</p>
+    </div>
+
     <template v-else>
-      <p v-if="cargando" class="estado">{{ FARO_TEXTS_ES.loadingEs }}</p>
+      <p v-if="cargando" class="estado">{{ BLUBATHON_TEXTS_ES.loadingEs }}</p>
 
       <!-- El plan es una ayuda, no un requisito: sin él se pregunta el catálogo
            entero en orden canónico y el cuestionario se puede enviar igual. -->
@@ -150,40 +286,57 @@ async function enviar(): Promise<void> {
       </p>
 
       <!--
-        La tarjeta del formulario. Es la misma de siempre —superficie, radio 24,
-        elevación 1, campos separados por filete— y es una sola: lo que se
-        recorre por dentro son sus preguntas, no una pila de tarjetas.
+        El formulario. Ya no es una tarjeta: es el cuerpo del diálogo, del mismo
+        blanco, sin sombra y sin radio. Una tarjeta dentro de una hoja dibujaba
+        un segundo plano que no significaba nada —lo único que hay aquí son
+        preguntas—, y lo que separa una de otra sigue siendo el filete.
+
+        Tampoco lleva ya un párrafo explicando cómo se recorre: eso está en el
+        "(?)" de la portada, y aquí solo van la pregunta y sus respuestas.
       -->
       <section ref="bloque" class="bloque grupo">
-        <h3 class="grupo__titulo" aria-live="polite">Paso {{ pagina + 1 }} de {{ paginas }}</h3>
-        <p class="grupo__subtitulo">
-          Es un solo formulario: se recorre de tres en tres y se guarda lo que haya.
-        </p>
-
-        <div class="progreso" role="presentation">
-          <span
-            class="progreso__hecho"
-            :style="{ inlineSize: `${((pagina + 1) / paginas) * 100}%` }"
-          ></span>
-        </div>
+        <!-- Al volver de la revisión el formulario ya no se pagina: son las
+             preguntas que se pidió revisar y son todas las que hay. -->
+        <template v-if="soloSugeridas">
+          <h3 class="grupo__titulo">Lo que Blubathon responde por ti</h3>
+          <p class="grupo__subtitulo">
+            Cambia las que quieras. Las que dejes como están se guardan con el valor sugerido.
+          </p>
+        </template>
 
         <CampoCuestionario
-          v-for="pregunta in visibles"
+          v-for="pregunta in preguntasVisibles"
           :key="pregunta.field_code"
           :pregunta="pregunta"
           :borrador="borradores[pregunta.field_code]"
           :sugerencia="sugerencias.get(pregunta.field_code)"
+          :mostrar-sugerencia="cuestionario.sugerenciaVisible(pregunta.field_code)"
           @responder="
             (valor, interaccion) => cuestionario.responder(pregunta.field_code, valor, interaccion)
           "
-          @no-sabe="cuestionario.noSabe(pregunta.field_code)"
         />
       </section>
     </template>
 
     <template #pie>
       <div v-if="resultado" class="pie">
-        <button type="button" class="pie__enviar" @click="emitir('cerrar')">Listo</button>
+        <BotonAccion bloque @click="emitir('cerrar')">Listo</BotonAccion>
+      </div>
+
+      <!--
+        Las dos salidas de la revisión, y ninguna es un callejón. "Enviar así" es
+        la llena porque es la que espera quien ya daba el formulario por
+        terminado; "Revisarlas" está al lado, no escondida detrás de un enlace.
+      -->
+      <div v-else-if="paso === 'revision'" class="pie">
+        <p v-if="errorEnvio" class="pie__error">{{ errorEnvio }}</p>
+
+        <div class="revision__acciones">
+          <BotonAccion variante="secundario" @click="revisar">Sí, revisarlas</BotonAccion>
+          <BotonAccion :disabled="enviando" @click="aceptarYEnviar">
+            {{ enviando ? "Guardando…" : "No, guardar así" }}
+          </BotonAccion>
+        </div>
       </div>
 
       <div v-else class="pie">
@@ -194,41 +347,31 @@ async function enviar(): Promise<void> {
           descarta nada: lo contestado en un bloque sigue en el borrador al
           pasar al siguiente, y guardar está disponible desde el primero.
         -->
-        <div class="paginador">
-          <button
-            type="button"
+        <div v-if="!soloSugeridas" class="paginador">
+          <BotonAccion
+            variante="secundario"
             class="paginador__paso"
             :disabled="enPrimera"
             @click="irA(pagina - 1)"
           >
             <IconoChevron class="paginador__glifo paginador__glifo--atras" />
             Anterior
-          </button>
+          </BotonAccion>
 
-          <button
-            type="button"
+          <BotonAccion
+            variante="secundario"
             class="paginador__paso"
             :disabled="enUltima"
             @click="irA(pagina + 1)"
           >
             Siguiente
             <IconoChevron class="paginador__glifo" />
-          </button>
+          </BotonAccion>
         </div>
 
-        <div class="pie__linea">
-          <p class="pie__cuenta">
-            <b>{{ contestadas }}</b> respondidas
-          </p>
-          <button
-            type="button"
-            class="pie__enviar"
-            :disabled="contestadas === 0 || enviando"
-            @click="enviar"
-          >
-            {{ enviando ? "Guardando…" : "Guardar cuestionario" }}
-          </button>
-        </div>
+        <BotonAccion bloque grande :disabled="contestadas === 0 || enviando" @click="guardar">
+          {{ enviando ? "Guardando…" : "Guardar cuestionario" }}
+        </BotonAccion>
       </div>
     </template>
   </DialogoModal>
@@ -236,30 +379,30 @@ async function enviar(): Promise<void> {
 
 <style scoped>
 .estado {
-  padding: var(--faro-esp-12) var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-14);
+  padding: var(--blubathon-esp-12) var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
+  background: var(--blubathon-fila-activa);
+  border-radius: var(--blubathon-radio-14);
 }
 
 .estado + .estado {
-  margin-top: var(--faro-esp-8);
+  margin-top: var(--blubathon-esp-8);
 }
 
 .estado--fallo {
-  color: var(--faro-critica-alta-texto);
-  background: var(--faro-critica-alta-fondo);
+  color: var(--blubathon-critica-alta-texto);
+  background: var(--blubathon-critica-alta-fondo);
 }
 
 .estado--aviso {
-  color: var(--faro-critica-media-texto);
-  background: var(--faro-critica-media-fondo);
+  color: var(--blubathon-critica-media-texto);
+  background: var(--blubathon-critica-media-fondo);
 }
 
 .bloque + .bloque,
 .estado + .bloque {
-  margin-top: var(--faro-esp-14);
+  margin-top: var(--blubathon-esp-14);
 }
 
 /*
@@ -267,44 +410,22 @@ async function enviar(): Promise<void> {
  * superficie blanca, radio 24, elevación 1. Los campos van dentro, separados por
  * filete.
  */
+/* Sin fondo, sin radio y sin sombra: el cuerpo del diálogo ya es blanco y esto
+   es ese mismo blanco. Solo pone el acolchado. */
 .grupo {
-  padding: var(--faro-esp-6) var(--faro-esp-16) var(--faro-esp-10);
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-elev-1);
+  padding-bottom: var(--blubathon-esp-10);
 }
 
 .grupo__titulo {
-  padding-top: var(--faro-esp-14);
-  font-size: var(--faro-fs-15);
+  font-size: var(--blubathon-fs-15);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .grupo__subtitulo {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
-}
-
-/*
- * Cuánto queda. Es una línea y no una fila de puntos: con dieciocho preguntas
- * el plan puede dar seis bloques, y seis puntos ya se cuentan de uno en uno en
- * vez de leerse de un vistazo.
- */
-.progreso {
-  overflow: hidden;
-  height: var(--faro-esp-4);
-  margin-top: var(--faro-esp-10);
-  background: var(--faro-punto-inactivo);
-  border-radius: var(--faro-radio-pastilla);
-}
-
-.progreso__hecho {
-  display: block;
-  block-size: 100%;
-  background: var(--faro-marca-accion);
-  border-radius: inherit;
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-gris-texto);
 }
 
 /*
@@ -319,51 +440,73 @@ async function enviar(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--faro-esp-8);
-  margin-bottom: var(--faro-esp-12);
+  gap: var(--blubathon-esp-8);
+  margin-bottom: var(--blubathon-esp-12);
 }
 
-.paginador__paso {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--faro-esp-6);
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-14);
-  font-size: var(--faro-fs-13);
-  font-weight: 700;
-  color: var(--faro-marca-accion);
-  background: var(--faro-superficie);
-  border: 1px solid var(--faro-linea);
-  border-radius: var(--faro-radio-pastilla);
-}
-
-.paginador__paso:hover:not(:disabled) {
-  border-color: var(--faro-punto-activo);
-}
-
-.paginador__paso:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
-}
-
-/* En el primero y en el último no se desvanece: sigue ahí, apagado, para que
-   el pie no cambie de forma al llegar a un extremo. */
-.paginador__paso:disabled {
-  color: var(--faro-punto-inactivo);
-  cursor: default;
+/* La pastilla es la de `BotonAccion` —incluida la manera de apagarse en el
+   primero y en el último—; aquí solo se aprieta, que son dos y van en una fila
+   de teléfono. */
+.paginador .paginador__paso {
+  gap: var(--blubathon-esp-6);
+  padding-inline: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-13);
 }
 
 .paginador__glifo {
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
 }
 
 .paginador__glifo--atras {
   transform: rotate(180deg);
 }
 
+/*
+ * La revisión. Es una tarjeta del mismo sistema que el bloque de preguntas —no
+ * un aviso, no una alerta— porque no ha pasado nada malo: el formulario está
+ * terminado y esto es la última confirmación.
+ */
+.revision {
+  padding-block: var(--blubathon-esp-6) var(--blubathon-esp-10);
+}
+
+.revision__titulo {
+  font-size: var(--blubathon-fs-15);
+  font-weight: 700;
+  color: var(--blubathon-marca-profundo);
+}
+
+.revision__detalle {
+  margin-top: var(--blubathon-esp-4);
+  font-size: var(--blubathon-fs-125);
+  line-height: 1.45;
+  color: var(--blubathon-gris-texto);
+}
+
+/* La pregunta va debajo de la lista y con el peso del título: se lee después de
+   saber de qué se está hablando, no antes. */
+.revision__pregunta {
+  margin-top: var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-135);
+  font-weight: 700;
+  color: var(--blubathon-marca-profundo);
+}
+
+/* Envuelven en 320: dos áreas táctiles de 44 con su texto no caben en una fila
+   de teléfono estrecho sin bajar del mínimo. */
+.revision__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--blubathon-esp-12);
+}
+
+.revision__acciones > * {
+  flex: 1 1 9rem;
+}
+
 .hecho {
-  padding-block: var(--faro-esp-20);
+  padding-block: var(--blubathon-esp-20);
   text-align: center;
 }
 
@@ -372,76 +515,32 @@ async function enviar(): Promise<void> {
   place-items: center;
   width: 56px;
   height: 56px;
-  color: var(--faro-marca-accion);
-  background: var(--faro-marca-icono-fondo);
+  color: var(--blubathon-marca-accion);
+  background: var(--blubathon-marca-icono-fondo);
   border-radius: 50%;
 }
 
 .hecho__tilde {
-  width: var(--faro-icono-26);
-  height: var(--faro-icono-26);
+  width: var(--blubathon-icono-26);
+  height: var(--blubathon-icono-26);
 }
 
 .hecho__titulo {
-  margin-top: var(--faro-esp-14);
-  font-size: var(--faro-fs-17);
+  margin-top: var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-17);
   font-weight: 700;
-  color: var(--faro-marca-profundo);
+  color: var(--blubathon-marca-profundo);
 }
 
 .hecho__detalle {
-  margin-top: var(--faro-esp-6);
-  font-size: var(--faro-fs-135);
-  color: var(--faro-marca-texto);
-}
-
-.pie__linea {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--faro-esp-12);
-}
-
-.pie__cuenta {
-  font-size: var(--faro-fs-125);
-  color: var(--faro-gris-texto);
-}
-
-.pie__cuenta b {
-  font-size: var(--faro-fs-15);
-  color: var(--faro-marca-profundo);
+  margin-top: var(--blubathon-esp-6);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-marca-texto);
 }
 
 .pie__error {
-  margin-bottom: var(--faro-esp-10);
-  font-size: var(--faro-fs-125);
-  color: var(--faro-critica-alta-texto);
-}
-
-.pie__enviar {
-  min-height: var(--faro-toque);
-  padding-inline: var(--faro-esp-22);
-  font-size: var(--faro-fs-135);
-  font-weight: 700;
-  color: var(--faro-superficie);
-  background: var(--faro-marca-accion);
-  border-radius: var(--faro-radio-pastilla);
-  box-shadow: var(--faro-elev-1);
-}
-
-.pie__enviar:disabled {
-  color: var(--faro-gris-texto);
-  background: var(--faro-punto-inactivo);
-  box-shadow: none;
-  cursor: default;
-}
-
-.pie__enviar:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-oscuro);
-  outline-offset: var(--faro-foco-offset);
-}
-
-.pie > .pie__enviar {
-  width: 100%;
+  margin-bottom: var(--blubathon-esp-10);
+  font-size: var(--blubathon-fs-125);
+  color: var(--blubathon-critica-alta-texto);
 }
 </style>

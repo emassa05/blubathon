@@ -1,4 +1,4 @@
-"""Errores de dominio y su traducción HTTP (SPEC 11.7, CONVENTIONS 12.2).
+"""Errores de dominio y su traducción HTTP.
 
 Un error lleva código estable, mensaje en español sanitizado y `request_id`.
 La abstención **no** usa este sobre: es HTTP 200 con estado explícito.
@@ -22,13 +22,14 @@ ERROR_MESSAGES_ES: dict[str, str] = {
     "outcome_report_invalid_timing": "El momento declarado no cae en la ventana del objetivo.",
     "outcome_occurred_at_required": "Un reporte afirmativo necesita cuándo ocurrió.",
     "outcome_occurred_at_forbidden": "Solo un reporte afirmativo declara cuándo ocurrió.",
+    "recommendation_not_reviewable": "Esa recomendación no tiene borrador que revisar.",
     "pilot_requires_postgresql": "El modo piloto no arranca sobre SQLite.",
     "internal_error": "Ocurrió un error inesperado. El equipo quedó notificado.",
 }
 
 
 @dataclass(slots=True)
-class FaroApiError(Exception):
+class BlubathonApiError(Exception):
     """Error de dominio con traducción HTTP determinista."""
 
     code: str
@@ -43,13 +44,13 @@ class FaroApiError(Exception):
         return ERROR_MESSAGES_ES.get(self.code, ERROR_MESSAGES_ES["internal_error"])
 
 
-def invalid(code: str = "validation_error", **detail: Any) -> FaroApiError:
-    return FaroApiError(code, 422, detail)
+def invalid(code: str = "validation_error", **detail: Any) -> BlubathonApiError:
+    return BlubathonApiError(code, 422, detail)
 
 
-def conflict(code: str, **detail: Any) -> FaroApiError:
-    return FaroApiError(code, 409, detail)
+def conflict(code: str, **detail: Any) -> BlubathonApiError:
+    return BlubathonApiError(code, 409, detail)
 
 
-def not_found(code: str = "not_found", **detail: Any) -> FaroApiError:
-    return FaroApiError(code, 404, detail)
+def not_found(code: str = "not_found", **detail: Any) -> BlubathonApiError:
+    return BlubathonApiError(code, 404, detail)

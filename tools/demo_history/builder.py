@@ -1,7 +1,7 @@
 """Días pasados con su envío, su episodio y su resultado verificado.
 
 Existe por una razón concreta: **el baseline personal no cuenta cuestionarios,
-cuenta resultados verificados** (SPEC 8.5 / C19, cinco). Y un resultado solo se
+cuenta resultados verificados** (C19, cinco). Y un resultado solo se
 puede reportar cuando la ventana de 24 h del episodio ya cerró, así que por la
 aplicación harían falta cinco días reales de calendario antes de ver la primera
 cifra. Esto los fabrica hacia atrás.
@@ -11,7 +11,7 @@ movido al pasado. Cada día produce exactamente las filas que produciría un
 cuidador que hubiese contestado ese día y reportado al siguiente, así que lo
 sembrado es indistinguible de lo vivido.
 
-Dos reglas de SPEC 4.4 mandan sobre el calendario y no se pueden esquivar:
+Dos reglas mandan sobre el calendario y no se pueden esquivar:
 
 - un `no` solo cuenta reportado `on_time`, o sea entre el cierre del objetivo y
   el vencimiento de captura;
@@ -45,6 +45,11 @@ from packages.shared.constants import (
 #: Hora local en la que se da por contestado el cuestionario de cada día.
 HORA_DE_ENVIO = 9
 
+# Lo que se retrocede el ancla cuando la hora de envío todavía no ha llegado,
+# para que la ventana del último día sembrado quede cerrada y no enganche al
+# primer cuestionario que se envíe.
+MARGEN_VENTANA_CERRADA = timedelta(minutes=1)
+
 #: El reporte llega una hora después de cerrarse la ventana del objetivo: ya es
 #: `on_time` (que es lo que exige un `no`) y sigue lejos del vencimiento.
 HORAS_HASTA_EL_REPORTE = TARGET_HORIZON_HOURS + 1
@@ -74,6 +79,30 @@ DIA_DIFICIL: tuple[tuple[str, object], ...] = (
     ("medication_adherence", "missed"),
 )
 
+#: Un día malo **solo por el sueño**: lo digestivo, la medicación y la
+#: regulación vienen bien.
+#:
+#: `query_for()` arma la consulta con las etiquetas de todos los campos, así que
+#: un día difícil del perfil mixto aporta vocabulario de GI, medicación y rutina
+#: al mismo tiempo, y BM25 reparte el puntaje entre fragmentos de esos temas. El
+#: que gana no es el de sueño. Dejando el resto en su valor bueno la consulta
+#: queda dominada por sueño y la recomendación sale sobre eso.
+DIA_SOLO_SUENO: tuple[tuple[str, object], ...] = (
+    ("sleep_quality", "interrupted"),
+    ("wake_state", "irritable_crying"),
+    ("sleep_hours", 5.0),
+    ("night_awakenings", 4),
+    ("daily_regulation_state", "excellent"),
+    ("gi_status", "normal"),
+    ("medication_adherence", "taken"),
+)
+
+#: Perfiles de día malo disponibles, por nombre de `--perfil`.
+PERFILES_DIFICILES: dict[str, tuple[tuple[str, object], ...]] = {
+    "mixto": DIA_DIFICIL,
+    "sueno": DIA_SOLO_SUENO,
+}
+
 
 @dataclass(frozen=True, slots=True)
 class DiaSembrado:
@@ -93,15 +122,6 @@ class DemoHistoryResult:
         return sum(1 for day in self.days if day.resolution_status in {"yes", "no"})
 
 
-# Los campos con sugerencia de valor por defecto que el cuestionario del
-# cuidador puede preguntar (`DEFAULT_ALLOWLIST_V1` ∩ `applicable_fields(home)`;
-# el quinto, `attendance_status`, es de otra fuente). Cada uno lleva su valor
-# dominante y la alternativa que aparece de vez en cuando.
-#
-# La variación importa: `compute_default_decision` solo presenta una sugerencia
-# cuando el cuantil 0.05 del posterior supera 0.70 estrictamente (SPEC 6.6).
-# Sembrar siempre el mismo valor daría un posterior degenerado que no se parece
-# a nada; sembrar al azar no cruzaría el umbral nunca.
 CAMPOS_CON_DEFECTO: tuple[tuple[str, object, object], ...] = (
     ("food_changes", False, True),
     ("activity_participation", 4, 3),
@@ -135,8 +155,8 @@ def _hubo_crisis(child_id: str, local_date: str, dificil: bool) -> bool:
     return sorteo < (RIESGO_DIA_DIFICIL if dificil else RIESGO_DIA_TRANQUILO)
 
 
-def _answers(dificil: bool, indice: int) -> tuple[AnswerItem, ...]:
-    filas = list(DIA_DIFICIL if dificil else DIA_TRANQUILO)
+def _answers(dificil: bool, indice: int, perfil: str = "mixto") -> tuple[AnswerItem, ...]:
+    filas = list(PERFILES_DIFICILES[perfil] if dificil else DIA_TRANQUILO)
     # Determinista y desfasado por campo: si todos variaran el mismo día, la
     # variación sería un patrón y no ruido.
     for desplazamiento, (code, dominante, alterno) in enumerate(CAMPOS_CON_DEFECTO):
@@ -152,6 +172,8 @@ def build_history(
     child_id: str,
     days: int,
     dificiles: int,
+    perfil: str = "mixto",
+    ayer_dificil: bool = False,
     settings: Settings | None = None,
     adapters: str | None = None,
 ) -> DemoHistoryResult:
@@ -162,6 +184,11 @@ def build_history(
     tranquilo que acaba mal son exactamente los casos que el modelo tiene que
     aprender a pesar.
 
+    `ayer_dificil` fuerza el mal perfil en el último día sembrado. El reparto de
+    abajo esparce los difíciles por todo el rango sin mirar dónde caen los
+    extremos, y ayer es el día que se abre al entrar en la pantalla: quién lo
+    enseña necesita poder decidir qué se ve ahí, no heredarlo del redondeo.
+
     El día de hoy no se toca: su ventana de 24 h sigue abierta y su resultado
     todavía no se puede reportar. Se empieza en ayer y se va hacia atrás.
     """
@@ -170,6 +197,9 @@ def build_history(
         raise ValueError("hacen falta al menos dos días para que el baseline cuente algo")
     if not 0 <= dificiles <= days:
         raise ValueError("los días difíciles tienen que caber en los días sembrados")
+    if perfil not in PERFILES_DIFICILES:
+        opciones = ", ".join(sorted(PERFILES_DIFICILES))
+        raise ValueError(f"perfil desconocido: {perfil} (hay {opciones})")
 
     resolved = settings or load_settings()
     database = Database(resolved, clock=lambda: datetime.now(UTC))
@@ -196,6 +226,26 @@ def build_history(
         time(HORA_DE_ENVIO, 0),
         tzinfo=REFERENCE_ZONE,
     )
+
+    # Y el ancla no puede caer en el futuro.
+    #
+    # El último día sembrado es `hoy - 1`, y su ventana de 24 h acaba justo en
+    # `hoy`. Con la hora fija, eso es hoy a las 09:00: sembrar antes de esa hora
+    # deja el último episodio todavía abierto, y entonces el primer cuestionario
+    # que se envíe no abre uno nuevo —se engancha a ese, `episode_linked`— y el
+    # día se queda sin estimación propia. Es el mismo enganche que arregló el
+    # comentario de arriba, por el otro lado: aquel era la fecha y este es la
+    # hora.
+    #
+    # Sembrando de madrugada el ancla retrocede hasta un instante antes de
+    # ahora, que es lo justo para que esa ventana ya haya cerrado. La fecha
+    # local de cada día no se mueve: restar un minuto no cruza la medianoche
+    # salvo en el propio minuto de las 00:00, y ahí el día que se deja libre
+    # sigue siendo el de hoy.
+    ahora = datetime.now(REFERENCE_ZONE)
+    if hoy > ahora:
+        hoy = ahora - MARGEN_VENTANA_CERRADA
+
     sembrados: list[DiaSembrado] = []
     try:
         # De más antiguo a más reciente, para que cada episodio vea a los
@@ -209,6 +259,8 @@ def build_history(
             # cada mitad y la desviación del día, cero.
             indice = days - offset
             dificil = (indice * dificiles) // days != ((indice - 1) * dificiles) // days
+            if ayer_dificil and offset == 1:
+                dificil = True
             with core.database.write() as connection:
                 envio = registry.submissions.submit(
                     connection,
@@ -216,7 +268,7 @@ def build_history(
                     subject_id=child_id,
                     source="caregiver_daily",
                     local_date=enviado_a_las.date().isoformat(),
-                    answers=_answers(dificil, offset),
+                    answers=_answers(dificil, offset, perfil),
                     now=canonical_timestamp(enviado_a_las),
                 )
             episodio = envio.prediction_episode_id

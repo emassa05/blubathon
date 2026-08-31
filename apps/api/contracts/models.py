@@ -5,6 +5,8 @@ from __future__ import annotations
 from apps.api.contracts.enums import OutcomeRequestState, OutcomeResolutionStatus
 from packages.shared.domain.api import (
     AnswerItem,
+    CalibrationBand,
+    CalibrationResponse,
     ChildHistoryDay,
     ChildHistoryOutcome,
     ChildHistoryPrediction,
@@ -33,8 +35,11 @@ from packages.shared.domain.api import (
     PredictionEpisodeResponse,
     PredictionOutputView,
     RecommendationCitation,
+    RecommendationDecisionRequest,
+    RecommendationDecisionResponse,
     RecommendationInstanceView,
     RecommendationListResponse,
+    ReviewQueueResponse,
     TodayRecommendationResponse,
 )
 from packages.shared.domain.base import UtcDatetime
@@ -52,6 +57,8 @@ class OutcomeReportResponseView(OutcomeReportResponse):
 
 __all__ = [
     "AnswerItem",
+    "CalibrationBand",
+    "CalibrationResponse",
     "ChildHistoryDay",
     "ChildHistoryOutcome",
     "ChildHistoryPrediction",
@@ -82,7 +89,10 @@ __all__ = [
     "PredictionEpisodeView",
     "PredictionOutputView",
     "RecommendationCitation",
+    "RecommendationDecisionRequest",
+    "RecommendationDecisionResponse",
     "RecommendationInstanceView",
     "RecommendationListResponse",
+    "ReviewQueueResponse",
     "TodayRecommendationResponse",
 ]

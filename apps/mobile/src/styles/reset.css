@@ -17,14 +17,16 @@ html {
   font-size: 100%;
   -webkit-text-size-adjust: 100%;
   /* Lo que asoma al rebotar el desplazamiento, en vez de blanco. Aquí va el
-     color plano y no las burbujas: esta capa solo se ve fuera del lienzo. */
-  background: var(--faro-fondo-final);
+     color plano y no las burbujas —esta capa solo se ve fuera del lienzo—, pero
+     el plano del final del fondo, no el de la página: es la franja que continúa
+     el contenido y tiene que parecer el mismo material. */
+  background: var(--blubathon-fondo-rebote);
 }
 
 body {
   min-height: 100dvh;
   color: inherit;
-  font-family: var(--faro-fuente);
+  font-family: var(--blubathon-fuente);
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;

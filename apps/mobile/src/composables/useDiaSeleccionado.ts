@@ -1,4 +1,4 @@
-import { FARO_CONSTANTS } from "@faro/contract/constants";
+import { BLUBATHON_CONSTANTS } from "@blubathon/contract/constants";
 import { computed, ref } from "vue";
 
 /** "martes 25" */
@@ -6,10 +6,10 @@ const FORMATO_DIA = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "nu
 
 /**
  * El día no lo decide el reloj del dispositivo sino la zona de referencia del
- * sistema (SPEC 5.1 / C03). El backend agrupa los registros por esa fecha
+ * sistema (C03). El backend agrupa los registros por esa fecha
  * local; si el móvil está en otro huso, la pantalla pediría el día equivocado.
  */
-const ZONA_REFERENCIA = FARO_CONSTANTS.C03.value;
+const ZONA_REFERENCIA = BLUBATHON_CONSTANTS.C03.value;
 
 /** "en-CA" da exactamente YYYY-MM-DD, que es el formato que pide la API. */
 const FORMATO_ISO = new Intl.DateTimeFormat("en-CA", {
@@ -38,7 +38,8 @@ function desdeIso(fechaIso: string): Date {
  *
  * `etiqueta` es lo que se ve ("Martes 25"); `etiquetaAccesible` es la misma
  * fecha en minúscula, para incrustarla en un `aria-label`; `fechaIso` es la
- * clave con la que se le piden los datos a la API.
+ * clave con la que se le piden los datos a la API; `esHoy` dice si lo que se
+ * está mirando es el día de hoy, que es lo que separa mirar de hacer.
  */
 export function useDiaSeleccionado(fechaInicial: string = fechaDeHoy()) {
   const dia = ref<Date>(desdeIso(fechaInicial));
@@ -53,6 +54,15 @@ export function useDiaSeleccionado(fechaInicial: string = fechaDeHoy()) {
     return `${fecha.getFullYear()}-${mes}-${numero}`;
   });
 
+  /**
+   * ¿Se está mirando hoy?
+   *
+   * Lo que hay pendiente de hacer —contestar una pregunta de cierre— pertenece
+   * a ahora y no al día que se esté hojeando. Sin esto, esas piezas salían
+   * iguales en todos los días y el navegador de fecha parecía no hacer nada.
+   */
+  const esHoy = computed(() => fechaIso.value === fechaDeHoy());
+
   function desplazar(dias: number): void {
     const siguiente = new Date(dia.value);
     siguiente.setDate(siguiente.getDate() + dias);
@@ -62,6 +72,7 @@ export function useDiaSeleccionado(fechaInicial: string = fechaDeHoy()) {
   return {
     dia,
     fechaIso,
+    esHoy,
     etiqueta,
     etiquetaAccesible,
     diaAnterior: () => desplazar(-1),

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+import urllib.error
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,7 +21,13 @@ from tools.seed.seeder import seed
 START = datetime(2026, 8, 25, 12, 0, 0, tzinfo=UTC)
 
 
+# `render_fragments` numera cada fragmento como "[fragmento N]".
+_FRAGMENT_TAG = re.compile(r"\[fragmento (\d+)\]\n(.+)")
+
+
 class GroundedDraftTransport:
+    """Parafrasea, y declara la procedencia leyéndola del prompt."""
+
     model_id = "fixture-draft"
     model_sha256 = "fixture-draft-sha256"
 
@@ -28,32 +36,49 @@ class GroundedDraftTransport:
             data.FIXTURE_CHUNKS[0]["text"],
             data.FIXTURE_CHUNKS[1]["text"],
         )
-        quote = next(text for text in candidates if text in prompt)
+        fragment = next(
+            int(match.group(1))
+            for match in _FRAGMENT_TAG.finditer(prompt)
+            if match.group(2).strip() in candidates
+        )
         return json.dumps(
             {
                 "purpose_es": "Ofrecer un apoyo cotidiano basado en la guía ficticia.",
                 "action_text_es": "Prueben el apoyo descrito y observen cómo resulta.",
-                "claims": [{"start": 0, "end": 10, "claim_text_es": "Apoyo", "quoted_text": quote}],
+                "claims": [
+                    {
+                        "parafrasis_es": "La guía sugiere mirar el entorno antes de cambiar todo.",
+                        "source_fragment": fragment,
+                    }
+                ],
             }
         )
 
 
 class UngroundedDraftTransport(GroundedDraftTransport):
+    """Cita un fragmento que no se entregó en el prompt."""
+
     def complete(self, prompt: str) -> str:
+        beyond = len(_FRAGMENT_TAG.findall(prompt)) + 99
         return json.dumps(
             {
                 "purpose_es": "Texto no sustentado.",
                 "action_text_es": "Texto no sustentado.",
                 "claims": [
                     {
-                        "start": 0,
-                        "end": 10,
-                        "claim_text_es": "Invención",
-                        "quoted_text": "Esta cita no aparece en ningún fragmento.",
+                        "parafrasis_es": "Una idea que no salió de ningún fragmento.",
+                        "source_fragment": beyond,
                     }
                 ],
             }
         )
+
+
+class UnreachableDraftTransport(GroundedDraftTransport):
+    """El daemon no está escuchando: `urllib` lo reporta como `URLError`."""
+
+    def complete(self, prompt: str) -> str:
+        raise urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))
 
 
 @pytest.fixture
@@ -64,9 +89,9 @@ def clock() -> FrozenClock:
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(
-        db_path=tmp_path / "faro-test.db",
-        audit_secret=b"faro-test-audit-secret",
-        scenario_secret=b"faro-test-scenario-secret",
+        db_path=tmp_path / "blubathon-test.db",
+        audit_secret=b"blubathon-test-audit-secret",
+        scenario_secret=b"blubathon-test-scenario-secret",
     )
 
 

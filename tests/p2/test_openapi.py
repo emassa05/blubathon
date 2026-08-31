@@ -2,6 +2,7 @@
 
 EXPECTED = {
     ("get", "/health"),
+    ("get", "/v1/calibration"),
     ("get", "/v1/children"),
     ("get", "/v1/children/{child_id}"),
     ("get", "/v1/children/{child_id}/history"),
@@ -13,7 +14,9 @@ EXPECTED = {
     ("get", "/v1/outcome-requests"),
     ("get", "/v1/prediction-episodes/{prediction_episode_id}/recommendations"),
     ("get", "/v1/recommendations"),
+    ("get", "/v1/recommendations/review-queue"),
     ("post", "/v1/recommendations/{recommendation_instance_id}/feedback"),
+    ("post", "/v1/recommendations/{recommendation_instance_id}/review"),
 }
 
 

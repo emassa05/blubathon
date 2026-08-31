@@ -1,18 +1,25 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, toRef } from "vue";
 
+import GloboAyuda from "@/components/base/GloboAyuda.vue";
 import IconoEscudo from "@/components/icons/IconoEscudo.vue";
-import IconoInfo from "@/components/icons/IconoInfo.vue";
+import { useNumeroAnimado } from "@/composables/useNumeroAnimado";
+import type { Comprobacion } from "@/dominio/comprobacion";
 
 const props = defineProps<{
   /** Riesgo de desregulación, 0-100. `null` cuando el modelo se abstiene. */
   riesgo: number | null;
-  /** Confianza del modelo en ese riesgo, 0-100. `null` si no hay estimación. */
-  confianza: number | null;
-}>();
-
-defineEmits<{
-  masInfo: [];
+  /**
+   * Qué ocurrió de verdad en los días que se anunciaron como este. `null`
+   * mientras el tramo no tenga días suficientes para decir nada.
+   *
+   * Sustituye al "nivel de confianza". Aquel salía de la anchura del intervalo
+   * del modelo, así que medía cuántos días de historial había y se quedaba
+   * clavado en 79-80% con cualquiera establecido; pero se leía como cuánto
+   * acertaba, que es otra cosa y no la estaba diciendo. Esto sí, y además se
+   * puede desmentir.
+   */
+  comprobacion: Comprobacion | null;
 }>();
 
 const SOBRETITULO = "Riesgo de desregulación";
@@ -20,14 +27,28 @@ const SOBRETITULO = "Riesgo de desregulación";
 /** Sin cifra no se pone un cero: se dice que no la hay. */
 const SIN_ESTIMACION = "—";
 
+/*
+ * La cifra sube hasta su valor en vez de aparecer puesta.
+ *
+ * Se anima la que se ve, no la del `aria-label`: un lector que anunciara los
+ * cuarenta valores intermedios sería ilegible, así que el nombre accesible
+ * salta directo al de destino.
+ */
+const { mostrado, reiniciar, prepararCuenta } = useNumeroAnimado(toRef(props, "riesgo"));
+
+/*
+ * Volver a contar desde cero no es cosa de la cabecera: no sabe que existe un
+ * cuestionario ni cuándo se ha enviado. Se lo pide Salud, que sí lo sabe, y por
+ * eso sale como método en vez de como prop.
+ */
+defineExpose({ animarDesdeCero: reiniciar, prepararCuenta });
+
 /** Una sola etiqueta legible: "Riesgo de desregulación: 18 por ciento". */
 const etiqueta = computed(() =>
   props.riesgo === null
     ? `${SOBRETITULO}: sin estimación todavía`
     : `${SOBRETITULO}: ${props.riesgo} por ciento`,
 );
-
-const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase()}`);
 </script>
 
 <template>
@@ -43,34 +64,45 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
         <span class="riesgo__linea">
           <span class="riesgo__sobretitulo" aria-hidden="true">{{ SOBRETITULO }}</span>
 
-          <!-- TODO(spec): abrir el popup que explica la métrica. Por ahora solo
-               existe el disparador; el contenido llega en otra pasada. -->
-          <button
-            type="button"
-            class="riesgo__info"
-            :aria-label="etiquetaInfo"
-            @click="$emit('masInfo')"
+          <GloboAyuda
+            etiqueta="Qué significa el riesgo de desregulación"
+            titulo="Qué es esta cifra"
+            tono="panel"
+            lado="izquierda"
           >
-            <IconoInfo class="riesgo__glifo" />
-          </button>
+            <p>
+              Es la proporción de días parecidos a hoy en los que sí hubo una desregulación, contada
+              sobre los días de esta misma persona que ya se confirmaron.
+            </p>
+            <p>
+              No es una predicción de lo que va a pasar, y no sale de un promedio de otras personas.
+              Si todavía no hay días confirmados suficientes, no aparece ninguna cifra.
+            </p>
+          </GloboAyuda>
         </span>
 
         <!-- Sin espacios entre los dos tramos: la cifra y el signo son una sola
              palabra, y cualquier hueco aquí saldría también en el DOM. -->
         <span class="riesgo__cifra" aria-hidden="true"
-          ><span>{{ riesgo ?? SIN_ESTIMACION }}</span
+          ><span>{{ mostrado ?? SIN_ESTIMACION }}</span
           ><span v-if="riesgo !== null" class="riesgo__porciento">%</span></span
         >
       </span>
     </h1>
 
-    <!-- Sin estimación no hay confianza que dar: la pastilla desaparece en vez
-         de mostrar un cero, que se leería como "confianza nula". -->
-    <p v-if="confianza !== null" class="riesgo__confianza">
+    <!-- Mientras el tramo no tenga días suficientes la pastilla no está: un
+         intervalo de cuarenta puntos no comprueba nada, y enseñarlo daría la
+         impresión contraria —ver `DIAS_MINIMOS`. -->
+    <p v-if="comprobacion !== null" class="riesgo__confianza">
       <IconoEscudo class="riesgo__escudo" aria-hidden="true" />
-      <span
-        >Nivel de confianza <b class="riesgo__dato">{{ confianza }}%</b></span
-      >
+      <span>
+        En días así ocurrió el
+        <b class="riesgo__dato">{{ comprobacion.observado }}%</b>
+        <span class="riesgo__margen">
+          ({{ comprobacion.intervalo[0] }}–{{ comprobacion.intervalo[1] }}%, {{ comprobacion.dias }}
+          días)
+        </span>
+      </span>
     </p>
   </header>
 </template>
@@ -92,51 +124,41 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
 .riesgo__linea {
   display: flex;
   align-items: center;
+  /* En 320 con el texto ampliado, el sobretítulo y el "(?)" dejan de caber en
+     una línea: envuelven centrados en vez de empujar el globo fuera. */
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .riesgo__sobretitulo {
-  font-size: var(--faro-fs-125);
+  font-size: var(--blubathon-fs-125);
   font-weight: 700;
-  letter-spacing: var(--faro-track-014);
+  letter-spacing: var(--blubathon-track-014);
   text-transform: uppercase;
-  color: var(--faro-texto-suave);
+  color: var(--blubathon-texto-suave);
 }
 
 /*
- * El botón mide 44x44 de área táctil pero ocupa en la línea lo mismo que su
- * glifo más el hueco de 6: los dos márgenes negativos devuelven el acolchado
- * que el padding le robaría, así que el sobretítulo no se descoloca.
+ * La cifra crece con la ventana, pero nunca por encima de lo que cabe.
+ *
+ * El 6.5rem del diseño está dibujado para la columna de 480. En un teléfono de
+ * 320 con tres dígitos —un riesgo de tres cifras— y el texto ampliado al 200%,
+ * ese cuerpo se sale por los dos lados. `clamp` lo deja crecer hasta su medida
+ * de siempre y lo encoge solo cuando el ancho no da: en 480 y en adelante el
+ * valor es exactamente el de antes, así que el móvil validado no cambia.
  */
-.riesgo__info {
-  display: grid;
-  flex: none;
-  place-items: center;
-  min-width: var(--faro-toque);
-  min-height: var(--faro-toque);
-  margin-block: calc((var(--faro-toque) - var(--faro-icono-16)) / -2);
-  margin-inline: calc(var(--faro-esp-6) - (var(--faro-toque) - var(--faro-icono-16)) / 2)
-    calc((var(--faro-toque) - var(--faro-icono-16)) / -2);
-  color: var(--faro-texto-suave);
-  border-radius: var(--faro-radio-10);
-}
-
-.riesgo__info:focus-visible {
-  outline: var(--faro-foco-grosor) solid var(--faro-foco-panel);
-  outline-offset: var(--faro-foco-offset);
-}
-
-.riesgo__glifo {
-  width: var(--faro-icono-16);
-  height: var(--faro-icono-16);
-}
-
 .riesgo__cifra {
-  margin-top: var(--faro-esp-4);
-  font-size: var(--faro-fs-104);
+  display: block;
+  max-width: 100%;
+  margin-top: var(--blubathon-esp-4);
+  font-size: clamp(3.75rem, 21vw, var(--blubathon-fs-104));
   font-weight: 400;
   line-height: 1;
-  letter-spacing: var(--faro-track-cifra);
-  color: var(--faro-texto-fuerte);
+  letter-spacing: var(--blubathon-track-cifra);
+  color: var(--blubathon-texto-fuerte);
+  /* La cifra cambia de ancho al subir —de 8 a 88 hay un dígito de diferencia— y
+     sin esto la cabecera entera se movería con cada fotograma. */
+  font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -150,32 +172,60 @@ const etiquetaInfo = computed(() => `Qué significa el ${SOBRETITULO.toLowerCase
   letter-spacing: 0;
 }
 
+/* El margen y los días acompañan a la cifra sin competir con ella: un
+   porcentaje sin saber sobre cuántos días se midió no se puede leer, pero
+   tampoco es lo primero que se mira. */
+.riesgo__margen {
+  font-size: var(--blubathon-fs-11);
+  opacity: 0.85;
+}
+
 /*
- * La confianza va en pastilla, no suelta: es un dato secundario y en vidrio se
- * lee sobre cualquier punto del gradiente, sin depender de dónde caiga.
+ * La comprobación va en pastilla, no suelta: es un dato secundario y en vidrio
+ * se lee sobre cualquier punto del gradiente, sin depender de dónde caiga.
  */
 .riesgo__confianza {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--faro-esp-8);
-  margin-top: var(--faro-esp-14);
-  padding: var(--faro-esp-8) var(--faro-esp-14);
-  font-size: var(--faro-fs-125);
+  justify-content: center;
+  gap: var(--blubathon-esp-8);
+  max-width: 100%;
+  margin-top: var(--blubathon-esp-14);
+  padding: var(--blubathon-esp-8) var(--blubathon-esp-14);
+  font-size: var(--blubathon-fs-125);
   font-weight: 600;
-  color: var(--faro-texto-suave);
-  background: var(--faro-vidrio);
-  border: 1px solid var(--faro-vidrio-borde);
-  border-radius: var(--faro-radio-pastilla);
+  color: var(--blubathon-texto-suave);
+  background: var(--blubathon-vidrio);
+  border: 1px solid var(--blubathon-vidrio-borde);
+  border-radius: var(--blubathon-radio-pastilla);
 }
 
 .riesgo__dato {
   font-weight: 700;
-  color: var(--faro-texto-fuerte);
+  color: var(--blubathon-texto-fuerte);
+  font-variant-numeric: tabular-nums;
 }
 
 .riesgo__escudo {
   flex: none;
-  width: var(--faro-icono-14);
-  height: var(--faro-icono-14);
+  width: var(--blubathon-icono-14);
+  height: var(--blubathon-icono-14);
+}
+
+/*
+ * Teléfono en horizontal. La cifra se mide contra el alto y no contra el ancho:
+ * lo que falta ahí no son píxeles a los lados —sobran— sino renglones. Con el
+ * cuerpo de siempre, la cifra y su pastilla se comen la ventana entera y las
+ * tarjetas empiezan fuera de la pantalla.
+ */
+@media (max-height: 520px) and (min-width: 600px) {
+  .riesgo__cifra {
+    font-size: clamp(2.75rem, 13dvh, var(--blubathon-fs-104));
+  }
+
+  .riesgo__confianza {
+    margin-top: var(--blubathon-esp-8);
+  }
 }
 </style>

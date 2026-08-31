@@ -1,4 +1,4 @@
-"""`build_scenario`: the pure P1 facade for the minimal matching payload (SPEC 9.7).
+"""`build_scenario`: the pure P1 facade for the minimal matching payload.
 
 P2 calls this and persists the result or the abstention. It does not
 reimplement the precedence, because the interesting part of this function is

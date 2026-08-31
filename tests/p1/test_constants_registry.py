@@ -1,4 +1,4 @@
-"""The SPEC 15 registry is complete, classified and the only home of its literals."""
+"""The registry is complete, classified and the only home of its literals."""
 
 from __future__ import annotations
 
@@ -61,15 +61,16 @@ EXPECTED_VALUES = {
     "C48": 10,
     "C49": 5,
     "C50": 5,
+    "C51": 5,
 }
 
 
-def test_registry_covers_c01_to_c50() -> None:
-    assert sorted(CONSTANTS) == [f"C{index:02d}" for index in range(1, 51)]
+def test_registry_covers_c01_to_c51() -> None:
+    assert sorted(CONSTANTS) == [f"C{index:02d}" for index in range(1, 52)]
 
 
 @pytest.mark.parametrize(("constant_id", "expected"), sorted(EXPECTED_VALUES.items()))
-def test_registry_values_match_the_spec(constant_id: str, expected: object) -> None:
+def test_registry_values_match_the_declared_value(constant_id: str, expected: object) -> None:
     assert CONSTANTS[constant_id].value == expected
 
 
@@ -78,19 +79,17 @@ def test_every_constant_declares_a_valid_class_and_reference() -> None:
     for spec in CONSTANTS.values():
         assert isinstance(spec, ConstantSpec)
         assert spec.decision_class in valid
-        assert spec.spec_ref.startswith("SPEC ")
-        assert spec.spec_ref.endswith(f"/ {spec.constant_id}")
 
 
 def test_no_simulation_parameter_is_labelled_as_evidence() -> None:
-    """SPEC 0.1 rule 5: a synthetic weight is never presented as clinical evidence."""
+    """Rule 5: a synthetic weight is never presented as clinical evidence."""
 
     evidence = [spec for spec in CONSTANTS.values() if spec.decision_class == "evidence"]
     assert evidence == []
 
 
 def test_module_level_names_read_the_registry_instead_of_restating_a_literal() -> None:
-    """CONVENTIONS 7 forbids duplicating a registry literal anywhere in the module."""
+    """Forbids duplicating a registry literal anywhere in the module."""
 
     source = (REPO_ROOT / "packages" / "shared" / "constants.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -116,7 +115,7 @@ def test_module_names_agree_with_their_registry_entry() -> None:
 
 
 def test_no_decision_policy_and_no_interval_width_gate_exist() -> None:
-    """SPEC 8.5 and 8.6: without a validated policy there are no bands, and the
+    """Without a validated policy there are no bands, and the
     old interval-width gate was unreachable and is retired."""
 
     assert constants.DECISION_POLICY_VERSION is None

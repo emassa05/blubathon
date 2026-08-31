@@ -10,7 +10,7 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@faro/contract':
+      '@blubathon/contract':
         specifier: workspace:*
         version: link:../../packages/shared
       '@fontsource/nunito':

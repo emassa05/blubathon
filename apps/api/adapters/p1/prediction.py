@@ -1,4 +1,4 @@
-"""`ml.prediction` detrás del puerto de predicción dual-track (SPEC 8, 11.5).
+"""`ml.prediction` detrás del puerto de predicción dual-track.
 
 El puerto pide `predict` y P1 no publica esa façade: publica el doble track
 separado, que es lo correcto porque los tres tracks no comparten significado.
@@ -9,7 +9,7 @@ El adaptador llama a cada uno y arma la tupla de salidas.
   es `unavailable` con `model_artifact_unavailable`, nunca un número inventado.
 - `real_personal_baseline_v1`: `build_personal_baseline` sobre los episodios
   primarios anteriores del sujeto y sus resoluciones verificadas.
-- `real_logit_challenger_v1`: `assess_trainability`, y jamás expuesto (SPEC 8.5).
+- `real_logit_challenger_v1`: `assess_trainability`, y jamás expuesto.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from apps.api.canonical import parse_timestamp
 from apps.api.ports.prediction import TrackOutput
 from apps.api.store import history
 from apps.api.store.db import Database
+from ml.formula_constants import PERSONAL_DEVIATION_WINDOW_DAYS
 from ml.prediction import (
     BASELINE_MODEL_VERSION,
     CHALLENGER_MODEL_VERSION,
@@ -38,7 +39,6 @@ from ml.prediction.challenger import (
     predictor_deviations,
 )
 from ml.prediction.synthetic_reference import CohortViolationError
-from ml.spec_constants import PERSONAL_DEVIATION_WINDOW_DAYS
 from packages.shared.enums import (
     CohortKind,
     DataOrigin,
@@ -114,8 +114,6 @@ class P1Prediction:
                 artifact=self._artifact,
             )
         except CohortViolationError:
-            # SPEC 2.14 / INV-18: el track de simulación rechaza un sujeto real
-            # y una entrada real. La negativa es la salida, no una excepción.
             return TrackOutput(
                 track_id=TrackId.SYNTHETIC_REFERENCE_V021.value,
                 intended_use=IntendedUse.SIMULATION_ONLY.value,
@@ -211,7 +209,7 @@ class P1Prediction:
         input_data_origin: str,
         baseline: TrackOutput,
     ) -> TrackOutput:
-        """SPEC 8.4: la tasa base personal corregida por el día que se declara.
+        """La tasa base personal corregida por el día que se declara.
 
             logit(p) = logit(p_base) + b0 + b1*desv_sueno + b2*desv_regulacion
 
@@ -272,19 +270,32 @@ class P1Prediction:
             source=Source.HOME,
             as_of_at=cutoff,
         )
-        if any(value is None for value in deviations.values()):
+        # Sin la costumbre del sujeto no hay desviación que definir, y eso no se
+        # puede suplir con nada: es su propio motivo.
+        if deviations.costumbre_desconocida:
             return self._challenger_abstains(
                 input_data_origin,
                 shadow["model_version"],
                 PredictionAbstentionReason.PERSONAL_PREDICTOR_HISTORY_INSUFFICIENT,
+            )
+        # Faltar un predictor del día no tumba la estimación —su desviación
+        # esperada es cero y el otro sigue contando—, pero faltar todos sí: sin
+        # ninguna respuesta de hoy el challenger no estaría diciendo nada del día,
+        # solo repitiendo la tasa base corrida por su intercepto. Ahí se calla y
+        # la pantalla enseña la tasa base, que es lo que de verdad tiene.
+        if not deviations.alguno_observado:
+            return self._challenger_abstains(
+                input_data_origin,
+                shadow["model_version"],
+                PredictionAbstentionReason.PREDICTOR_MISSING,
             )
 
         probability = fit.predict(
             ChallengerRow(
                 subject_id=UUID(subject_id),
                 p_base=baseline.probability,
-                sleep_deviation=deviations[FieldCode.SLEEP_QUALITY],
-                regulation_deviation=deviations[FieldCode.DAILY_REGULATION_STATE],
+                sleep_deviation=deviations.valores[FieldCode.SLEEP_QUALITY],
+                regulation_deviation=deviations.valores[FieldCode.DAILY_REGULATION_STATE],
                 label=0,
             )
         )

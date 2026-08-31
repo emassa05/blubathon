@@ -55,8 +55,23 @@ describe("cargarResumenSalud", () => {
     const resumen = await cargarHoy();
 
     expect(resumen.riesgo).toBe(18);
-    // Intervalo de 0.15 de ancho: 85% de confianza.
-    expect(resumen.confianza).toBe(85);
+  });
+
+  it("con cifra y sin intervalo del modelo la pantalla sigue en pie", async () => {
+    // Es el caso del challenger logístico: publica probabilidad y, por
+    // invariante del dominio, ningún intervalo. Lo que se enseña debajo de la
+    // cifra ya no sale de ahí, sino de la calibración de la cohorte.
+    instalarServidorFalso({
+      [`${CHILD}/history`]: historialFalso([
+        diaFalso({ fecha: HOY, probabilidad: 0.4, intervalo: null }),
+      ]),
+      [`${CHILD}/form-plan`]: planFalso([]),
+      [`${CHILD}/recommendations/today`]: { status: "pending", citations: [] },
+    });
+
+    const resumen = await cargarHoy();
+
+    expect(resumen.riesgo).toBe(40);
   });
 
   it("la abstención del modelo no se convierte en un cero", async () => {
@@ -69,7 +84,6 @@ describe("cargarResumenSalud", () => {
     const resumen = await cargarHoy();
 
     expect(resumen.riesgo).toBeNull();
-    expect(resumen.confianza).toBeNull();
   });
 
   it("cada estado de la recomendación dice lo que pasa, y la abstención dice por qué", async () => {
@@ -149,9 +163,6 @@ describe("cargarResumenSalud", () => {
   });
 
   it("no manda al plan respuestas de un día que el servidor ya no tiene", async () => {
-    // El caso real: la base se resembró y el navegador conservó lo de antes.
-    // Esas respuestas viajaban como `answers` y el backend suprime la sugerencia
-    // de todo campo "ya respondido" (SPEC 6.6), así que no salía ninguna.
     guardarRespuestas(ID_NINO_FALSO, HOY, { food_changes: false, eating_status: 4 });
 
     instalarServidorFalso({

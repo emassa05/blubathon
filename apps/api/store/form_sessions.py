@@ -1,6 +1,6 @@
 """Comandos de sesión de formulario, presentaciones y observaciones.
 
-SPEC 4.1-4.2, 5.2, 5.5, 6.6-6.9, 11.3 y 12.2. Todo es append-only: una
+Todo es append-only: una
 corrección de observación crea otra fila con `supersedes_id`.
 """
 
@@ -68,7 +68,7 @@ def open_primary_episode(
     subject_id: str,
     at: str,
 ) -> sqlite3.Row | None:
-    """SPEC 4.2: episodio primario cuya ventana sigue abierta en `at`."""
+    """Episodio primario cuya ventana sigue abierta en `at`."""
     return connection.execute(
         "SELECT * FROM prediction_episodes"
         " WHERE tenant_id = ? AND subject_id = ? AND role = 'primary'"
@@ -87,7 +87,7 @@ def set_submission_result(
     prediction_episode_id: str | None,
     linked_prediction_episode_id: str | None,
 ) -> None:
-    """Una sesión siempre puede cerrar y persistir observaciones (SPEC 4.1)."""
+    """Una sesión siempre puede cerrar y persistir observaciones."""
     connection.execute(
         "UPDATE form_sessions SET status = ?, submitted_at = ?, prediction_status = ?,"
         " prediction_episode_id = ?, linked_prediction_episode_id = ?"
@@ -243,7 +243,7 @@ def answered_field_codes(connection: sqlite3.Connection, form_session_id: str) -
 def projected_session_observations(
     connection: sqlite3.Connection, *, form_session_id: str, cutoff: str
 ) -> tuple[dict[str, Any], ...]:
-    """Hojas vigentes de esta sesión al cutoff (SPEC 5.8)."""
+    """Hojas vigentes de esta sesión al cutoff."""
     rows = connection.execute(
         "SELECT * FROM field_observations WHERE form_session_id = ?",
         (form_session_id,),

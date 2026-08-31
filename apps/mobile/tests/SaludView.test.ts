@@ -1,12 +1,17 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { nextTick } from "vue";
+
+import { BLUBATHON_TEXTS_ES } from "@/api/contrato";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import SaludView from "@/views/SaludView.vue";
 
 import {
   ID_NINO_FALSO,
+  declararRuta,
   diaFalso,
+  emitirEvento,
   historialFalso,
   instalarServidorFalso,
   planFalso,
@@ -78,7 +83,7 @@ describe("SaludView", () => {
     servidor();
     const wrapper = await montar();
 
-    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--bajo");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("blubathon-banda--bajo");
   });
 
   it("anuncia la carga antes de tener datos", () => {
@@ -86,7 +91,7 @@ describe("SaludView", () => {
     const wrapper = mount(SaludView);
 
     expect(wrapper.get('[role="status"]').text()).toBe("Cargando…");
-    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--desconocido");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("blubathon-banda--desconocido");
   });
 
   it("cuando el modelo se abstiene no muestra cifra ni la pinta de riesgo bajo", async () => {
@@ -97,7 +102,7 @@ describe("SaludView", () => {
 
     expect(wrapper.get(".riesgo__cifra").text()).toBe("—");
     expect(wrapper.find(".riesgo__confianza").exists()).toBe(false);
-    expect(wrapper.get(".pantalla__columna").classes()).toContain("faro-banda--desconocido");
+    expect(wrapper.get(".pantalla__columna").classes()).toContain("blubathon-banda--desconocido");
   });
 
   it("muestra el mensaje del backend cuando la petición falla", async () => {
@@ -155,6 +160,106 @@ describe("SaludView", () => {
 
     await wrapper.get(".aviso").trigger("click");
     expect(wrapper.emitted("abrirCuestionario")).toEqual([[HOY]]);
+  });
+
+  it("la recomendación aparece sola cuando el backend avisa, sin recargar", async () => {
+    // El formulario acaba de enviarse: el episodio existe y el RAG sigue
+    // redactando encima, así que la recomendación viene en `pending`.
+    servidor({
+      [`${CHILD}/recommendations/today`]: {
+        status: "pending",
+        risk_band: "low",
+        recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+        action_text_es: null,
+        purpose_es: null,
+        citations: [],
+        abstention_reason: null,
+        rating: null,
+      },
+    });
+    const wrapper = await montar();
+
+    expect(wrapper.findAll(".cargando__renglon")).toHaveLength(3);
+    expect(wrapper.text()).not.toContain("Mantener la rutina de sueño.");
+
+    // El RAG termina: la API ya devuelve el texto y el backend lo avisa por el
+    // canal. Nadie recarga la página ni vuelve a montar nada.
+    declararRuta(`${CHILD}/recommendations/today`, {
+      status: "matched",
+      risk_band: "low",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      action_text_es: "Mantener la rutina de sueño.",
+      purpose_es: null,
+      citations: [],
+      abstention_reason: null,
+      rating: null,
+    });
+    emitirEvento({
+      type: "recommendation.ready",
+      child_id: ID_NINO_FALSO,
+      prediction_episode_id: "22222222-2222-4222-8222-222222222222",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      status: "matched",
+      abstention_reason: null,
+      at: new Date().toISOString(),
+    });
+    await flushPromises();
+
+    expect(wrapper.find(".cargando").exists()).toBe(false);
+    // La región de estado lleva el texto entero desde el primer fotograma: el
+    // tecleo es de lo que se ve, no de lo que se lee.
+    expect(wrapper.get(".recomendacion__estado").text()).toBe("Mantener la rutina de sueño.");
+  });
+
+  it("el refresco del canal no vacía la pantalla mientras llega", async () => {
+    servidor();
+    const wrapper = await montar();
+
+    emitirEvento({
+      type: "recommendation.redrafted",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      attempt: 2,
+      status: "matched",
+      at: new Date().toISOString(),
+    });
+    await nextTick();
+
+    // Nada de "Cargando": el aviso de carga tapa las tarjetas, y un refresco
+    // que nadie pidió no puede llevarse por delante lo que ya se estaba viendo.
+    expect(wrapper.text()).toContain("18%");
+    expect(wrapper.text()).toContain("Mantener la rutina de sueño.");
+  });
+
+  it("un aviso del canal a media carga no deja la pantalla en Cargando", async () => {
+    servidor();
+    const wrapper = await montar();
+
+    // Se cambia de día: eso es una carga visible, la que sí tapa las tarjetas.
+    await wrapper.get('[aria-label="Día anterior"]').trigger("click");
+    await nextTick();
+    expect(wrapper.text()).toContain(BLUBATHON_TEXTS_ES.loadingEs);
+
+    // Y antes de que conteste, llega el aviso del backend —justo lo que pasa al
+    // enviar el cuestionario, que el RAG termina un instante despues—. El
+    // refresco silencioso releva a la carga visible, y la relevada ya no puede
+    // apagar el aviso porque su `finally` la ve abortada: si el que releva
+    // tampoco lo apaga, la pantalla se queda en "Cargando" para siempre.
+    emitirEvento({
+      type: "recommendation.ready",
+      child_id: ID_NINO_FALSO,
+      prediction_episode_id: "22222222-2222-4222-8222-222222222222",
+      recommendation_instance_id: "33333333-3333-4333-8333-333333333333",
+      status: "matched",
+      abstention_reason: null,
+      at: new Date().toISOString(),
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain(BLUBATHON_TEXTS_ES.loadingEs);
+    // Y no es que se haya quitado el aviso dejando el hueco: las tarjetas del
+    // dia al que se cambio estan puestas.
+    expect(wrapper.text()).toContain("Últimos formularios");
+    expect(wrapper.get(".fecha__etiqueta").text()).toContain("28");
   });
 
   it("cada fila de formulario abre el cuestionario de su día", async () => {

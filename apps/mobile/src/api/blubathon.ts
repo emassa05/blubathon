@@ -11,6 +11,7 @@
  */
 
 import type {
+  CalibrationResponse,
   ChildHistoryResponse,
   ChildListResponse,
   ChildView,
@@ -26,10 +27,13 @@ import type {
   OutcomeRequestState,
   OutcomeResolutionStatus,
   PredictionEpisodeResponse,
+  RecommendationDecisionRequest,
+  RecommendationDecisionResponse,
   RecommendationInstanceView,
   RecommendationListResponse,
+  ReviewQueueResponse,
   TodayRecommendationResponse,
-} from "@faro/contract/contract";
+} from "@blubathon/contract/contract";
 
 import { DIAS_HISTORIAL, ORIGEN_API } from "@/api/config";
 import { pedir } from "@/api/http";
@@ -51,7 +55,7 @@ export interface VistaReporteResultado extends OutcomeReportResponse {
 
 export interface EstadoServicio {
   status: string;
-  spec_version: string;
+  domain_version: string;
   mode: string;
   adapters: string;
 }
@@ -156,8 +160,21 @@ export function reportarResultado(
  *
  * `status` distingue los cuatro casos que la pantalla tiene que saber
  * diferenciar: sin formulario, redactándose, lista o abstenida. La abstención
- * llega como 200 con `abstention_reason`, nunca como error (SPEC 11.7).
+ * llega como 200 con `abstention_reason`, nunca como error.
  */
+/**
+ * La comprobación de la cohorte: de los días que se anunciaron en cada tramo,
+ * en cuántos hubo episodio.
+ *
+ * Sin `child_id` a propósito. Comprobar una frecuencia con ±10 puntos pide del
+ * orden de cien días **en cada tramo**, y una persona sola tarda años en
+ * repartirlos entre todos. Junta a la organización entera, y a cambio responde
+ * si el modelo acierta y no si acierta con esta persona.
+ */
+export function calibracionCohorte(signal?: AbortSignal): Promise<CalibrationResponse> {
+  return pedir("/calibration", { signal });
+}
+
 export function recomendacionDeHoy(
   idNino: string,
   signal?: AbortSignal,
@@ -191,6 +208,45 @@ export function valorarRecomendacion(
   signal?: AbortSignal,
 ): Promise<FeedbackResponse> {
   return pedir(`/recommendations/${encodeURIComponent(idRecomendacion)}/feedback`, {
+    metodo: "POST",
+    cuerpo: peticion,
+    signal,
+  });
+}
+
+/* Revisión profesional ---------------------------------------------------- */
+
+/**
+ * La muestra de recomendaciones que le toca revisar al profesional.
+ *
+ * No es la lista entera filtrada en el cliente: el sorteo lo hace el servidor
+ * —una función determinista del identificador, constante C51— y la respuesta
+ * declara el denominador y la versión de la política. La pantalla enseña esas
+ * dos cosas en vez de escribir "1 de cada 5" a mano, que se quedaría viejo el
+ * día que la política cambie.
+ */
+export function colaDeRevision(
+  opciones: { limite?: number; signal?: AbortSignal } = {},
+): Promise<ReviewQueueResponse> {
+  return pedir("/recommendations/review-queue", {
+    consulta: { limit: opciones.limite },
+    signal: opciones.signal,
+  });
+}
+
+/**
+ * Aprueba o rechaza una recomendación redactada.
+ *
+ * No es lo mismo que `valorarRecomendacion`: un `bad` del cuidador dispara una
+ * redacción nueva y un rechazo profesional no. Son dos rutas porque son dos
+ * hechos, y el backend los guarda en dos tablas.
+ */
+export function revisarRecomendacion(
+  idRecomendacion: string,
+  peticion: RecommendationDecisionRequest,
+  signal?: AbortSignal,
+): Promise<RecommendationDecisionResponse> {
+  return pedir(`/recommendations/${encodeURIComponent(idRecomendacion)}/review`, {
     metodo: "POST",
     cuerpo: peticion,
     signal,

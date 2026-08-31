@@ -2,7 +2,7 @@
 
 `BLUBATHON_P1_ADAPTERS=real` usa `ml/**` a través de
 `apps/api/adapters/p1`; por defecto se usa `mock`, que sigue siendo el camino
-seleccionable de test y demo y no calcula ninguna fórmula del SPEC.
+seleccionable de test y demo y no calcula ninguna fórmula del dominio.
 
 La respuesta de cada sesión declara qué origen se usó (`adapters_source`).
 """

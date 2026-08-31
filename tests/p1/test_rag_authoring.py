@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 
 import pytest
 
@@ -24,6 +25,7 @@ from rag.authoring.retrieval import (
     resolve_retrieval_mode,
     retrieve,
 )
+from rag.authoring.transports import DraftRefusedError
 from rag.domain.text_guard import FreeTextLeakError
 from tests.p1 import rag_factories as rf
 from tests.p1.factories import ident
@@ -43,7 +45,7 @@ class SimulatedDense:
 
 
 class SimulatedTransport:
-    """A simulated local LLM transport (CONVENTIONS 16)."""
+    """A simulated local LLM transport."""
 
     model_id = "fixture-llm"
     model_sha256 = "e" * 64
@@ -60,6 +62,26 @@ class SimulatedTransport:
                 "claims": [],
             }
         )
+
+
+class UnreachableTransport:
+    """A daemon that is not listening. `urllib` reports this as `URLError`."""
+
+    model_id = "fixture-unreachable"
+    model_sha256 = "f" * 64
+
+    def complete(self, prompt: str) -> str:
+        raise urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))
+
+
+class SilentTransport:
+    """A model that answers with nothing. The transport calls that a refusal."""
+
+    model_id = "fixture-silent"
+    model_sha256 = "0" * 64
+
+    def complete(self, prompt: str) -> str:
+        raise DraftRefusedError("the model returned an empty response")
 
 
 class TestTokenizer:
@@ -178,7 +200,7 @@ class TestBuildManifest:
 class TestDrafting:
     def test_the_prompt_is_versioned_package_data_with_declared_schemas(self) -> None:
         prompt = load_prompt()
-        assert prompt.prompt_version == "authoring-draft-0.3.0"
+        assert prompt.prompt_version == "authoring-draft-0.5.0"
         assert prompt.input_schema["required"] == ["generalized_question_es", "fragments"]
         assert "purpose_es" in prompt.output_schema["properties"]
         assert len(prompt.prompt_sha256) == 64
@@ -225,6 +247,50 @@ class TestDrafting:
         assert result.payload()["purpose_es"] == "Borrador de prueba."
         # The draft is a draft: it carries no review and activates nothing.
         assert result.payload()["claims"] == []
+
+    def test_a_model_that_cannot_be_reached_is_a_draft_that_is_unavailable(self) -> None:
+        """A dead daemon has to arrive as `DraftUnavailableError`, not `URLError`.
+
+        The caller abstains on `DraftUnavailableError`. A raw `URLError` walked
+        past that branch, killed the background task that generates the
+        recommendation, and left the row in `pending` with nobody working on it.
+        """
+
+        build = rf.fixture_build()
+        with pytest.raises(DraftUnavailableError) as failure:
+            request_draft(
+                DraftRequest("consulta generalizada", build.chunks),
+                transport=UnreachableTransport(),
+                authorised_document_version_ids=build.authorised_document_version_ids,
+            )
+        # The original failure is chained, not swallowed: it is still diagnosable.
+        assert isinstance(failure.value.__cause__, urllib.error.URLError)
+
+    def test_a_model_that_declines_is_a_draft_that_is_unavailable(self) -> None:
+        build = rf.fixture_build()
+        with pytest.raises(DraftUnavailableError):
+            request_draft(
+                DraftRequest("consulta generalizada", build.chunks),
+                transport=SilentTransport(),
+                authorised_document_version_ids=build.authorised_document_version_ids,
+            )
+
+    def test_an_unauthorised_fragment_still_raises_and_is_not_an_abstention(self) -> None:
+        """The privacy guard runs before the model call and is never translated.
+
+        Literature that nobody authorised reaching the prompt is a defect. If it
+        arrived as `DraftUnavailableError` the caller would file it as an
+        ordinary abstention and the leak would never be noticed.
+        """
+
+        build = rf.fixture_build()
+        other = rf.fixture_build(sources=(rf.source("gi", rf.GI_TEXT),))
+        with pytest.raises(FreeTextLeakError):
+            request_draft(
+                DraftRequest("consulta generalizada", build.chunks),
+                transport=UnreachableTransport(),
+                authorised_document_version_ids=other.authorised_document_version_ids,
+            )
 
     def test_fragments_are_rendered_in_a_stable_order(self) -> None:
         build = rf.fixture_build()

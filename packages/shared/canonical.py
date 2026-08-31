@@ -1,4 +1,4 @@
-"""Canonical bytes, hashes and local calendar windows (SPEC 5.9, SPEC 5.8).
+"""Canonical bytes, hashes and local calendar windows.
 
 Two artifacts that mean the same thing must hash the same, and two that differ
 must not. That requires one normalisation everybody shares: Unicode NFC,
@@ -8,7 +8,7 @@ strategy hash.
 
 The clinical scenario hash is different on purpose: the space of scenarios is
 small enough to enumerate, so it uses HMAC with a tenant secret and never leaves
-the clinical boundary (SPEC 9.7).
+the clinical boundary.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from packages.shared.constants import REFERENCE_TIMEZONE
 
 REFERENCE_ZONE: Final = ZoneInfo(REFERENCE_TIMEZONE)
 TIMESTAMP_FORMAT: Final = "%Y-%m-%dT%H:%M:%S.%f"
-HASH_DOMAIN_PREFIX: Final = "faro"
+HASH_DOMAIN_PREFIX: Final = "blubathon"
 
 
 class CanonicalizationError(ValueError):
@@ -58,7 +58,7 @@ def canonical_date(value: date) -> str:
 
 
 def local_date(instant: datetime, zone: ZoneInfo = REFERENCE_ZONE) -> date:
-    """Reference-zone calendar date of an instant (SPEC 5.2).
+    """Reference-zone calendar date of an instant.
 
     Persisted alongside every observation so a window stays reproducible even if
     a timezone library later changes.
@@ -70,7 +70,7 @@ def local_date(instant: datetime, zone: ZoneInfo = REFERENCE_ZONE) -> date:
 
 
 def inclusive_window(cutoff_date: date, days: int) -> tuple[date, date]:
-    """Last `W` calendar days, inclusive: `[D-(W-1), D]` (SPEC 5.8)."""
+    """Last `W` calendar days, inclusive: `[D-(W-1), D]`."""
 
     if days < 1:
         raise CanonicalizationError("an inclusive window needs at least one day")
@@ -78,7 +78,7 @@ def inclusive_window(cutoff_date: date, days: int) -> tuple[date, date]:
 
 
 def exclusive_window(cutoff_date: date, days: int) -> tuple[date, date]:
-    """Previous `W` calendar days, excluding `D`: `[D-W, D)` (SPEC 5.8).
+    """Previous `W` calendar days, excluding `D`: `[D-W, D)`.
 
     The returned upper bound is the last day *inside* the window, so a caller
     compares with `<=` in both directions.
@@ -95,7 +95,7 @@ def in_window(value: date, window: tuple[date, date]) -> bool:
 
 
 def ordered_set(values: Iterable[str]) -> list[str]:
-    """Deduplicate and sort a set-like array before serialisation (SPEC 5.9).
+    """Deduplicate and sort a set-like array before serialisation.
 
     Arrays with ranking semantics keep their order and must not pass through
     here.
@@ -142,7 +142,7 @@ def canonical_bytes(payload: Any) -> bytes:
 
 
 def domain_separator(artifact: str, schema_version: str) -> bytes:
-    """`faro:<artifact>:<schema_version>\\0` (SPEC 5.9)."""
+    """`blubathon:<artifact>:<schema_version>\\0`."""
 
     prefix = f"{HASH_DOMAIN_PREFIX}:{artifact}:{schema_version}"
     return normalize_text(prefix).encode("utf-8") + b"\x00"
@@ -158,7 +158,7 @@ def content_hash(artifact: str, schema_version: str, payload: Any) -> str:
 
 
 def bytes_hash(payload: bytes) -> str:
-    """Plain SHA-256 of raw bytes, used for document provenance (SPEC 9.2)."""
+    """Plain SHA-256 of raw bytes, used for document provenance."""
 
     return hashlib.sha256(payload).hexdigest()
 
@@ -167,7 +167,7 @@ def keyed_hash(secret: bytes, artifact: str, schema_version: str, payload: Any) 
     """HMAC-SHA256 for low-entropy clinical payloads such as a scenario.
 
     An unkeyed hash of a scenario would be enumerable, so it stays inside the
-    clinical boundary and the keyed digest is what gets stored (SPEC 5.9).
+    clinical boundary and the keyed digest is what gets stored.
     """
 
     if not secret:
@@ -177,7 +177,7 @@ def keyed_hash(secret: bytes, artifact: str, schema_version: str, payload: Any) 
 
 
 def stable_bucket(secret: bytes, parts: Sequence[str], modulus: int) -> int:
-    """HMAC bucket assignment used by audit mode and exploration (SPEC 6.8, 6.10).
+    """HMAC bucket assignment used by audit mode and exploration.
 
     The client cannot predict it, and it never changes for the same inputs.
     """

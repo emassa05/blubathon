@@ -1,1 +1,1 @@
-"""Pure machine-learning domain for Faro."""
+"""Pure machine-learning domain for Blubathon."""

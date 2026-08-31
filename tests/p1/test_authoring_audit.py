@@ -1,6 +1,6 @@
-"""The prompt, index and feature audit of the M6 gate (TAREAS M6, INV-22).
+"""The prompt, index and feature audit of the M6 gate (M6, INV-22).
 
-SPEC 2.23 has one exception and it is documentary: only versioned, rights-cleared
+Has one exception and it is documentary: only versioned, rights-cleared
 literature may be fragmented, indexed or placed in an authoring prompt. Notes,
 messages and anything a caregiver or professional typed never enter that
 pipeline, and neither do identifiers.

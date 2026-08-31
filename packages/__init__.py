@@ -1,1 +1,1 @@
-"""Cross-process packages for Faro."""
+"""Cross-process packages for Blubathon."""

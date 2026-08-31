@@ -1,4 +1,4 @@
-"""Episodios primarios, snapshots y outputs por track (SPEC 4.1-4.2, 8, 11.5)."""
+"""Episodios primarios, snapshots y outputs por track."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from apps.api.canonical import content_hash
-from apps.api.contracts.constants import SPEC_VERSION
+from apps.api.contracts.constants import DOMAIN_VERSION
 from apps.api.contracts.enums import EpisodeRole, PredictionEpisodeStatus
 from apps.api.errors import conflict
 from apps.api.ports.prediction import TrackOutput
@@ -32,7 +32,7 @@ class NewEpisode:
 
 
 def create_primary_episode(connection: sqlite3.Connection, new: NewEpisode) -> str:
-    """SPEC 4.2. La transacción llamante ya serializó por (tenant, subject).
+    """La transacción llamante ya serializó por (tenant, subject).
 
     Se vuelve a comprobar el solape dentro de la transacción: si otra sesión
     ganó la carrera, la operación falla cerrado en vez de crear una ventana
@@ -97,7 +97,7 @@ def create_feature_snapshot(
     care_mode: str | None,
     created_at: str,
 ) -> str:
-    """SPEC 5.8: persiste los IDs exactos proyectados y su hash. No se recalcula."""
+    """Persiste los IDs exactos proyectados y su hash. No se recalcula."""
     payload = {
         "as_of_at": as_of_at,
         "input_data_origin": input_data_origin,
@@ -124,7 +124,7 @@ def create_feature_snapshot(
             dump(sorted(consent_ids)),
             profile_version,
             care_mode,
-            content_hash("feature_snapshot", SPEC_VERSION, payload),
+            content_hash("feature_snapshot", DOMAIN_VERSION, payload),
             created_at,
         ),
     )
@@ -180,7 +180,7 @@ def insert_prediction_output(
 def exposed_outputs(
     connection: sqlite3.Connection, prediction_episode_id: str
 ) -> list[dict[str, Any]]:
-    """SPEC 8.5: el challenger en sombra no sale de la base."""
+    """El challenger en sombra no sale de la base."""
     rows = connection.execute(
         "SELECT * FROM prediction_outputs WHERE prediction_episode_id = ? AND exposed = 1"
         " ORDER BY track_id",

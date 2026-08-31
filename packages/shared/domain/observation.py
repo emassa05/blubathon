@@ -1,13 +1,13 @@
 """Daily observations, form sessions and the two kinds of presentation.
 
-The unit of record is a `FieldObservation`, not a mutable row with every field
-(SPEC 5.2). A session can produce several of them, each append-only.
+The unit of record is a `FieldObservation`, not a mutable row with every field.
+A session can produce several of them, each append-only.
 
 Two presentations are recorded for different reasons. `DefaultPresentation` says
 a suggestion was shown, which is what makes a later value `default_edited`
 instead of manual. `QuestionPresentation` says a field was actually highlighted,
 which is what resets the staleness clock; sitting in the tail is not being asked
-(SPEC 6.10).
+.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pydantic import Field, model_validator
 
 from packages.shared.domain.base import (
     AppendOnlyModel,
-    FaroModel,
+    BlubathonModel,
     LocalDate,
     NonNegativeFloat,
     Probability,
@@ -45,8 +45,6 @@ from packages.shared.field_catalog import (
     validate_field_value,
 )
 
-# SPEC 5.5 and 6.2: which modes assign a value, which may train the default
-# estimator, and which may feed the primary real model.
 VALUE_ASSIGNING_MODES: frozenset[EntryMode] = frozenset(
     {
         EntryMode.MANUAL_NO_DEFAULT,
@@ -57,6 +55,13 @@ VALUE_ASSIGNING_MODES: frozenset[EntryMode] = frozenset(
         EntryMode.DEFAULT_EDITED,
     }
 )
+# Lo que entrena al estimador de sugerencias. `DEFAULT_ACCEPTED` se queda fuera y
+# es INV-02: la sugerencia la propone el propio estimador, asi que aceptarla y
+# devolversela le haria aprender de su propia salida. Cada aceptacion volveria la
+# siguiente sugerencia mas segura, y el estimador acabaria convencido de un valor
+# que nadie llego a reportar nunca. `DEFAULT_EDITED` tampoco entra, por lo mismo
+# visto del otro lado: lo que se edita nace de lo que se presento, y el estimador
+# no puede medir su propio efecto de presentacion.
 DEFAULT_ESTIMATOR_MODES: frozenset[EntryMode] = frozenset(
     {
         EntryMode.MANUAL_NO_DEFAULT,
@@ -65,6 +70,23 @@ DEFAULT_ESTIMATOR_MODES: frozenset[EntryMode] = frozenset(
         EntryMode.IMPORTED_OBSERVED,
     }
 )
+# Lo que ve el modelo de riesgo. Aqui `DEFAULT_ACCEPTED` **si** entra, y es la
+# otra mitad de INV-02, que antes tambien lo excluia.
+#
+# El bucle que INV-02 evita es el del estimador aprendiendo de si mismo, y ese
+# sigue cerrado arriba. El modelo de riesgo no es quien propone la sugerencia:
+# para el, un dia aceptado es un dia que alguien miro y dio por bueno, y tirarlo
+# no era neutral. Era perder el dia entero, porque a un campo sin observacion el
+# challenger no le puede calcular desviacion y se abstiene: un solo campo
+# aceptado dejaba la estimacion del dia en la tasa base. Se perdia justo la
+# informacion que el formulario se ahorro pedir por conocerla.
+#
+# Lo que un dia aceptado no es, y por eso no vale igual en todas partes: no es
+# una observacion independiente. Su valor lo propuso el estimador desde el
+# historial de esa misma persona, asi que confirma la costumbre mas de lo que la
+# mide. Quien lea estos datos para medir cuanto ayudan las sugerencias tiene que
+# seguir separandolos por `entry_mode`, que para eso se guarda; `ml/form/quality`
+# ya lo pesa aparte con `DQI_ACCEPTED_DEFAULT_WEIGHT`.
 PRIMARY_REAL_MODEL_MODES: frozenset[EntryMode] = frozenset(
     {
         EntryMode.MANUAL_NO_DEFAULT,
@@ -72,11 +94,12 @@ PRIMARY_REAL_MODEL_MODES: frozenset[EntryMode] = frozenset(
         EntryMode.PROFESSIONAL_OBSERVED,
         EntryMode.IMPORTED_OBSERVED,
         EntryMode.DEFAULT_EDITED,
+        EntryMode.DEFAULT_ACCEPTED,
     }
 )
 
 
-class SourceMapping(FaroModel):
+class SourceMapping(BlubathonModel):
     """A versioned adapter. Unknown source values fail; they never become null."""
 
     source_mapping_id: UUID
@@ -159,8 +182,8 @@ class FieldObservation(AppendOnlyModel):
         return (self.field_code, self.source, self.local_date)
 
 
-class PosteriorDefault(FaroModel):
-    """The estimator output behind one suggestion (SPEC 6.3, 6.4)."""
+class PosteriorDefault(BlubathonModel):
+    """The estimator output behind one suggestion."""
 
     field_code: FieldCode
     candidate_value: FieldValue
@@ -179,11 +202,11 @@ class PosteriorDefault(FaroModel):
         return self
 
 
-class DefaultPresentation(FaroModel):
+class DefaultPresentation(BlubathonModel):
     """Proof that a suggestion was shown for this field in this session.
 
     Its existence is what makes any other value for that field `default_edited`,
-    however the client labels it (SPEC 5.5 rule 7).
+    however the client labels it (rule 7).
     """
 
     default_presentation_id: UUID
@@ -243,10 +266,10 @@ class QuestionPresentation(AppendOnlyModel):
         return self
 
 
-class FormSession(FaroModel):
+class FormSession(BlubathonModel):
     """`opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.
 
-    The browser never decides either one (SPEC 4.1, CONVENTIONS 8.5).
+    The browser never decides either one.
     """
 
     form_session_id: UUID
@@ -280,7 +303,7 @@ class FormSession(FaroModel):
         return self
 
 
-class AnswerSubmission(FaroModel):
+class AnswerSubmission(BlubathonModel):
     """What a client may declare. The server derives `entry_mode` from it."""
 
     field_code: FieldCode
@@ -306,8 +329,8 @@ class AnswerSubmission(FaroModel):
         return self
 
 
-class DataQuality(FaroModel):
-    """DQI describes quality; it is never a predictive feature or a gate (SPEC 7.1)."""
+class DataQuality(BlubathonModel):
+    """DQI describes quality; it is never a predictive feature or a gate."""
 
     coverage: Probability
     recency: Probability

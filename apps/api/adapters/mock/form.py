@@ -1,10 +1,10 @@
 """Plan de formulario y escenario fixture (sustituye `ml/form` hasta H1).
 
-Lo que este stub **no** hace, porque es dominio de P1 (TAREAS P1.4):
+Lo que este stub **no** hace, porque es dominio de P1 (P1.4):
 
 - No calcula DQI, así que `coverage=None` y `base_slots` usa el valor por defecto.
 - No calcula VoI: el estado es `unavailable_model` y `voi_nats` es `None`,
-  nunca cero (SPEC 7.3 / INV-09).
+  nunca cero (INV-09).
 - No detecta anomalías ni abre la cola por probabilidad predictiva.
 
 Lo que sí garantiza, porque es contrato y no estadística:
@@ -46,8 +46,6 @@ class MockForm:
         answered = set(answered_fields)
         pending = [code for code in applicable_fields if code not in answered]
 
-        # Sin VoI ni antigüedad calculadas, el stub usa la prioridad declarada de
-        # SPEC 6.10 y luego el orden canónico. Es determinista y no inventa señal.
         def rank(field_code: str) -> tuple[int, int, str]:
             return (
                 MONITORED_FIELD_PRIORITY.get(field_code, len(MONITORED_FIELD_PRIORITY) + 1),

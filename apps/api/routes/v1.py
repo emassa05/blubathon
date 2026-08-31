@@ -10,6 +10,7 @@ from apps.api.canonical import parse_timestamp
 from apps.api.contracts.constants import API_PREFIX
 from apps.api.contracts.models import (
     AnswerItem,
+    CalibrationResponse,
     ChildHistoryResponse,
     ChildListResponse,
     ChildView,
@@ -23,8 +24,11 @@ from apps.api.contracts.models import (
     OutcomeReportResponseView,
     OutcomeRequestListResponse,
     PredictionEpisodeView,
+    RecommendationDecisionRequest,
+    RecommendationDecisionResponse,
     RecommendationInstanceView,
     RecommendationListResponse,
+    ReviewQueueResponse,
     TodayRecommendationResponse,
 )
 from apps.api.events import EventBroker
@@ -48,6 +52,19 @@ def read_child(child_id: str, context: Context, services: Registry) -> ChildView
         return services.children.get(
             connection, tenant_id=context.tenant_id, child_id=child_id, now=now
         )
+
+
+@router.get("/calibration", response_model=CalibrationResponse)
+def cohort_calibration(context: Context, services: Registry) -> CalibrationResponse:
+    """Si lo que se anuncia acaba pasando, medido sobre toda la organización.
+
+    Sin `child_id` y a propósito: comprobar una frecuencia con ±10 puntos pide
+    del orden de cien días **en cada tramo**, y una sola persona tarda años en
+    repartirlos. Esto responde si el modelo acierta, no si acierta con alguien.
+    """
+
+    with services.core.database.read() as connection:
+        return services.calibration.cohort(connection, tenant_id=context.tenant_id)
 
 
 @router.get("/children/{child_id}/history", response_model=ChildHistoryResponse)
@@ -204,6 +221,60 @@ def list_recommendations(
             child_id=child_id,
             limit=limit,
         )
+
+
+@router.get("/recommendations/review-queue", response_model=ReviewQueueResponse)
+def review_queue(
+    context: Context,
+    services: Registry,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> ReviewQueueResponse:
+    """La muestra de recomendaciones que el profesional tiene que revisar.
+
+    Va **antes** de `/recommendations/{id}/feedback` en este archivo por una
+    razón mecánica: FastAPI resuelve por orden de declaración y
+    `/recommendations/review-queue` casaría con cualquier ruta
+    `/recommendations/{algo}` declarada antes que ella.
+    """
+
+    with services.core.database.read() as connection:
+        return services.recommendations.review_queue(
+            connection, tenant_id=context.tenant_id, limit=limit
+        )
+
+
+@router.post(
+    "/recommendations/{recommendation_instance_id}/review",
+    status_code=201,
+    response_model=RecommendationDecisionResponse,
+)
+def create_review(
+    recommendation_instance_id: str,
+    payload: RecommendationDecisionRequest,
+    context: Context,
+    services: Registry,
+    broker: Broker,
+) -> RecommendationDecisionResponse:
+    now = services.core.now()
+    with services.core.database.write() as connection:
+        result = services.recommendations.review(
+            connection,
+            tenant_id=context.tenant_id,
+            recommendation_instance_id=recommendation_instance_id,
+            request=payload,
+            now=now,
+        )
+    # Sin tarea de fondo: un rechazo no redacta de nuevo. El evento existe para
+    # que una pantalla abierta en otra pestaña vea salir el elemento de la cola.
+    broker.publish(
+        {
+            "type": "review.recorded",
+            "recommendation_instance_id": recommendation_instance_id,
+            "decision": payload.decision,
+            "at": now,
+        }
+    )
+    return result
 
 
 @router.post(

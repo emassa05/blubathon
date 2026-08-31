@@ -1,7 +1,7 @@
 """Blubathon v0.4 FastAPI application.
 
 Única frontera de traducción HTTP. La abstención es HTTP 200 con estado
-explícito y nunca usa el sobre de error (SPEC 11.7, CONVENTIONS 12.2).
+explícito y nunca usa el sobre de error.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ from starlette.exceptions import HTTPException
 
 from apps.api.adapters import build_ports
 from apps.api.clock import Clock, system_clock
-from apps.api.contracts.constants import SPEC_VERSION
-from apps.api.errors import ERROR_MESSAGES_ES, FaroApiError
+from apps.api.contracts.constants import DOMAIN_VERSION
+from apps.api.errors import ERROR_MESSAGES_ES, BlubathonApiError
 from apps.api.events import EventBroker
 from apps.api.routes import router
 from apps.api.services import Services, build_registry
@@ -90,9 +90,8 @@ def create_app(
 
     app = FastAPI(
         title="Blubathon API",
-        version=SPEC_VERSION,
+        version=DOMAIN_VERSION,
         lifespan=lifespan,
-        # CONVENTIONS 15: la documentación OpenAPI se deshabilita en piloto.
         docs_url="/docs" if resolved.expose_openapi else None,
         redoc_url=None,
         openapi_url="/openapi.json" if resolved.expose_openapi else None,
@@ -102,7 +101,6 @@ def create_app(
     app.state.event_broker = event_broker
     app.add_middleware(
         CORSMiddleware,
-        # CONVENTIONS 15: allowlist explícita, nunca comodín.
         allow_origins=list(resolved.cors_origins),
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
@@ -122,7 +120,7 @@ def create_app(
     def health() -> dict[str, str]:
         return {
             "status": "ok",
-            "spec_version": SPEC_VERSION,
+            "domain_version": DOMAIN_VERSION,
             "mode": resolved.deployment_mode.value,
             "adapters": core.ports.source,
         }
@@ -146,13 +144,12 @@ def _envelope(request: Request, code: str, status_code: int) -> JSONResponse:
 
 
 def _install_handlers(app: FastAPI) -> None:
-    @app.exception_handler(FaroApiError)
-    async def handle_domain_error(request: Request, error: FaroApiError) -> JSONResponse:
+    @app.exception_handler(BlubathonApiError)
+    async def handle_domain_error(request: Request, error: BlubathonApiError) -> JSONResponse:
         return _envelope(request, error.code, error.status_code)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation(request: Request, error: RequestValidationError) -> JSONResponse:
-        # CONVENTIONS 12.2: validación es 422 y no filtra el payload clínico.
         return _envelope(request, "validation_error", 422)
 
     @app.exception_handler(HTTPException)
@@ -167,7 +164,6 @@ def _install_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected(request: Request, error: Exception) -> JSONResponse:
-        # Stack y request ID sí; payload clínico nunca (CONVENTIONS 15).
         logger.exception(
             "error inesperado type=%s request_id=%s",
             type(error).__name__,

@@ -2,7 +2,7 @@
 
 `BLUBATHON_P1_ADAPTERS` elige el conjunto. Estos tests corren en los dos y afirman lo
 que no depende del conjunto: qué adaptadores quedaron cableados, y que ninguna
-salida rompe SPEC 8.5 ni SPEC 11.5 venga de donde venga.
+salida rompe los invariantes venga de donde venga.
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ def test_the_real_set_wires_the_published_domain(settings, clock) -> None:
 
 
 def test_no_output_carries_a_number_without_a_status_that_allows_it(caregiver) -> None:
-    """SPEC 8.5 y 11.5, en cualquier conjunto de adaptadores."""
+    """En cualquier conjunto de adaptadores."""
     result = submit_form(caregiver, str(ids.SUBJECT_ANA)).json()
     episode = caregiver.get(f"/v1/prediction-episodes/{result['prediction_episode_id']}").json()
     tracks = {output["track_id"]: output for output in episode["outputs"]}
@@ -78,6 +78,5 @@ def test_no_output_carries_a_number_without_a_status_that_allows_it(caregiver) -
         assert output["abstention_reasons"]
 
     simulation = tracks["synthetic_reference_v021"]
-    # SPEC 8.2: una simulación nunca se presenta como probabilidad clínica.
     assert simulation["intended_use"] == "simulation_only"
     assert simulation["probability"] is None

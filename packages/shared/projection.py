@@ -1,4 +1,4 @@
-"""`project_as_of`: the one append-only view every formula reads (SPEC 5.8).
+"""`project_as_of`: the one append-only view every formula reads.
 
 A correction never overwrites history; it appends a row that points at the one it
 supersedes. Reading at a cutoff therefore means: keep what was known then, follow
@@ -72,7 +72,7 @@ class Projection[RowT]:
 
     @property
     def projected_ids(self) -> tuple[UUID, ...]:
-        """Exact IDs a snapshot persists so it is never recomputed (SPEC 5.8)."""
+        """Exact IDs a snapshot persists so it is never recomputed."""
 
         return tuple(row.record_id for row in self.leaves)
 
@@ -191,7 +191,7 @@ def unique_active[RowT: AppendOnlyRow, KeyT: Hashable](
 ) -> UniqueActive[KeyT, RowT]:
     """Group leaves by key, reporting duplicates instead of picking a winner.
 
-    SPEC 5.8: for one field, source and `local_date` at most one observation may
+    For one field, source and `local_date` at most one observation may
     stay active. Two of them is a conflict a model must not average away.
     """
 

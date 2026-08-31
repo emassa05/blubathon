@@ -1,9 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import axe from "axe-core";
-import { nextTick } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { exigeRespuesta } from "@/composables/useDesregulacion";
+import { sePuedeContestar } from "@/composables/useDesregulacion";
 import { fechaDeHoy } from "@/composables/useDiaSeleccionado";
 import { olvidarResultados } from "@/estado/resultados";
 import SaludView from "@/views/SaludView.vue";
@@ -12,6 +11,7 @@ import {
   ID_NINO_FALSO,
   diaFalso,
   historialFalso,
+  idEpisodioFalso,
   instalarServidorFalso,
   planFalso,
   solicitudFalsa,
@@ -20,23 +20,38 @@ import {
 const HOY = fechaDeHoy();
 const CHILD = `/v1/children/${ID_NINO_FALSO}`;
 
-type Solicitud = Parameters<typeof exigeRespuesta>[0];
-
-const EPISODIO = "22222222-2222-4222-8222-222222222222";
+type Solicitud = Parameters<typeof sePuedeContestar>[0];
 
 /**
  * La lista de solicitudes es mutable a propósito: reportar la vuelve a pedir, y
- * lo que hace que el diálogo se vaya es que la segunda respuesta ya no la
+ * lo que hace que una tarjeta se vaya es que la segunda respuesta ya no la
  * traiga. Volver a instalar el doble en medio del test perdería la cuenta de
  * llamadas.
  */
 let pendientes: unknown[] = [];
 
-function servidor(solicitudes: unknown[]): void {
+/** La ruta de reporte de cada episodio que un test pueda llegar a contestar. */
+const REPORTES = Object.fromEntries(
+  ["a", "b"].map((sufijo) => [
+    `/v1/prediction-episodes/${idEpisodioFalso(sufijo)}/outcome-reports`,
+    {
+      outcome_request_id: `4444444${sufijo}-4444-4444-8444-444444444444`,
+      resolution_status: "resolved",
+    },
+  ]),
+);
+
+/**
+ * @param dias El historial. Por defecto, hoy ya registrado.
+ */
+function servidor(
+  solicitudes: unknown[],
+  dias: unknown[] = [diaFalso({ fecha: HOY, probabilidad: 0.18 })],
+): void {
   pendientes = solicitudes;
   instalarServidorFalso({
     "/v1/children": { children: [{ child_id: ID_NINO_FALSO, display_label: "Niña demo 1" }] },
-    [`${CHILD}/history`]: historialFalso([diaFalso({ fecha: HOY, probabilidad: 0.18 })]),
+    [`${CHILD}/history`]: historialFalso(dias),
     [`${CHILD}/form-plan`]: planFalso(["sleep_quality"]),
     [`${CHILD}/recommendations/today`]: {
       status: "matched",
@@ -52,17 +67,14 @@ function servidor(solicitudes: unknown[]): void {
         return { items: pendientes };
       },
     },
-    [`/v1/prediction-episodes/${EPISODIO}/outcome-reports`]: {
-      outcome_request_id: "44444444-4444-4444-8444-444444444444",
-      resolution_status: "resolved",
-    },
+    ...REPORTES,
   });
 }
 
-/** Contestable: la ventana de 24 h ya cerró y todavía queda plazo. */
-const CONTESTABLE = { finVentanaEnHoras: -2, vencimientoEnHoras: 22 };
-/** Todavía no: la ventana sigue abierta, así que un "no" no resolvería nada. */
-const EN_CURSO = { finVentanaEnHoras: 6, vencimientoEnHoras: 30 };
+/** La del envío de ayer: su ventana de 24 h ya cerró y todavía queda plazo. */
+const DE_AYER = { finVentanaEnHoras: -2, vencimientoEnHoras: 22, sufijo: "a" };
+/** La que abre el envío de hoy: la ventana acaba de empezar. */
+const DE_HOY = { finVentanaEnHoras: 22, vencimientoEnHoras: 46, sufijo: "b" };
 
 async function montar() {
   const wrapper = mount(SaludView);
@@ -79,80 +91,135 @@ afterEach(() => {
 });
 
 describe("evento de desregulación", () => {
-  describe("cuándo se exige", () => {
-    it("con la ventana cerrada y en plazo", () => {
-      expect(exigeRespuesta(solicitudFalsa(CONTESTABLE) as Solicitud)).toBe(true);
+  describe("cuándo se puede contestar", () => {
+    it("con la ventana ya cerrada y todavía en plazo", () => {
+      expect(sePuedeContestar(solicitudFalsa(DE_AYER) as Solicitud)).toBe(true);
     });
 
-    it("no mientras la ventana del objetivo sigue abierta", () => {
-      // SPEC 4.4: un "no" reportado antes de que cierre la ventana se guarda
-      // pero no resuelve. Bloquear la pantalla ahí dejaría "sí, ocurrió" como
-      // única salida, y ese falso positivo entra en los datos de los que sale
-      // la estimación siguiente.
-      expect(exigeRespuesta(solicitudFalsa(EN_CURSO) as Solicitud)).toBe(false);
+    it("también con la ventana del objetivo abierta: un `no` resuelve igual", () => {
+      expect(sePuedeContestar(solicitudFalsa(DE_HOY) as Solicitud)).toBe(true);
     });
 
     it("no cuando ya venció el plazo de captura", () => {
       const vencida = solicitudFalsa({ finVentanaEnHoras: -30, vencimientoEnHoras: -6 });
-      expect(exigeRespuesta(vencida as Solicitud)).toBe(false);
+      expect(sePuedeContestar(vencida as Solicitud)).toBe(false);
     });
 
     it("no cuando no hay ninguna pregunta abierta", () => {
-      expect(exigeRespuesta(null)).toBe(false);
+      expect(sePuedeContestar(null)).toBe(false);
     });
   });
 
   describe("en la pantalla de Salud", () => {
-    it("tapa la pantalla hasta que se responde", async () => {
-      servidor([solicitudFalsa(CONTESTABLE)]);
+    it("la pregunta se ofrece en la tarjeta, sin tapar la pantalla", async () => {
+      servidor([solicitudFalsa(DE_AYER)]);
       const wrapper = await montar();
 
-      const dialogo = wrapper.get('[role="dialog"]');
-      expect(dialogo.attributes("aria-modal")).toBe("true");
-      expect(dialogo.text()).toContain("¿Hubo un evento de desregulación");
-      // Las anclas son la definición acordada de qué cuenta como episodio.
-      expect(dialogo.text()).toContain("Necesitó apoyo de una persona");
+      // Un solo sitio: la tarjeta del menú. El diálogo que bloqueaba se fue.
+      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+
+      const tarjeta = wrapper.get(".resultado");
+      // Una sola pregunta, corta, y las dos respuestas. Ni las anclas ni el
+      // plazo: el enunciado del contrato es de tres renglones y hay que leerlo
+      // entero antes de poder contestar sí o no.
+      expect(tarjeta.text()).toContain("¿Ocurrió una desregulación?");
+      expect(tarjeta.text()).not.toContain("Necesitó apoyo de una persona");
+      expect(tarjeta.text()).not.toContain("para responder");
+      // La cara hace el trabajo que hacía el sobretítulo: separar esta tarjeta
+      // de las que solo informan. Con las dos, el rótulo sobraba.
+      expect(tarjeta.find(".resultado__cara").exists()).toBe(true);
+      expect(tarjeta.text()).not.toContain("Resultado pendiente");
+      // Una palabra cada uno, con la respuesta entera en el nombre accesible:
+      // saltando de botón en botón no se tiene la pregunta delante.
+      const si = wrapper.get(".resultado__boton--si");
+      const no = wrapper.get(".resultado__boton--no");
+      expect(si.text()).toBe("Sí");
+      expect(no.text()).toBe("No");
+      expect(si.attributes("aria-label")).toBe("Sí, ocurrió");
+      expect(no.attributes("aria-label")).toBe("No ocurrió");
     });
 
-    it("no se puede cerrar sin contestar: ni aspa, ni velo, ni Escape", async () => {
-      servidor([solicitudFalsa(CONTESTABLE)]);
+    it("la pregunta que abre el envío de hoy se ofrece ya, sin esperar a mañana", async () => {
+      // Es la mitad del arreglo: quien acaba de rellenar el cuestionario ve la
+      // pregunta de ese envío. Antes se guardaba hasta que su ventana cerrara y
+      // al volver del formulario no aparecía nada.
+      servidor([solicitudFalsa(DE_HOY)]);
       const wrapper = await montar();
 
-      // Ni aspa ni velo pulsable: no es que estén desactivados, es que no
-      // existen. Un control que no lleva a ningún sitio no debería anunciarse.
-      expect(wrapper.find(".dialogo__cerrar").exists()).toBe(false);
-      expect(wrapper.find("button.velo__fondo").exists()).toBe(false);
-
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-      await nextTick();
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+      expect(wrapper.find(".resultado").exists()).toBe(true);
     });
 
-    it("al responder se va y vuelve a pedir el resumen del día", async () => {
-      servidor([solicitudFalsa(CONTESTABLE)]);
+    it("con el día sin registrar se sigue ofreciendo la de ayer", async () => {
+      // La otra mitad: la solicitud es de la persona, no de la fecha, y su plazo
+      // corre aunque hoy esté en blanco. Escondiéndola se vencía sin que nadie
+      // la hubiera visto.
+      servidor([solicitudFalsa(DE_AYER)], []);
+      const wrapper = await montar();
+
+      expect(wrapper.find(".resultado").exists()).toBe(true);
+      // Y el aviso del formulario sigue estando: las dos cosas quedan por hacer.
+      expect(wrapper.find(".aviso").exists()).toBe(true);
+    });
+
+    it("dos preguntas abiertas son dos tarjetas, cada una con su ventana", async () => {
+      servidor([solicitudFalsa(DE_AYER), solicitudFalsa(DE_HOY)]);
+      const wrapper = await montar();
+
+      const tarjetas = wrapper.findAll(".resultado");
+      expect(tarjetas).toHaveLength(2);
+
+      // Sin el periodo serían dos tarjetas idénticas palabra por palabra, que se
+      // leen como la misma preguntada dos veces.
+      const ventanas = wrapper.findAll(".resultado__ventana").map((nodo) => nodo.text());
+      expect(ventanas[0]).not.toEqual(ventanas[1]);
+      expect(ventanas[0]).toContain("hasta hoy");
+      expect(ventanas[1]).toContain("hasta mañana");
+    });
+
+    it("al responder una se va ella sola y vuelve a pedir el resumen del día", async () => {
+      servidor([solicitudFalsa(DE_AYER), solicitudFalsa(DE_HOY)]);
       const wrapper = await montar();
 
       const peticiones = () =>
         vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/history")).length;
       const antes = peticiones();
 
-      // Al reportar, la lista se vuelve a pedir; ya sin la solicitud abierta.
-      pendientes = [];
-      await wrapper.get(".desregulacion__boton--no").trigger("click");
+      // Al reportar, la lista se vuelve a pedir; ya sin la que se contestó.
+      pendientes = [solicitudFalsa(DE_HOY)];
+      await wrapper.get(".resultado__boton--no").trigger("click");
       await flushPromises();
 
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+      expect(wrapper.findAll(".resultado")).toHaveLength(1);
+      expect(wrapper.get(".resultado__ventana").text()).toContain("hasta mañana");
       expect(peticiones()).toBe(antes + 1);
     });
 
-    it("con la ventana abierta informa en la tarjeta y deja pasar", async () => {
-      servidor([solicitudFalsa(EN_CURSO)]);
+    it("la última respondida deja la pantalla sin tarjetas", async () => {
+      servidor([solicitudFalsa(DE_AYER)]);
       const wrapper = await montar();
 
-      expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
-      expect(wrapper.get(".resultado").text()).toContain("El día todavía no termina");
-      // Y "no ocurrió" no se ofrece todavía, que es la razón de no bloquear.
-      expect(wrapper.find(".resultado__boton--no").exists()).toBe(false);
+      pendientes = [];
+      await wrapper.get(".resultado__boton--no").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.find(".resultado").exists()).toBe(false);
+    });
+
+    it("hojear a otro día no repite la pregunta", async () => {
+      // Las solicitudes son de la persona y no de la fecha: sin esto salía la
+      // misma tarjeta en todos los días y el navegador parecía no hacer nada.
+      servidor([solicitudFalsa(DE_AYER)]);
+      const wrapper = await montar();
+      expect(wrapper.find(".resultado").exists()).toBe(true);
+
+      await wrapper.get('[aria-label="Día anterior"]').trigger("click");
+      await flushPromises();
+      expect(wrapper.find(".resultado").exists()).toBe(false);
+
+      // Y al volver a hoy sigue estando: no se ha contestado.
+      await wrapper.get('[aria-label="Día siguiente"]').trigger("click");
+      await flushPromises();
+      expect(wrapper.find(".resultado").exists()).toBe(true);
     });
 
     it("sin pregunta abierta no aparece nada", async () => {
@@ -163,8 +230,8 @@ describe("evento de desregulación", () => {
       expect(wrapper.find(".resultado").exists()).toBe(false);
     });
 
-    it("no deja violaciones de axe", async () => {
-      servidor([solicitudFalsa(CONTESTABLE)]);
+    it("no deja violaciones de axe, ni siquiera con dos tarjetas", async () => {
+      servidor([solicitudFalsa(DE_AYER), solicitudFalsa(DE_HOY)]);
 
       const contenedor = document.createElement("div");
       document.body.appendChild(contenedor);

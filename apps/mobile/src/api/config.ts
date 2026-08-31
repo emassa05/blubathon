@@ -2,16 +2,16 @@
  * Configuración del acceso a la API. Todo entra por variables de entorno, así
  * que el mismo build sirve para desarrollo, demo y piloto.
  *
- * `VITE_FARO_API_URL` vacío es lo normal en desarrollo: las peticiones salen
+ * `VITE_BLUBATHON_API_URL` vacío es lo normal en desarrollo: las peticiones salen
  * como rutas relativas y el proxy de Vite (`vite.config.ts`) las lleva al
  * backend. Así el navegador ve un solo origen y CORS no entra en juego.
  */
 
-/** Prefijo de la API. Vive en el registro de constantes (SPEC 11 / C02). */
+/** Prefijo de la API. Vive en el registro de constantes (C02). */
 export const PREFIJO_API = "/v1";
 
 /** Origen del backend. Vacío = mismo origen (proxy de Vite o build servido junto a la API). */
-export const ORIGEN_API = import.meta.env.VITE_FARO_API_URL ?? "";
+export const ORIGEN_API = import.meta.env.VITE_BLUBATHON_API_URL ?? "";
 
 export const BASE_API = `${ORIGEN_API}${PREFIJO_API}`;
 
@@ -27,11 +27,23 @@ export const BASE_API = `${ORIGEN_API}${PREFIJO_API}`;
  */
 export const ID_NINO =
   new URLSearchParams(window.location.search).get("child_id") ??
-  import.meta.env.VITE_FARO_CHILD_ID ??
+  import.meta.env.VITE_BLUBATHON_CHILD_ID ??
   "";
 
+/**
+ * Qué perfil abre la aplicación: el cuidador o el terapeuta.
+ *
+ * `?rol=terapeuta` en la URL, igual que `?child_id=`. La v0.4 no pide sesión
+ * —el tenant es fijo y la API no distingue quién llama—, así que esto no es un
+ * control de acceso y no pretende serlo: es qué pantalla se monta. Cuando haya
+ * sesión, el rol vendrá del token y este parámetro desaparece.
+ */
+export const ROL = new URLSearchParams(window.location.search).get("rol") ?? "";
+
+export const ES_TERAPEUTA = ROL === "terapeuta";
+
 /** Corte de cada petición, en milisegundos. Sin esto una red caída cuelga la pantalla. */
-export const TIMEOUT_MS = Number(import.meta.env.VITE_FARO_API_TIMEOUT_MS ?? 10_000);
+export const TIMEOUT_MS = Number(import.meta.env.VITE_BLUBATHON_API_TIMEOUT_MS ?? 10_000);
 
 /** Días de historial que pide la pantalla. El backend admite hasta 100. */
 export const DIAS_HISTORIAL = 30;

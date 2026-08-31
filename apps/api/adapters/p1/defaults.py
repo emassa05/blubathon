@@ -1,4 +1,4 @@
-"""`ml.defaults` detrás del puerto de smart defaults (SPEC 6.2-6.8).
+"""`ml.defaults` detrás del puerto de smart defaults.
 
 P1 publica funciones puras sobre filas ya cargadas: el adaptador carga la
 ventana desde el store, la convierte a `FieldObservation` y llama a
@@ -84,8 +84,6 @@ class P1Defaults:
         decision = compute_default_decision(window, audit_mode=audit_mode)
         posterior = decision.to_contract()
         if posterior is None:
-            # SPEC 6.6: sin candidato presentable no hay sugerencia. El estado
-            # de P1 dice por qué, y el puerto solo transporta la ausencia.
             return None
         return DefaultDecision(
             field_code=str(posterior.field_code),

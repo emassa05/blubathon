@@ -1,4 +1,4 @@
-"""Reciprocal Rank Fusion for the hybrid pipeline (SPEC 9.4, C27).
+"""Reciprocal Rank Fusion for the hybrid pipeline (C27).
 
 RRF combines rankings without pretending their scores share a scale: a BM25
 score and a cosine similarity are not comparable numbers, but their ranks are

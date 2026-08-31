@@ -1,6 +1,6 @@
-"""The optional local LLM draft (SPEC 9.1, 9.4, CONVENTIONS 11.2).
+"""The optional local LLM draft.
 
-This step sits at the only place in Faro where a language model is allowed: it
+This step sits at the only place in Blubathon where a language model is allowed: it
 proposes wording for a candidate strategy, offline, from fragments of versioned
 literature, and its output cannot reach anybody without an evidence review and
 an independent clinical review. Runtime makes zero LLM calls (C29).
@@ -8,7 +8,7 @@ an independent clinical review. Runtime makes zero LLM calls (C29).
 The prompt is versioned package data with declared input and output schemas, and
 its hash goes into the build manifest, so changing the wording changes the build.
 Everything that reaches the transport is checked first: only authorised
-literature, never a note, a message or an identifier (SPEC 2.23).
+literature, never a note, a message or an identifier.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from packages.shared.domain.rag import DocumentChunk
 from rag.domain.text_guard import assert_literature_only, assert_no_clinical_text, literature
 
 PROMPT_PACKAGE: Final = "rag.authoring.prompts"
-AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_3_0.json"
+AUTHORING_DRAFT_PROMPT_FILE: Final = "authoring_draft.v0_5_0.json"
 
 logger = logging.getLogger("blubathon.rag")
 
@@ -108,12 +108,28 @@ class DraftResult:
             raise ValueError("the local draft is not valid JSON and cannot be reviewed") from error
 
 
+def fragment_order(chunks: Iterable[DocumentChunk]) -> tuple[DocumentChunk, ...]:
+    """The stable order the prompt numbers fragments in.
+
+    A claim cites a fragment by that number, so the caller resolving a citation
+    has to walk the same order this rendered.
+    """
+
+    return tuple(sorted(chunks, key=lambda item: item.chunk_sha256))
+
+
 def render_fragments(chunks: Iterable[DocumentChunk]) -> str:
-    """Fragments in a stable, quotable form. Nothing but literature goes in."""
+    """Fragments in a stable, numbered form. Nothing but literature goes in.
+
+    The label is an ordinal, not the document's identifier and locator. A model
+    asked to copy `paragraphs 7-12` back rewrites it — it translates it, or
+    splits the range into `paragraph 7` — and the citation then names a fragment
+    that was never retrieved. A number survives being copied.
+    """
 
     lines = [
-        f"[{chunk.document_version_id} | {chunk.locator}]\n{chunk.text}"
-        for chunk in sorted(chunks, key=lambda item: item.chunk_sha256)
+        f"[fragmento {index}]\n{chunk.text}"
+        for index, chunk in enumerate(fragment_order(chunks), start=1)
     ]
     return "\n\n".join(lines)
 
@@ -131,7 +147,7 @@ def request_draft(
         logger.warning("draft abortado motivo=transport_no_registrado")
         raise DraftUnavailableError(
             "no local model is registered with a licence, model card and artifact hash; "
-            "authoring stays manual (TAREAS 13)"
+            "authoring stays manual"
         )
     if not request.chunks:
         raise ValueError("a draft is grounded in at least one retrieved fragment")
@@ -157,9 +173,28 @@ def request_draft(
     )
     try:
         raw_output = transport.complete(rendered)
-    except Exception:
+    except DraftUnavailableError:
         logger.exception("draft error model=%s", transport.model_id)
         raise
+    except Exception as error:
+        # A model that does not answer — daemon down, request timed out, empty
+        # body, an API that rejected the call — is exactly "there is no draft",
+        # and that is how it has to reach whoever decides to abstain. Letting
+        # the original type escape does not make it more honest: the caller
+        # catches `DraftUnavailableError`, so a bare `URLError` walked straight
+        # past that branch, killed the background task before anything was
+        # written, and left the recommendation in `pending` forever, a state the
+        # screen renders as "still being prepared" with nobody preparing it.
+        #
+        # Nothing is swallowed: the traceback is logged above and chained in
+        # `__cause__`. And this covers the call to the model and nothing else.
+        # The privacy guards run before the `try` and still raise, because
+        # unauthorised literature reaching the prompt is a defect, not a draft
+        # that failed.
+        logger.exception("draft error model=%s", transport.model_id)
+        raise DraftUnavailableError(
+            f"{transport.model_id} returned no draft: {type(error).__name__}"
+        ) from error
     logger.info(
         "draft fin model=%s output_chars=%d",
         transport.model_id,

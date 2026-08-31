@@ -6,9 +6,10 @@ los fragmentos ya recuperados (nunca identidad, notas ni texto libre): quien
 audita eso es `request_draft`, antes de llamar acá.
 
 El esquema de salida sale del prompt versionado, así que la respuesta no puede
-desviarse de la forma que `verify_citation` espera. `quoted_text` se exige
-literal en el prompt y se vuelve a verificar aguas abajo: acá no se confía —
-un modelo que parafrasea una cita produce una abstención, no una recomendación.
+desviarse de la forma que `verify_citation` espera. `parafrasis_es` es una
+paráfrasis y no se verifica contra el fragmento; lo que sí se verifica aguas
+abajo es la procedencia declarada (`source_fragment`), que debe apuntar a un
+fragmento realmente recuperado.
 """
 
 from __future__ import annotations
@@ -23,19 +24,22 @@ from typing import Any, Final
 logger = logging.getLogger("blubathon.rag")
 
 MODEL_ID: Final = "claude-opus-5"
-MAX_TOKENS: Final = 4096
+MAX_TOKENS: Final = 8192
 
 OLLAMA_URL: Final = "http://127.0.0.1:11434"
 OLLAMA_MODEL: Final = "qwen2.5:7b-instruct"
 # Un modelo local en CPU puede tardar minutos en un prompt con varios
 # fragmentos; el default de urllib (sin límite) colgaría la BackgroundTask.
 OLLAMA_TIMEOUT_SECONDS: Final = 300
+# Respuestas parafraseadas y desarrolladas necesitan más espacio que el default
+# de Ollama (128 tokens), que cortaría el JSON a la mitad.
+OLLAMA_NUM_PREDICT: Final = 2048
 
-_LITERAL_QUOTE_RULE: Final = (
-    "Cada `quoted_text` debe ser una subcadena EXACTA y literal de uno de los "
-    "fragmentos entregados: copiala carácter por carácter, sin corregir "
-    "ortografía, acentos ni puntuación, y sin abreviar con puntos suspensivos. "
-    "Una cita que no aparezca literal en un fragmento invalida el borrador "
+_ATTRIBUTION_RULE: Final = (
+    "Redacta con tus propias palabras: `parafrasis_es` reescribe la idea del "
+    "fragmento, nunca la copia. En cambio `source_fragment` es el número de la etiqueta "
+    "[fragmento N] del fragmento del que sacaste la idea, como entero. Citar un "
+    "número que no aparece entre los fragmentos entregados invalida el borrador "
     "completo."
 )
 
@@ -69,7 +73,7 @@ class AnthropicDraftTransport:
             model=self._model,
             max_tokens=MAX_TOKENS,
             thinking={"type": "adaptive"},
-            system=_LITERAL_QUOTE_RULE,
+            system=_ATTRIBUTION_RULE,
             messages=[{"role": "user", "content": prompt}],
             output_config={"format": {"type": "json_schema", "schema": self._output_schema}},
         )
@@ -92,10 +96,10 @@ class OllamaDraftTransport:
     Ollama reporta para el modelo cargado, así que acá la procedencia es más
     fuerte que contra una API: identifica los pesos exactos que redactaron.
 
-    Advertencia práctica: la verificación de citas exige literalidad exacta, y
-    los modelos chicos parafrasean. Un 7B abstiene seguido con
-    `draft_not_grounded`; eso no es un bug del transporte sino la garantía
-    funcionando. Si abstiene siempre, subí de tamaño antes de tocar nada más.
+    Advertencia práctica: lo que un modelo chico falla acá no es parafrasear
+    —eso ahora se espera— sino declarar bien la procedencia. Si abstiene siempre
+    con `draft_not_grounded`, revisá qué `source_fragment` está devolviendo
+    antes de tocar nada más.
     """
 
     def __init__(
@@ -148,9 +152,9 @@ class OllamaDraftTransport:
             "model": self._model,
             "stream": False,
             "format": self._output_schema,
-            "options": {"temperature": 0},
+            "options": {"temperature": 0, "num_predict": OLLAMA_NUM_PREDICT},
             "messages": [
-                {"role": "system", "content": _LITERAL_QUOTE_RULE},
+                {"role": "system", "content": _ATTRIBUTION_RULE},
                 {"role": "user", "content": prompt},
             ],
         }

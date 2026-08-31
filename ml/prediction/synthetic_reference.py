@@ -1,4 +1,4 @@
-"""The `synthetic_reference_v021` track (SPEC 8.2).
+"""The `synthetic_reference_v021` track.
 
 The v0.2 LightGBM model is kept for integration tests, abstention and VoI
 demonstrations, leakage and determinism checks, and stress tests. It is not kept
@@ -7,8 +7,7 @@ for people. Everything it produces is a `simulation_score` in `[0,1]`, with
 labelled in the UI as the score of a designed simulation.
 
 The guard is at the top of this module rather than in a caller: a simulation
-model must not be able to run on a real subject even by mistake (SPEC 2.14,
-INV-18).
+model must not be able to run on a real subject even by mistake (INV-18).
 """
 
 from __future__ import annotations
@@ -60,11 +59,9 @@ def guard_cohort(*, cohort_kind: CohortKind, input_data_origin: DataOrigin) -> N
     """Refuse a real subject or real input data before anything is computed."""
 
     if cohort_kind is not CohortKind.DEMO_FIXTURE:
-        raise CohortViolationError(
-            "the simulation track only runs on demo_fixture cohorts (SPEC 8.2)"
-        )
+        raise CohortViolationError("the simulation track only runs on demo_fixture cohorts")
     if input_data_origin is not DataOrigin.SYNTHETIC:
-        raise CohortViolationError("the simulation track never runs on real input data (SPEC 2.14)")
+        raise CohortViolationError("the simulation track never runs on real input data")
 
 
 def score_simulation(

@@ -1,4 +1,4 @@
-"""The 19 daily fields, the source matrix and the allowlists of SPEC 5.2-5.4, 6.7."""
+"""The 19 daily fields, the source matrix and the allowlists."""
 
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ from packages.shared.field_catalog import (
     validate_field_value,
 )
 
-# SPEC 5.4, transcribed from the matrix. `Sí` becomes True.
 SOURCE_MATRIX = {
     FieldCode.SLEEP_HOURS: (True, False, False),
     FieldCode.SLEEP_QUALITY: (True, False, False),
@@ -60,7 +59,9 @@ def test_the_outcome_is_not_a_daily_field() -> None:
 @pytest.mark.parametrize(
     ("code", "expected"), sorted(SOURCE_MATRIX.items(), key=lambda i: str(i[0]))
 )
-def test_source_matrix_matches_the_spec(code: FieldCode, expected: tuple[bool, bool, bool]) -> None:
+def test_source_matrix_matches_the_catalogue(
+    code: FieldCode, expected: tuple[bool, bool, bool]
+) -> None:
     spec = FIELD_CATALOG[code]
     actual = (
         spec.allows(Source.HOME),
@@ -78,7 +79,7 @@ def test_applicable_fields_keeps_canonical_order_and_only_permitted_fields() -> 
             assert FIELD_CATALOG[code].allows(source)
 
 
-def test_default_allowlist_is_exactly_the_five_fields_of_spec_6_7() -> None:
+def test_default_allowlist_is_exactly_five_fields() -> None:
     assert {
         FieldCode.FOOD_CHANGES,
         FieldCode.ACTIVITY_PARTICIPATION,
@@ -100,7 +101,7 @@ def test_high_signal_fields_never_get_a_default() -> None:
 
 
 def test_no_continuous_count_text_or_tag_field_can_have_a_default() -> None:
-    """SPEC 6.5: a default there would require an unvalidated tolerance or bin."""
+    """A default there would require an unvalidated tolerance or bin."""
 
     for code, spec in FIELD_CATALOG.items():
         if spec.kind in KINDS_WITHOUT_DEFAULTS:
@@ -124,7 +125,7 @@ def test_dqi_uses_the_same_five_fields() -> None:
     assert len(DQI_REQUIRED_FIELDS) == 5
 
 
-def test_scenario_allowlist_is_the_five_fields_of_spec_9_7() -> None:
+def test_scenario_allowlist_is_five_fields() -> None:
     assert {
         FieldCode.SLEEP_QUALITY,
         FieldCode.ALERTNESS,

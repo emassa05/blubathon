@@ -159,7 +159,7 @@
     },
     "AuthoringBuildManifest": {
       "additionalProperties": false,
-      "description": "Everything that could change a retrieval result, fixed and hashed.\n\n`lexical_only` is a declared mode, not a silent degradation: no model is ever\ndownloaded to make a hybrid build succeed (SPEC 9.4).",
+      "description": "Everything that could change a retrieval result, fixed and hashed.\n\n`lexical_only` is a declared mode, not a silent degradation: no model is ever\ndownloaded to make a hybrid build succeed.",
       "properties": {
         "authoring_build_manifest_id": {
           "format": "uuid",
@@ -510,7 +510,7 @@
     },
     "AuthoringReview": {
       "additionalProperties": false,
-      "description": "Authoring review is a different entity from a case review (SPEC 9.5).",
+      "description": "Authoring review is a different entity from a case review.",
       "properties": {
         "accreditation_id": {
           "format": "uuid",
@@ -621,9 +621,122 @@
       "title": "AuthoringReviewObjectType",
       "type": "string"
     },
+    "CalibrationBand": {
+      "additionalProperties": false,
+      "description": "Un tramo de riesgo: lo que anunció y lo que ocurrió de verdad.\n\n`announced` contra `observed` es la lectura entera. Si el intervalo de\n`observed` cubre a `announced`, los días no desmienten al modelo; si no lo\ncubre, el modelo se equivoca sistemáticamente en ese tramo y `days` dice si\nhay bastantes días como para creérselo.",
+      "properties": {
+        "announced": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Announced",
+          "type": "number"
+        },
+        "band": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Band",
+          "type": "string"
+        },
+        "days": {
+          "minimum": 0,
+          "title": "Days",
+          "type": "integer"
+        },
+        "episodes": {
+          "minimum": 0,
+          "title": "Episodes",
+          "type": "integer"
+        },
+        "interval": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            }
+          ],
+          "title": "Interval",
+          "type": "array"
+        },
+        "observed": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Observed",
+          "type": "number"
+        }
+      },
+      "required": [
+        "band",
+        "days",
+        "episodes",
+        "announced",
+        "observed",
+        "interval"
+      ],
+      "title": "CalibrationBand",
+      "type": "object"
+    },
+    "CalibrationResponse": {
+      "additionalProperties": false,
+      "description": "La calibración de la cohorte de una organización.\n\nDe la cohorte y no de una persona: verificar una frecuencia con ±10 puntos\npide del orden de cien días **en cada tramo**, y una sola persona tarda años\nen repartirlos. Juntando a todas se cumple en semanas, al precio de que esto\nresponde \"el modelo acierta\" y no \"el modelo acierta contigo\".",
+      "properties": {
+        "bands": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CalibrationBand"
+          },
+          "title": "Bands",
+          "type": "array"
+        },
+        "brier": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Brier"
+        },
+        "caveat_es": {
+          "minLength": 1,
+          "title": "Caveat Es",
+          "type": "string"
+        },
+        "days": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Days",
+          "type": "integer"
+        },
+        "episodes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Episodes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "caveat_es"
+      ],
+      "title": "CalibrationResponse",
+      "type": "object"
+    },
     "ChallengerTrainingProtocolVersion": {
       "additionalProperties": false,
-      "description": "Optimiser settings fixed before a run, not per-run flags (SPEC 8.4).",
+      "description": "Optimiser settings fixed before a run, not per-run flags.",
       "properties": {
         "content_sha256": {
           "pattern": "^[0-9a-f]{64}$",
@@ -1094,7 +1207,7 @@
     },
     "DataQuality": {
       "additionalProperties": false,
-      "description": "DQI describes quality; it is never a predictive feature or a gate (SPEC 7.1).",
+      "description": "DQI describes quality; it is never a predictive feature or a gate.",
       "properties": {
         "consistency": {
           "maximum": 1.0,
@@ -1273,7 +1386,7 @@
     },
     "DefaultPresentation": {
       "additionalProperties": false,
-      "description": "Proof that a suggestion was shown for this field in this session.\n\nIts existence is what makes any other value for that field `default_edited`,\nhowever the client labels it (SPEC 5.5 rule 7).",
+      "description": "Proof that a suggestion was shown for this field in this session.\n\nIts existence is what makes any other value for that field `default_edited`,\nhowever the client labels it (rule 7).",
       "properties": {
         "default_presentation_id": {
           "format": "uuid",
@@ -1395,7 +1508,7 @@
     },
     "DocumentChunk": {
       "additionalProperties": false,
-      "description": "A citation without a verifiable locator cannot be published (SPEC 9.3).",
+      "description": "A citation without a verifiable locator cannot be published.",
       "properties": {
         "chunk_sha256": {
           "pattern": "^[0-9a-f]{64}$",
@@ -1453,7 +1566,7 @@
     },
     "DocumentVersion": {
       "additionalProperties": false,
-      "description": "Without version, rights and hashes a document is not indexed (SPEC 9.2).",
+      "description": "Without version, rights and hashes a document is not indexed.",
       "properties": {
         "canonical_url": {
           "format": "uri",
@@ -1540,7 +1653,7 @@
       "type": "object"
     },
     "EntryMode": {
-      "description": "Derived by the server, never sent by a browser (SPEC 5.5).",
+      "description": "Derived by the server, never sent by a browser.",
       "enum": [
         "manual_no_default",
         "audit_manual",
@@ -1562,7 +1675,7 @@
       "type": "string"
     },
     "ErrorCode": {
-      "description": "Stable machine codes for the SPEC 11.7 error envelope.\n\n`forbidden` covers cross-tenant and same-tenant-without-grant alike: telling\nthe caller which one it was would confirm that a subject exists somewhere\nelse. Both are audited (SPEC 13.2).",
+      "description": "Stable machine codes for the error envelope.\n\n`forbidden` covers cross-tenant and same-tenant-without-grant alike: telling\nthe caller which one it was would confirm that a subject exists somewhere\nelse. Both are audited.",
       "enum": [
         "validation_error",
         "unauthenticated",
@@ -1583,7 +1696,7 @@
     },
     "ErrorDetail": {
       "additionalProperties": false,
-      "description": "Stable machine code plus sanitised Spanish copy (SPEC 11.7).",
+      "description": "Stable machine code plus sanitised Spanish copy.",
       "properties": {
         "code": {
           "$ref": "#/$defs/ErrorCode"
@@ -1882,7 +1995,7 @@
     },
     "FeatureSnapshot": {
       "additionalProperties": false,
-      "description": "The closed instant a prediction was made from.\n\nIt stores the exact projected IDs so it is never recomputed, and it refuses\nto mix origins: one synthetic row invalidates a real snapshot (SPEC 5.6).",
+      "description": "The closed instant a prediction was made from.\n\nIt stores the exact projected IDs so it is never recomputed, and it refuses\nto mix origins: one synthetic row invalidates a real snapshot.",
       "properties": {
         "as_of_at": {
           "format": "date-time",
@@ -2034,7 +2147,7 @@
       "type": "object"
     },
     "FieldCode": {
-      "description": "The 19 daily observation fields of SPEC 5.2.\n\n`major_dysregulation_24h` is absent on purpose: it is an outcome, not a\ndaily observation.",
+      "description": "The 19 daily observation fields.\n\n`major_dysregulation_24h` is absent on purpose: it is an outcome, not a\ndaily observation.",
       "enum": [
         "sleep_hours",
         "sleep_quality",
@@ -2336,7 +2449,7 @@
     },
     "FormSession": {
       "additionalProperties": false,
-      "description": "`opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.\n\nThe browser never decides either one (SPEC 4.1, CONVENTIONS 8.5).",
+      "description": "`opened_at` fixes identity and audit policy; `submitted_at` is the cutoff.\n\nThe browser never decides either one.",
       "properties": {
         "actor_id": {
           "format": "uuid",
@@ -2437,7 +2550,7 @@
       "type": "object"
     },
     "FormSessionKind": {
-      "description": "A professional observation session shows no defaults (SPEC 5.5).",
+      "description": "A professional observation session shows no defaults.",
       "enum": [
         "caregiver_daily",
         "professional_observation"
@@ -2613,7 +2726,7 @@
     },
     "Interval": {
       "additionalProperties": false,
-      "description": "A closed probability interval. Both bounds or neither (CONVENTIONS 6).",
+      "description": "A closed probability interval. Both bounds or neither.",
       "properties": {
         "lower": {
           "maximum": 1.0,
@@ -2643,7 +2756,7 @@
       "type": "string"
     },
     "MetricStatus": {
-      "description": "A metric without support is `not_estimable`, never zero (CONVENTIONS 9.4).",
+      "description": "A metric without support is `not_estimable`, never zero.",
       "enum": [
         "estimated",
         "not_estimable"
@@ -2869,6 +2982,22 @@
           "default": null,
           "title": "Child Id"
         },
+        "decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "approved",
+                "rejected"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
         "prediction_episode_id": {
           "anyOf": [
             {
@@ -2923,7 +3052,8 @@
           "enum": [
             "recommendation.ready",
             "recommendation.redrafted",
-            "feedback.recorded"
+            "feedback.recorded",
+            "review.recorded"
           ],
           "title": "Type",
           "type": "string"
@@ -3180,7 +3310,7 @@
       "type": "object"
     },
     "OutcomeReportValue": {
-      "description": "A report is not a resolution (SPEC 4.4).",
+      "description": "A report is not a resolution.",
       "enum": [
         "yes",
         "no",
@@ -3578,7 +3708,7 @@
     },
     "PosteriorDefault": {
       "additionalProperties": false,
-      "description": "The estimator output behind one suggestion (SPEC 6.3, 6.4).",
+      "description": "The estimator output behind one suggestion.",
       "properties": {
         "candidate_count": {
           "minimum": 0,
@@ -4021,7 +4151,7 @@
     },
     "PredictionOutputView": {
       "additionalProperties": false,
-      "description": "A single track's answer as a caller sees it (SPEC 11.5).\n\n`confidence` is absent on purpose: what a track publishes about its own\nuncertainty is its interval, and a track without one says nothing rather\nthan borrowing another's.\n\nThe challenger appears here now. It used to be barred outright because it\nran in shadow; it is an operational track since it started answering the\n24-hour question, and the bar came off with the intended use.",
+      "description": "A single track's answer as a caller sees it.\n\n`confidence` is absent on purpose: what a track publishes about its own\nuncertainty is its interval, and a track without one says nothing rather\nthan borrowing another's.\n\nThe challenger appears here now. It used to be barred outright because it\nran in shadow; it is an operational track since it started answering the\n24-hour question, and the bar came off with the intended use.",
       "properties": {
         "abstention_reasons": {
           "default": [],
@@ -4114,7 +4244,7 @@
       "type": "object"
     },
     "PredictionStatus": {
-      "description": "Abstention is a valid HTTP 200 outcome (SPEC 2.11).",
+      "description": "Abstention is a valid HTTP 200 outcome.",
       "enum": [
         "ok",
         "abstained",
@@ -4223,7 +4353,7 @@
       "type": "object"
     },
     "QuestionReason": {
-      "description": "Why a field appears where it does in the plan (SPEC 6.9 order).",
+      "description": "Why a field appears where it does in the plan (order).",
       "enum": [
         "outcome_pending",
         "staleness",
@@ -4236,7 +4366,7 @@
       "type": "string"
     },
     "RecommendationAbstentionReason": {
-      "description": "SPEC 9.6 derives exactly one reason, in this precedence order.",
+      "description": "Derives exactly one reason, in this precedence order.",
       "enum": [
         "corpus_not_ready",
         "clinical_review_unavailable",
@@ -4274,6 +4404,75 @@
         "quote_es"
       ],
       "title": "RecommendationCitation",
+      "type": "object"
+    },
+    "RecommendationDecisionRequest": {
+      "additionalProperties": false,
+      "description": "A professional's verdict on one drafted recommendation.\n\n`approved` and `rejected` only. `RecommendationReview` in the domain also\nadmits substituting a human plan, deferring and declaring the item not\napplicable; the live surface exposes the two that a reviewer can act on\nwithout a strategy catalogue behind them, and adding a third here without\nthe machinery to honour it would be a button that lies.",
+      "properties": {
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "note_es": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note Es"
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "title": "RecommendationDecisionRequest",
+      "type": "object"
+    },
+    "RecommendationDecisionResponse": {
+      "additionalProperties": false,
+      "description": "The review as stored. Append only: a change of mind is a new row.",
+      "properties": {
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "recommendation_instance_id": {
+          "format": "uuid",
+          "title": "Recommendation Instance Id",
+          "type": "string"
+        },
+        "reviewed_at": {
+          "format": "date-time",
+          "title": "Reviewed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "recommendation_instance_id",
+        "decision",
+        "reviewed_at"
+      ],
+      "title": "RecommendationDecisionResponse",
       "type": "object"
     },
     "RecommendationInstanceView": {
@@ -4345,6 +4544,11 @@
           "title": "Created At",
           "type": "string"
         },
+        "in_review_sample": {
+          "default": false,
+          "title": "In Review Sample",
+          "type": "boolean"
+        },
         "local_date": {
           "anyOf": [
             {
@@ -4401,6 +4605,35 @@
           "title": "Recommendation Instance Id",
           "type": "string"
         },
+        "review_decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "approved",
+                "rejected"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Decision"
+        },
+        "reviewed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewed At"
+        },
         "risk_band": {
           "enum": [
             "low",
@@ -4451,7 +4684,7 @@
     },
     "ReleaseManifest": {
       "additionalProperties": false,
-      "description": "Implementation, corpus, target and catalogue status, declared separately.\n\nWithout a legally usable corpus M4 and the DoD stay blocked; without an\nauthorised reviewer the catalogue can only be `blocked_clinical_review`\n(SPEC 20).",
+      "description": "Implementation, corpus, target and catalogue status, declared separately.\n\nWithout a legally usable corpus M4 and the DoD stay blocked; without an\nauthorised reviewer the catalogue can only be `blocked_clinical_review`\n.",
       "properties": {
         "catalog_status": {
           "title": "Catalog Status",
@@ -4464,6 +4697,11 @@
         },
         "corpus_status": {
           "title": "Corpus Status",
+          "type": "string"
+        },
+        "domain_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Domain Version",
           "type": "string"
         },
         "generated_at": {
@@ -4483,18 +4721,13 @@
           "title": "Notes Es",
           "type": "array"
         },
-        "spec_version": {
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
-          "title": "Spec Version",
-          "type": "string"
-        },
         "target_definition_status": {
           "title": "Target Definition Status",
           "type": "string"
         }
       },
       "required": [
-        "spec_version",
+        "domain_version",
         "contract_version",
         "implementation_status",
         "corpus_status",
@@ -4512,6 +4745,42 @@
       ],
       "title": "RetrievalMode",
       "type": "string"
+    },
+    "ReviewQueueResponse": {
+      "additionalProperties": false,
+      "description": "The sampled slice a professional is asked to review.\n\nThe response carries the draw that produced it —denominator and policy\nversion— because a queue that does not say it is a sample reads as the\nwhole workload, and a reviewer would conclude the other four fifths were\nnever drafted.",
+      "properties": {
+        "candidates": {
+          "minimum": 0,
+          "title": "Candidates",
+          "type": "integer"
+        },
+        "items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RecommendationInstanceView"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "sample_denominator": {
+          "minimum": 1,
+          "title": "Sample Denominator",
+          "type": "integer"
+        },
+        "sample_policy_version": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "title": "Sample Policy Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sample_denominator",
+        "sample_policy_version",
+        "candidates"
+      ],
+      "title": "ReviewQueueResponse",
+      "type": "object"
     },
     "Role": {
       "enum": [
@@ -4663,7 +4932,7 @@
     },
     "ScenarioBuildResult": {
       "additionalProperties": false,
-      "description": "Outcome of the pure P1 `build_scenario` facade (SPEC 9.7).\n\nP2 persists this or the abstention; it never re-derives the precedence.",
+      "description": "Outcome of the pure P1 `build_scenario` facade.\n\nP2 persists this or the abstention; it never re-derives the precedence.",
       "properties": {
         "builder_version": {
           "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
@@ -4738,7 +5007,7 @@
     },
     "ScenarioV1": {
       "additionalProperties": false,
-      "description": "The minimal matching payload. No identity, notes, external IDs or history.\n\nTreated as potentially pseudonymised while a combination of attributes could\nbe linkable; it is never presumed anonymous (SPEC 9.7).",
+      "description": "The minimal matching payload. No identity, notes, external IDs or history.\n\nTreated as potentially pseudonymised while a combination of attributes could\nbe linkable; it is never presumed anonymous.",
       "properties": {
         "context_tags": {
           "default": [],
@@ -4790,7 +5059,7 @@
       "type": "object"
     },
     "Source": {
-      "description": "Observation context, not the actor and not a bibliographic source.\n\n`source_id` is reserved for corpus documents; `actor_id` records who\nreported and `source_mapping_id` which adapter was used (SPEC 5.4).",
+      "description": "Observation context, not the actor and not a bibliographic source.\n\n`source_id` is reserved for corpus documents; `actor_id` records who\nreported and `source_mapping_id` which adapter was used.",
       "enum": [
         "home",
         "therapy",
@@ -4847,7 +5116,7 @@
     },
     "SourceMetric": {
       "additionalProperties": false,
-      "description": "Metrics broken down by observation context (SPEC 14.3).",
+      "description": "Metrics broken down by observation context.",
       "properties": {
         "metrics": {
           "default": [],
@@ -4992,7 +5261,7 @@
     },
     "SubjectProfile": {
       "additionalProperties": false,
-      "description": "Only the attributes matching needs, from closed catalogues (SPEC 5.7).\n\nTags are never inferred from free notes, and `care_mode` is a token from a\ntenant-versioned catalogue that SPEC v0.3.0 does not enumerate.",
+      "description": "Only the attributes matching needs, from closed catalogues.\n\nTags are never inferred from free notes, and `care_mode` is a token from a\ntenant-versioned catalogue that the contract does not enumerate.",
       "properties": {
         "care_mode": {
           "maxLength": 64,
@@ -5107,7 +5376,7 @@
     },
     "TargetDefinitionVersion": {
       "additionalProperties": false,
-      "description": "The versioned question a real label answers.\n\nAn imported intensity label proves a category exists in an export; it does\nnot define how a new person should answer. Without an `active` version the\nsystem accepts demo fixtures and abstains from creating real labels\n(SPEC 4.3).",
+      "description": "The versioned question a real label answers.\n\nAn imported intensity label proves a category exists in an export; it does\nnot define how a new person should answer. Without an `active` version the\nsystem accepts demo fixtures and abstains from creating real labels\n.",
       "properties": {
         "approval_status": {
           "$ref": "#/$defs/ApprovalStatus"
@@ -5543,7 +5812,7 @@
     },
     "VoiEstimate": {
       "additionalProperties": false,
-      "description": "Mutual information in nats, or an explicit reason it is unavailable.\n\nUnavailable means `voi_nats=null`. Zero would claim the value was computed\nand found uninformative (SPEC 7.3).",
+      "description": "Mutual information in nats, or an explicit reason it is unavailable.\n\nUnavailable means `voi_nats=null`. Zero would claim the value was computed\nand found uninformative.",
       "properties": {
         "conditional_model_version": {
           "anyOf": [
@@ -5612,7 +5881,7 @@
       "type": "object"
     },
     "VoiStatus": {
-      "description": "Unavailable returns `voi_nats=null`, never zero (SPEC 7.3).",
+      "description": "Unavailable returns `voi_nats=null`, never zero.",
       "enum": [
         "available",
         "unavailable_model",
@@ -5623,18 +5892,21 @@
       "type": "string"
     }
   },
-  "$id": "https://faro.local/schema/faro-contract-0.4.0.json",
+  "$id": "https://blubathon.local/schema/blubathon-contract-0.4.0.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Generated by `python -m tools.contracts.generate`. Do not edit by hand.",
-  "title": "Faro contract",
-  "x-faro-contract-version": "faro-contract-0.4.0",
-  "x-faro-published-models": [
+  "title": "Blubathon contract",
+  "x-blubathon-contract-version": "blubathon-contract-0.4.0",
+  "x-blubathon-domain-version": "0.4.0",
+  "x-blubathon-published-models": [
     "AbstentionBreakdown",
     "AnswerSubmission",
     "AuthoringBuildManifest",
     "AuthoringRequest",
     "AuthoringRequestIntent",
     "AuthoringReview",
+    "CalibrationBand",
+    "CalibrationResponse",
     "ChallengerTrainingProtocolVersion",
     "ChildHistoryDay",
     "ChildHistoryResponse",
@@ -5681,9 +5953,12 @@
     "PredictionOutput",
     "PredictionOutputView",
     "QuestionPresentation",
+    "RecommendationDecisionRequest",
+    "RecommendationDecisionResponse",
     "RecommendationInstanceView",
     "RecommendationListResponse",
     "ReleaseManifest",
+    "ReviewQueueResponse",
     "RuntimeDecision",
     "RuntimeStrategyMatch",
     "ScenarioBuildResult",
@@ -5699,6 +5974,5 @@
     "TodayRecommendationResponse",
     "TrainingRun",
     "VoiEstimate"
-  ],
-  "x-faro-spec-version": "0.4.0"
+  ]
 }

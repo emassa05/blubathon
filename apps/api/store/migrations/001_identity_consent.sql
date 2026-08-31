@@ -1,10 +1,10 @@
 -- 001_identity_consent
 -- Identidad, roles, acreditaciones, sujetos, perfiles, grants y consentimientos.
--- SPEC 12.1, 12.2 y 13.1. Todo contrato de autorización es append-only: una
+-- Todo contrato de autorización es append-only: una
 -- corrección crea otra fila con `supersedes_id`, nunca un UPDATE destructivo.
 --
 -- Los timestamps se guardan en el formato canónico `YYYY-MM-DDTHH:mm:ss.sssZ`
--- (SPEC 5.9) para que el orden lexicográfico sea el orden cronológico.
+-- para que el orden lexicográfico sea el orden cronológico.
 
 CREATE TABLE tenants (
     tenant_id        TEXT PRIMARY KEY,
@@ -17,8 +17,6 @@ CREATE TABLE users (
     user_id             TEXT PRIMARY KEY,
     tenant_id           TEXT NOT NULL REFERENCES tenants(tenant_id),
     display_name        TEXT NOT NULL,
-    -- Sesión local ficticia preseeded (SPEC 12.3). El piloto usa OIDC y esta
-    -- columna queda nula.
     demo_session_token  TEXT UNIQUE,
     created_at          TEXT NOT NULL
 );
@@ -102,7 +100,6 @@ CREATE TABLE subject_access_grants (
     CHECK (valid_until IS NULL OR valid_until > valid_from)
 );
 
--- La lista de sujetos se filtra en SQL por este índice (CONVENTIONS 13).
 CREATE INDEX ix_grants_actor ON subject_access_grants(tenant_id, actor_id, subject_id);
 CREATE INDEX ix_grants_subject ON subject_access_grants(tenant_id, subject_id);
 

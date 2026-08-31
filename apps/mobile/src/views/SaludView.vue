@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { FARO_TEXTS_ES } from "@faro/contract/texts";
-import { computed, onMounted } from "vue";
+import { BLUBATHON_TEXTS_ES } from "@blubathon/contract/texts";
+import { computed, onMounted, ref } from "vue";
 
+import type { OutcomeRequestView as SolicitudPendiente } from "@/api/contrato";
 import AvisoPendiente from "@/components/salud/AvisoPendiente.vue";
 import CabeceraRiesgo from "@/components/salud/CabeceraRiesgo.vue";
-import DialogoDesregulacion from "@/components/salud/DialogoDesregulacion.vue";
 import FondoRiesgo from "@/components/salud/FondoRiesgo.vue";
 import NavegadorFecha from "@/components/salud/NavegadorFecha.vue";
+import RachaSinDesregulacion from "@/components/salud/RachaSinDesregulacion.vue";
+import { comprobacionDe } from "@/dominio/comprobacion";
 import TarjetaFactores from "@/components/salud/TarjetaFactores.vue";
 import TarjetaFormularios from "@/components/salud/TarjetaFormularios.vue";
 import TarjetaRecomendacion from "@/components/salud/TarjetaRecomendacion.vue";
@@ -23,38 +25,72 @@ const emitir = defineEmits<{
 
 // Único punto de la pantalla donde entran los datos. Los componentes reciben
 // `props` ya traducidas y no saben que existe una API.
-const { fechaIso, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } = useDiaSeleccionado();
+const { fechaIso, esHoy, etiqueta, etiquetaAccesible, diaAnterior, diaSiguiente } =
+  useDiaSeleccionado();
 const { resumen, cargando, error, recargar } = useResumenSalud(fechaIso);
 
 /*
- * La pregunta de cierre —¿hubo un evento de desregulación?— no depende del día
- * que se esté mirando: es la que el sistema dejó abierta y hay que contestar
- * antes de que venza.
+ * Qué ocurrió de verdad en los días que se anunciaron como el de hoy.
  *
- * Llega de dos maneras, y cuál toca lo decide `useDesregulacion`, no esta
- * pantalla:
- *
- * - **Obligatoria**, en un diálogo delante de todo, cuando ya se puede
- *   contestar que sí y que no. Hasta que no se responde no hay pantalla.
- * - **Informativa**, en la tarjeta de siempre, mientras la ventana de 24 h
- *   sigue abierta y un "no ocurrió" todavía no resolvería nada. Exigirla ahí
- *   dejaría "sí, ocurrió" como única salida y ese falso positivo se escribiría
- *   en los datos de los que sale la estimación siguiente.
+ * Se resuelve aquí y no en el adaptador porque hace falta la cifra para saber
+ * qué tramo toca, y la cifra es de la pantalla: el mismo día visto con otra
+ * estimación caería en otro tramo. La calibración entera viaja en el resumen.
  */
-const {
-  obligatoria,
-  informativa,
-  error: errorResultado,
-  enviando,
-  responder,
-  cargar: cargarResultados,
-} = useDesregulacion();
+const comprobacion = computed(() =>
+  comprobacionDe(resumen.value?.calibracion ?? null, resumen.value?.riesgo ?? null),
+);
+
+/*
+ * Las preguntas de cierre —¿hubo un evento de desregulación?— no dependen del
+ * día que se esté mirando: son las que el sistema dejó abiertas y hay que
+ * contestar antes de que venzan.
+ *
+ * Se enseñan todas las que siguen en plazo, en la misma tarjeta de siempre y
+ * una debajo de otra. Cuáles son lo decide `useDesregulacion`, no esta
+ * pantalla; aquí solo se pintan.
+ */
+const { pendientes, enviandoId, errorDe, responder, cargar: cargarResultados } = useDesregulacion();
 
 onMounted(cargarResultados);
 
+/*
+ * Y solo en hoy.
+ *
+ * Las solicitudes son de la persona y no de la fecha, así que sin esto salían
+ * las mismas en todos los días: se hojeaba hacia atrás y la tarjeta seguía
+ * ahí, idéntica, como si cada día tuviera su pregunta sin contestar.
+ *
+ * Hoy es donde se hace lo que hay que hacer. Los demás días son para mirar lo
+ * que pasó, y una tarjeta con dos botones que escriben en los datos de otro día
+ * no es mirar. Esconderla en ellos no esconde nada: lo pendiente de ayer se
+ * sigue contestando desde hoy, que es donde está junto a lo demás que queda por
+ * hacer.
+ */
+const cierresPendientes = computed(() => (esHoy.value ? pendientes.value : []));
+
+/*
+ * Todas las preguntas abiertas, y desde que se abren.
+ *
+ * Antes hacían falta dos condiciones para enseñar una sola: que el día que se
+ * está mirando estuviera ya registrado, y que la ventana de 24 h de la pregunta
+ * hubiera cerrado. Juntas dejaban la tarjeta invisible justo cuando se la
+ * esperaba —al volver del cuestionario no aparecía nada, porque la pregunta que
+ * ese envío acababa de abrir no entraba hasta el día siguiente— y escondían la
+ * de ayer sin contestar mientras hoy siguiera en blanco, con su plazo corriendo
+ * igual.
+ *
+ * Las dos se van. Lo que sigue mandando es el plazo, que es lo único que decide
+ * si el reporte resuelve, y de eso se encarga `useDesregulacion`.
+ *
+ * Lo que sí se paga: la pregunta de hoy habla de una ventana que todavía no ha
+ * terminado. Contestarla "no ocurrió" resuelve el episodio con lo que se sabe
+ * ahora, y lo que pase en las horas que quedan ya no entra. Por eso cada
+ * tarjeta dice de qué periodo habla en vez de dar por hecho que es "el día".
+ */
+
 /** Reportar cambia la estimación del día: el resumen se vuelve a pedir. */
-async function alReportar(valor: "yes" | "no"): Promise<void> {
-  if (await responder(valor)) await recargar();
+async function alReportar(solicitud: SolicitudPendiente, valor: "yes" | "no"): Promise<void> {
+  if (await responder(solicitud, valor)) await recargar();
 }
 
 // Mientras se carga o cuando falla no hay estimación, y eso es exactamente la
@@ -62,12 +98,31 @@ async function alReportar(valor: "yes" | "no"): Promise<void> {
 // todavía no se sabe nada sería afirmar algo que la API no dijo.
 const banda = computed(() => bandaRiesgo(resumen.value?.riesgo ?? null));
 
-function masInfo(): void {
-  // TODO(spec): abrir el popup que explica el riesgo de desregulación.
+/*
+ * La cifra del riesgo, después de enviar el cuestionario.
+ *
+ * El envío ya la ha cambiado por el camino de siempre —`recargar` vuelve a
+ * pedir el resumen y la cabecera anima del valor viejo al nuevo—, pero eso pasa
+ * con el diálogo delante y no lo ve nadie. Al cerrarlo, la cifra ya estaría
+ * puesta.
+ *
+ * Así que se recorre otra vez, entera y desde cero, cuando se vuelve a la
+ * pantalla. No es la animación del cambio: es la de un número que se acaba de
+ * calcular con lo que se acaba de contestar, y que por eso se enseña saliendo.
+ */
+const cabecera = ref<InstanceType<typeof CabeceraRiesgo> | null>(null);
+
+function animarRiesgoDesdeCero(): void {
+  cabecera.value?.animarDesdeCero();
+}
+
+/** Al enviar: la cifra se aparca en cero mientras el diálogo tapa la pantalla. */
+function prepararRiesgo(): void {
+  cabecera.value?.prepararCuenta();
 }
 
 // El envío del cuestionario deja viejo el resumen del día: App lo avisa por aquí.
-defineExpose({ recargar });
+defineExpose({ recargar, animarRiesgoDesdeCero, prepararRiesgo });
 </script>
 
 <template>
@@ -86,19 +141,31 @@ defineExpose({ recargar });
           />
 
           <CabeceraRiesgo
+            ref="cabecera"
             class="pantalla__riesgo"
             :riesgo="resumen?.riesgo ?? null"
-            :confianza="resumen?.confianza ?? null"
-            @mas-info="masInfo"
+            :comprobacion="comprobacion"
+          />
+
+          <!-- La racha acompaña a la cifra dentro del panel: las dos hablan de
+               episodios de desregulación, una hacia delante y otra hacia atrás,
+               y separarlas obligaría a desplazarse para compararlas. -->
+          <RachaSinDesregulacion
+            v-if="resumen?.rachaSinDesregulacion"
+            class="pantalla__racha"
+            :racha="resumen.rachaSinDesregulacion"
           />
         </div>
       </div>
 
-      <div class="pantalla__contenido">
+      <div
+        class="pantalla__contenido"
+        :class="{ 'pantalla__contenido--con-aviso': resumen?.formularioPendiente }"
+      >
         <!-- Carga y error ocupan el sitio de las tarjetas, no se superponen a
              ellas: el contenido de un día nunca se lee bajo el de otro. -->
         <p v-if="cargando" class="pantalla__aviso" role="status">
-          {{ FARO_TEXTS_ES.loadingEs }}
+          {{ BLUBATHON_TEXTS_ES.loadingEs }}
         </p>
 
         <p v-else-if="error" class="pantalla__aviso" role="alert">
@@ -112,7 +179,42 @@ defineExpose({ recargar });
           estas piezas siguen apiladas en este mismo orden.
         -->
         <template v-else-if="resumen">
+          <!--
+            Las preguntas de cierre van las primeras, por encima de la
+            recomendación. Son las únicas piezas de la pantalla con un plazo
+            —fuera de él el reporte se guarda y no resuelve nada— y de ellas
+            depende que el modelo vuelva a tener cifra. Estaban las cuartas de la
+            columna, debajo de dos tarjetas que solo informan, y en un teléfono
+            había que desplazarse para encontrarlas.
+
+            Van en una caja propia porque pueden ser dos: la del envío de ayer y
+            la que abrió el de hoy. En la retícula de escritorio esa caja es la
+            que ocupa la casilla, y las tarjetas se apilan dentro.
+
+            Solo en hoy: son lo que queda por hacer, no parte de lo que se ve al
+            hojear días hacia atrás.
+          -->
+          <div
+            v-if="cierresPendientes.length > 0"
+            class="pantalla__cierres pantalla__zona--resultado"
+          >
+            <TarjetaResultado
+              v-for="solicitud in cierresPendientes"
+              :key="solicitud.outcome_request_id"
+              :solicitud="solicitud"
+              :enviando="enviandoId !== null"
+              :error="errorDe(solicitud)"
+              @reportar="(valor) => alReportar(solicitud, valor)"
+            />
+          </div>
+
+          <!-- La clave es el día, y con ella cambiar de fecha vuelve a montar la
+               tarjeta. Es lo que separa "la redacción terminó" de "estoy
+               mirando otro día": la tarjeta teclea el texto que llega mientras
+               está delante, y sin esto hojear de un día todavía en espera a uno
+               ya redactado se leería como si acabara de escribirse. -->
           <TarjetaRecomendacion
+            :key="resumen.fecha"
             class="pantalla__zona--recomendacion"
             :recomendacion="resumen.recomendacion"
           />
@@ -125,36 +227,20 @@ defineExpose({ recargar });
             @ver-mas="emitir('verHistorial')"
             @abrir-registro="(id) => emitir('abrirCuestionario', id)"
           />
-          <TarjetaResultado
-            v-if="informativa"
-            class="pantalla__zona--resultado"
-            :solicitud="informativa"
-            :enviando="enviando"
-            :error="errorResultado"
-            @reportar="alReportar"
-          />
-
-          <AvisoPendiente
-            v-if="resumen.formularioPendiente"
-            class="pantalla__zona--pendiente"
-            :dia="etiquetaAccesible"
-            @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
-          />
         </template>
       </div>
     </div>
 
     <!--
-      El diálogo obligatorio va el último y fuera de la columna: es `fixed`, así
-      que su sitio en el DOM no decide dónde se ve, y el último es el único que
-      no obliga a leer la pantalla entera para encontrarlo.
+      El aviso del formulario pendiente flota sobre la pantalla, así que sale de
+      la columna por lo mismo que sale el diálogo: es `fixed` y su sitio en el
+      DOM ya no decide dónde se ve. Su condición no cambia —sigue apareciendo
+      cuando el día que se está mirando no tiene envío—, solo dónde se dibuja.
     -->
-    <DialogoDesregulacion
-      v-if="obligatoria"
-      :solicitud="obligatoria"
-      :enviando="enviando"
-      :error="errorResultado"
-      @responder="alReportar"
+    <AvisoPendiente
+      v-if="resumen?.formularioPendiente"
+      :dia="etiquetaAccesible"
+      @abrir-formulario="emitir('abrirCuestionario', fechaIso)"
     />
   </main>
 </template>
@@ -162,15 +248,13 @@ defineExpose({ recargar });
 <style scoped>
 .pantalla {
   display: flex;
-  /* Sin estirar: en una ventana muy alta la columna se queda en su alto de
-     referencia y no reparte los bloques por toda la pantalla. */
   align-items: flex-start;
   justify-content: center;
   min-height: 100dvh;
   /* Plano a propósito. Las burbujas son de la columna, que es el lienzo de la
      aplicación; extenderlas a todo el ancho las estiraría hasta desaparecer en
      una ventana de escritorio. */
-  background: var(--faro-fondo-final);
+  background: var(--blubathon-fondo-final);
 }
 
 /*
@@ -189,8 +273,26 @@ defineExpose({ recargar });
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: min(100dvh, var(--faro-alto-referencia));
-  padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
+  /*
+   * La ventana entera, siempre. Estuvo topada al alto de referencia de un
+   * teléfono —844— para que en una ventana muy alta los bloques no se
+   * repartieran por toda la pantalla, y el tope se veía: el fondo con burbujas
+   * lo pinta el contenido de esta columna, así que en cualquier pantalla más
+   * alta que eso —casi todos los teléfonos de hoy— el azul se cortaba en una
+   * línea recta y debajo quedaba una franja de color plano.
+   *
+   * Que los bloques no se repartan ya no depende de esto: lo dice
+   * `pantalla__contenido`, que los apila desde arriba y deja abajo el sitio que
+   * sobre, pintado.
+   */
+  min-height: 100dvh;
+  /*
+   * Sin acolchado abajo: la columna no tiene fondo propio —lo lleva el
+   * contenido—, así que cualquier acolchado suyo cae por fuera del lienzo y se
+   * ve como una franja de color plano pegada al borde inferior, con un corte
+   * recto justo donde acaban las burbujas. El aire de abajo lo pone el
+   * contenido, que es quien pinta.
+   */
 }
 
 /*
@@ -209,19 +311,20 @@ defineExpose({ recargar });
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: var(--faro-panel-alto);
+  min-height: var(--blubathon-panel-alto);
   /*
    * El acolchado lateral es el de siempre mientras la ventana no pase del ancho
    * de lectura, y a partir de ahí es lo que sobra repartido a los dos lados.
    * En un teléfono `(100% - 480px)` es negativo y gana el 24 de siempre: el
    * `max()` no cambia ni un píxel de lo que ya había.
    */
-  padding: calc(var(--faro-esp-14) + env(safe-area-inset-top, 0px))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) var(--faro-esp-26);
+  padding: calc(var(--blubathon-esp-14) + env(safe-area-inset-top, 0px))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    var(--blubathon-esp-26);
   overflow: hidden;
   background:
-    radial-gradient(130% 62% at 50% 0%, var(--faro-brillo), transparent 62%),
-    linear-gradient(180deg, var(--faro-panel-cima) 0%, var(--faro-panel) 100%);
+    radial-gradient(130% 62% at 50% 0%, var(--blubathon-brillo), transparent 62%),
+    linear-gradient(180deg, var(--blubathon-panel-cima) 0%, var(--blubathon-panel) 100%);
 }
 
 .pantalla__panel-contenido {
@@ -229,7 +332,36 @@ defineExpose({ recargar });
 }
 
 .pantalla__riesgo {
-  margin-top: var(--faro-esp-4);
+  margin-top: var(--blubathon-esp-4);
+}
+
+/*
+ * La racha cuelga de la cabecera, así que se centra con ella y no con el panel:
+ * el panel es de borde a borde y la cabecera está topada a 480.
+ *
+ * Y reserva el hueco de la cúpula. El contenido sube sobre el panel y lo recorta
+ * con un arco que es **más alto en el centro** —los dos radios se encuentran al
+ * 50%—, justo por donde pasa esta línea, que va centrada. El acolchado de abajo
+ * del panel ya cubre parte de esa profundidad; lo que falta es la diferencia, y
+ * se pide aquí para que el panel crezca solo cuando hay racha: sin ella no
+ * cambia ni un píxel de lo que ya estaba validado.
+ *
+ * `max()` con cero porque en ventana baja la cúpula es más corta que el
+ * acolchado y la resta se va a negativo.
+ *
+ * Esa cuenta reserva el hueco **exacto**: deja la línea apoyada justo en el
+ * punto más profundo del arco, a cero de holgura, y el texto se lee pegado a la
+ * curva. La reserva evita que la tape, que es otra cosa que separarla de ella,
+ * así que encima va una holgura constante. Constante y no proporcional a la
+ * cúpula porque lo que se está separando es texto de un borde, y eso se mide en
+ * lo que el ojo pide, no en lo que mida el arco: en ventana baja la cúpula cae a
+ * 28 y la resta daba 2 px, donde el problema era el mismo.
+ */
+.pantalla__racha {
+  margin-inline: auto;
+  margin-bottom: calc(
+    max(0px, var(--blubathon-cupula) - var(--blubathon-esp-26)) + var(--blubathon-esp-14)
+  );
 }
 
 /*
@@ -250,19 +382,53 @@ defineExpose({ recargar });
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: space-between;
-  /* `gap` es el mínimo entre bloques; con espacio libre, `space-between` sigue
-     repartiéndolo igual. */
-  gap: var(--faro-esp-14);
+  /* Desde arriba: el espacio que sobre se queda entero al final, que es donde
+     no separa nada. Repartido entre los bloques —lo que hacía
+     `space-between`—, un día con una sola tarjeta la dejaba flotando en mitad
+     de la pantalla. */
+  justify-content: flex-start;
+  gap: var(--blubathon-esp-14);
   /* El mismo margen que crece del panel, por la misma razón y con la misma
      cuenta: las tarjetas y la cabecera tienen que caer sobre la misma línea. */
-  padding: calc(var(--faro-esp-14) + var(--faro-cupula))
-    max(var(--faro-esp-24), (100% - var(--faro-ancho-lectura)) / 2) 0;
-  margin-top: calc(var(--faro-cupula) * -1);
+  padding: calc(var(--blubathon-esp-14) + var(--blubathon-cupula))
+    max(var(--blubathon-esp-24), (100% - var(--blubathon-ancho-lectura)) / 2)
+    calc(var(--blubathon-esp-26) + env(safe-area-inset-bottom, 0px));
+  margin-top: calc(var(--blubathon-cupula) * -1);
   /* Las burbujas se dimensionan contra esta caja, así que llenan la columna
      igual en un teléfono que en una ventana ancha. */
-  background: var(--faro-fondo-pagina);
-  border-radius: 50% 50% 0 0 / var(--faro-cupula) var(--faro-cupula) 0 0;
+  background: var(--blubathon-fondo-pagina);
+  border-radius: 50% 50% 0 0 / var(--blubathon-cupula) var(--blubathon-cupula) 0 0;
+}
+
+/*
+ * Con el aviso flotando en la esquina, la última tarjeta de la columna acaba
+ * debajo de él y no hay desplazamiento que la saque: `fixed` no se mueve. El
+ * hueco se pide aquí, y solo mientras el aviso está, para que un día ya enviado
+ * no arrastre una franja vacía al final de la página.
+ */
+.pantalla__contenido--con-aviso {
+  padding-bottom: calc(
+    var(--blubathon-esp-26) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/*
+ * Las preguntas de cierre se apilan con la misma separación que las tarjetas
+ * entre sí: dos preguntas seguidas tienen que leerse como dos, no como un
+ * bloque.
+ *
+ * Y el bloque sube lo que su cara sobresale. Cada tarjeta se reserva ese hueco
+ * por su cuenta, que es lo correcto entre una pregunta y la siguiente; encima
+ * de la primera no hay nada que esquivar —solo la curva de la cúpula, que en el
+ * centro, que es justo por donde va la cara, está vacía— y ese hueco era medio
+ * dedo de pantalla gastado en nada. Así la tarjeta empieza donde empezaría
+ * cualquier otra y la cara se apoya en la curva.
+ */
+.pantalla__cierres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--blubathon-esp-14);
+  margin-top: calc(var(--blubathon-cierre-saliente) * -1);
 }
 
 /*
@@ -270,25 +436,23 @@ defineExpose({ recargar });
  * radio, misma elevación— y no un bloque aparte: el sitio donde iban a estar
  * las tarjetas no cambia de aspecto según qué haya pasado con la red.
  *
- * `margin-bottom: auto` se come el espacio libre por debajo, así que el aviso
- * queda arriba del todo pese al `space-between` de la columna: justo donde el
- * ojo ya estaba buscando la recomendación.
+ * Queda arriba del todo, justo donde el ojo ya estaba buscando la
+ * recomendación: se lo da la columna, que apila desde arriba.
  */
 .pantalla__aviso {
-  margin-bottom: auto;
-  padding: var(--faro-esp-18) var(--faro-esp-16);
-  font-size: var(--faro-fs-135);
-  color: var(--faro-gris-texto);
+  padding: var(--blubathon-esp-18) var(--blubathon-esp-16);
+  font-size: var(--blubathon-fs-135);
+  color: var(--blubathon-gris-texto);
   text-align: center;
-  background: var(--faro-superficie);
-  border-radius: var(--faro-radio-24);
-  box-shadow: var(--faro-sombra-tarjeta);
+  background: var(--blubathon-superficie);
+  border-radius: var(--blubathon-radio-24);
+  box-shadow: var(--blubathon-sombra-tarjeta);
 }
 
 /*
  * Tableta, o una ventana a media pantalla: de 600 a 900.
  *
- * La columna crece sola —`--faro-ancho-max` ya vale más a partir de 600—, así
+ * La columna crece sola —`--blubathon-ancho-max` ya vale más a partir de 600—, así
  * que aquí solo va lo que no puede crecer con ella: la cabecera del riesgo. La
  * cifra de 104 px, su pastilla de confianza y el navegador de fecha están
  * dibujados para 480, y repartidos por 660 dejan de ser una cabecera para ser
@@ -306,30 +470,8 @@ defineExpose({ recargar });
    */
   .pantalla__panel-contenido {
     width: 100%;
-    max-width: var(--faro-ancho-cabecera);
+    max-width: var(--blubathon-ancho-cabecera);
     margin-inline: auto;
-  }
-
-  /*
-   * Y llega hasta abajo, por dos motivos distintos que dejaban el mismo hueco.
-   *
-   * El tope de 844 es el alto de referencia de un teléfono y tenía sentido
-   * cuando la columna era una tira centrada; ahora que es la página, en una
-   * ventana más alta que eso el lienzo se quedaba corto. `flex: 1` del
-   * contenido hace el resto.
-   *
-   * Y el acolchado de abajo de la columna cae por fuera del lienzo: la columna
-   * no tiene fondo propio, así que esos 26 px eran una franja de color plano
-   * pegada al borde inferior incluso con la página llena. Se mueve dentro del
-   * contenido, que es quien lleva el fondo.
-   */
-  .pantalla__columna {
-    min-height: 100dvh;
-    padding-bottom: 0;
-  }
-
-  .pantalla__contenido {
-    padding-bottom: calc(var(--faro-esp-26) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -350,13 +492,8 @@ defineExpose({ recargar });
  */
 @media (min-width: 900px) {
   .pantalla__columna {
-    /* Repetidos y no heredados del bloque de 600: los dos puntos de corte
-       tienen condiciones distintas —ese lleva un mínimo de alto y este no—, y
-       una ventana ancha y baja casa con este solo. */
-    min-height: 100dvh;
-    padding-bottom: 0;
-    --faro-cupula: var(--faro-cupula-amplia);
-    --faro-panel-alto: var(--faro-panel-alto-amplio);
+    --blubathon-cupula: var(--blubathon-cupula-amplia);
+    --blubathon-panel-alto: var(--blubathon-panel-alto-amplio);
   }
 
   .pantalla__contenido {
@@ -374,22 +511,35 @@ defineExpose({ recargar });
      * llevaría por delante el fondo y la cúpula, que sí van de borde a borde.
      */
     grid-template-columns:
-      minmax(var(--faro-esp-40), 1fr)
-      minmax(0, var(--faro-ancho-principal))
-      var(--faro-rail-ancho)
-      minmax(var(--faro-esp-40), 1fr);
+      minmax(var(--blubathon-esp-40), 1fr)
+      minmax(0, var(--blubathon-ancho-principal))
+      var(--blubathon-rail-ancho)
+      minmax(var(--blubathon-esp-40), 1fr);
+    /* La pregunta de cierre encabeza el rail por lo mismo que encabeza la
+       columna en móvil: es la única con plazo. El aviso del formulario baja un
+       puesto —no vence— y los últimos formularios cierran. */
+    /* Sin casilla para el aviso: dejó de ser una tarjeta y flota sobre todo
+       esto. El rail se queda con lo que sí ocupa sitio —la pregunta de cierre,
+       que es la única con plazo, y los últimos formularios. */
     grid-template-areas:
-      ". recomendacion pendiente   ."
-      ". factores      resultado   ."
+      ". recomendacion resultado   ."
       ". factores      formularios .";
     align-content: start;
     /* Cada tarjeta con su alto: la de factores ocupa dos filas y sin esto se
        estiraría hasta el fondo de la segunda, dejándose media tarjeta en
        blanco. */
     align-items: start;
-    gap: var(--faro-esp-20);
-    padding: calc(var(--faro-esp-20) + var(--faro-cupula)) 0
-      calc(var(--faro-esp-20) + env(safe-area-inset-bottom, 0px));
+    gap: var(--blubathon-esp-20);
+    padding: calc(var(--blubathon-esp-20) + var(--blubathon-cupula)) 0
+      calc(var(--blubathon-esp-20) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* El mismo hueco que en móvil, sobre el acolchado de la retícula: el aviso
+     flota en la misma esquina y tapa lo mismo. */
+  .pantalla__contenido--con-aviso {
+    padding-bottom: calc(
+      var(--blubathon-esp-20) + var(--blubathon-aviso-hueco) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .pantalla__zona--recomendacion {
@@ -408,10 +558,6 @@ defineExpose({ recargar });
     grid-area: resultado;
   }
 
-  .pantalla__zona--pendiente {
-    grid-area: pendiente;
-  }
-
   /* Carga y error ocupan el sitio de todo lo demás, que es exactamente lo que
      hacían en la columna: no hay tarjetas con las que compartir la retícula. */
   .pantalla__aviso {
@@ -420,7 +566,6 @@ defineExpose({ recargar });
        entera se leería lejos de donde iban a estar las tarjetas. */
     grid-column: 2 / 4;
     align-self: start;
-    margin-bottom: 0;
   }
 }
 </style>

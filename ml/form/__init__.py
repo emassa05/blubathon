@@ -1,6 +1,6 @@
 """The adaptive form: quality, value of information, ordering and abstention.
 
-Pure functions over already-loaded rows (CONVENTIONS 9.1). Nothing here reads a
+Pure functions over already-loaded rows. Nothing here reads a
 database or a clock; the caller passes the history and the cutoff.
 """
 

@@ -17,7 +17,7 @@ from packages.shared.domain import prediction as prediction_models
 SCHEMA_ARTIFACT = "contract_schema"
 
 _PUBLISHED: tuple[type[BaseModel], ...] = (
-    # Faro v0.4 HTTP and WebSocket contracts.
+    # Blubathon v0.4 HTTP and WebSocket contracts.
     api.ErrorDetail,
     api.ErrorResponse,
     api.DefaultSuggestion,
@@ -31,6 +31,8 @@ _PUBLISHED: tuple[type[BaseModel], ...] = (
     api.ChildHistoryResponse,
     api.ChildHistoryDay,
     api.TodayRecommendationResponse,
+    api.CalibrationBand,
+    api.CalibrationResponse,
     api.PredictionOutputView,
     api.PredictionEpisodeResponse,
     api.OutcomeRequestView,
@@ -43,6 +45,9 @@ _PUBLISHED: tuple[type[BaseModel], ...] = (
     api.RecommendationListResponse,
     api.FeedbackRequest,
     api.FeedbackResponse,
+    api.RecommendationDecisionRequest,
+    api.RecommendationDecisionResponse,
+    api.ReviewQueueResponse,
     api.NotificationEvent,
     # Domain rows P2 persists and P1 reads back.
     identity.Subject,
