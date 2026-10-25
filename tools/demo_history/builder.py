@@ -246,12 +246,27 @@ def build_history(
     if hoy > ahora:
         hoy = ahora - MARGEN_VENTANA_CERRADA
 
+    # El paso de un día al siguiente se cuenta en tiempo absoluto, no en reloj
+    # de pared.
+    #
+    # Restar un día a una fecha con zona resta en el reloj local y recalcula el
+    # desfase, así que en el cambio de hora dos envíos consecutivos quedan a 23
+    # o a 25 horas. A 23 el segundo cae dentro de la ventana de 24 h del
+    # primero, que todavía está abierta: el envío se engancha a ese episodio
+    # (`episode_linked`) en vez de abrir el suyo, y el desenlace que se reporta
+    # a continuación apunta a una ventana que ya no lo contiene. Anclando en
+    # UTC las ventanas de 24 h se tocan justo en el borde, que es la única
+    # separación que el dominio acepta. La fecha de cada día se sigue leyendo
+    # en la zona de referencia.
+    ancla = hoy.astimezone(UTC)
+
     sembrados: list[DiaSembrado] = []
     try:
         # De más antiguo a más reciente, para que cada episodio vea a los
         # anteriores ya resueltos, igual que en el tiempo real.
         for offset in range(days, 0, -1):
-            enviado_a_las = hoy - timedelta(days=offset)
+            enviado_a_las = ancla - timedelta(days=offset)
+            fecha_local = enviado_a_las.astimezone(REFERENCE_ZONE).date().isoformat()
             # Repartidos por todo el rango, no en bloque al principio. Un bloque
             # deja los días difíciles perfectamente separados de los tranquilos,
             # y sobre eso el challenger no aprende nada útil: la costumbre del
@@ -267,7 +282,7 @@ def build_history(
                     tenant_id=DEMO_TENANT_ID,
                     subject_id=child_id,
                     source="caregiver_daily",
-                    local_date=enviado_a_las.date().isoformat(),
+                    local_date=fecha_local,
                     answers=_answers(dificil, offset, perfil),
                     now=canonical_timestamp(enviado_a_las),
                 )
@@ -275,7 +290,7 @@ def build_history(
             if episodio is None:
                 continue
 
-            crisis = _hubo_crisis(child_id, enviado_a_las.date().isoformat(), dificil)
+            crisis = _hubo_crisis(child_id, fecha_local, dificil)
             reportado_a_las = enviado_a_las + timedelta(hours=HORAS_HASTA_EL_REPORTE)
             ocurrido_a_las = enviado_a_las + timedelta(hours=HORAS_HASTA_EL_EPISODIO)
             with core.database.write() as connection:
@@ -291,7 +306,7 @@ def build_history(
                 )
             sembrados.append(
                 DiaSembrado(
-                    local_date=enviado_a_las.date().isoformat(),
+                    local_date=fecha_local,
                     prediction_episode_id=str(episodio),
                     outcome_value=reporte.report.value,
                     resolution_status=reporte.resolution.status,
